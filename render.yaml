@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: grand-lynks-hotel
+    env: node
+    plan: free
+    buildCommand: npm install && npx prisma migrate deploy && node prisma/seed.js
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: grand-lynks-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: grand-lynks-db
+    plan: free
+    databaseName: grand_lynks
+    user: grand_lynks_user
