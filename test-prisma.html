@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prisma API Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .test-section {
+        background: white;
+        margin: 20px 0;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .test-button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      .test-button:hover {
+        background: #0056b3;
+      }
+      .result {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+      .error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+      }
+      .loading {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🧪 Prisma API Test Page</h1>
+    <p>
+      This page tests the new Prisma-based API endpoints to ensure they're
+      working correctly.
+    </p>
+
+    <div class="test-section">
+      <h3>1. Health Check</h3>
+      <button class="test-button" onclick="testHealth()">
+        Test /api/health
+      </button>
+      <div id="health-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>2. Rooms</h3>
+      <button class="test-button" onclick="testRooms()">Test /api/rooms</button>
+      <div id="rooms-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>3. Menu</h3>
+      <button class="test-button" onclick="testMenu()">Test /api/menu</button>
+      <div id="menu-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>4. Guests</h3>
+      <button class="test-button" onclick="testGuests()">
+        Test /api/guests
+      </button>
+      <div id="guests-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>5. Bookings</h3>
+      <button class="test-button" onclick="testBookings()">
+        Test /api/bookings
+      </button>
+      <div id="bookings-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>6. Orders</h3>
+      <button class="test-button" onclick="testOrders()">
+        Test /api/orders
+      </button>
+      <div id="orders-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>7. Test All</h3>
+      <button class="test-button" onclick="testAll()">
+        Test All Endpoints
+      </button>
+      <div id="all-result" class="result"></div>
+    </div>
+
+    <script>
+      const BASE_URL = "http://localhost:5000";
+
+      function showResult(elementId, content, type = "success") {
+        const element = document.getElementById(elementId);
+        element.textContent = content;
+        element.className = `result ${type}`;
+      }
+
+      function showLoading(elementId) {
+        showResult(elementId, "Testing...", "loading");
+      }
+
+      async function testEndpoint(endpoint, elementId) {
+        showLoading(elementId);
+        try {
+          const response = await fetch(`${BASE_URL}${endpoint}`);
+          const data = await response.json();
+          showResult(elementId, JSON.stringify(data, null, 2), "success");
+          return data;
+        } catch (error) {
+          showResult(elementId, `Error: ${error.message}`, "error");
+          return null;
+        }
+      }
+
+      async function testHealth() {
+        await testEndpoint("/api/health", "health-result");
+      }
+
+      async function testRooms() {
+        await testEndpoint("/api/rooms", "rooms-result");
+      }
+
+      async function testMenu() {
+        await testEndpoint("/api/menu", "menu-result");
+      }
+
+      async function testGuests() {
+        await testEndpoint("/api/guests", "guests-result");
+      }
+
+      async function testBookings() {
+        await testEndpoint("/api/bookings", "bookings-result");
+      }
+
+      async function testOrders() {
+        await testEndpoint("/api/orders", "orders-result");
+      }
+
+      async function testAll() {
+        showLoading("all-result");
+        const results = {};
+
+        try {
+          results.health = await fetch(`${BASE_URL}/api/health`).then((r) =>
+            r.json()
+          );
+          results.rooms = await fetch(`${BASE_URL}/api/rooms`).then((r) =>
+            r.json()
+          );
+          results.menu = await fetch(`${BASE_URL}/api/menu`).then((r) =>
+            r.json()
+          );
+          results.guests = await fetch(`${BASE_URL}/api/guests`).then((r) =>
+            r.json()
+          );
+          results.bookings = await fetch(`${BASE_URL}/api/bookings`).then((r) =>
+            r.json()
+          );
+          results.orders = await fetch(`${BASE_URL}/api/orders`).then((r) =>
+            r.json()
+          );
+
+          const summary = {
+            health: results.health.ok ? "✅" : "❌",
+            rooms: `✅ ${results.rooms.length} rooms`,
+            menu: `✅ ${results.menu.length} items`,
+            guests: `✅ ${results.guests.length} guests`,
+            bookings: `✅ ${results.bookings.length} bookings`,
+            orders: `✅ ${results.orders.length} orders`,
+          };
+
+          showResult(
+            "all-result",
+            "🎉 All endpoints tested successfully!\n\n" +
+              Object.entries(summary)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join("\n") +
+              "\n\nFull results:\n" +
+              JSON.stringify(results, null, 2),
+            "success"
+          );
+        } catch (error) {
+          showResult(
+            "all-result",
+            `Error during testing: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
+      // Auto-test health on page load
+      window.onload = function () {
+        testHealth();
+      };
+    </script>
+  </body>
+</html>

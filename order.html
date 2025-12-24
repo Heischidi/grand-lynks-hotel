@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Food - Luxury Hotel</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap");
+
+    .font-playfair {
+      font-family: "Playfair Display", serif;
+    }
+
+    .font-inter {
+      font-family: "Inter", sans-serif;
+    }
+
+    .menu-item {
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .menu-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+
+    .cart-slide {
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .cart-slide.open {
+      transform: translateX(0);
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeIn 0.6s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .bounce-in {
+      animation: bounceIn 0.5s ease;
+    }
+
+    @keyframes bounceIn {
+      0% {
+        transform: scale(0.3);
+        opacity: 0;
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+
+      70% {
+        transform: scale(0.9);
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+
+<body class="bg-[#F8F6F3] font-inter">
+  <!-- Notification -->
+  <div id="notification" class="notification bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+    <div class="flex items-center">
+      <span class="mr-2">✅</span>
+      <span id="notificationText">Item added to cart!</span>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center">
+          <h1 class="text-2xl font-playfair font-bold text-[#8b1d30]">
+            Grand Lynks
+          </h1>
+        </div>
+        <div class="hidden md:flex space-x-8">
+          <a href="#appetizers" class="text-gray-700 hover:text-[#b38e2f] transition-colors">Appetizers</a>
+          <a href="#mains" class="text-gray-700 hover:text-[#b38e2f] transition-colors">Main Courses</a>
+          <a href="#desserts" class="text-gray-700 hover:text-[#b38e2f] transition-colors">Desserts</a>
+          <a href="#beverages" class="text-gray-700 hover:text-[#b38e2f] transition-colors">Beverages</a>
+        </div>
+        <button id="cartButton"
+          class="relative bg-[#8b1d30] text-white px-6 py-2 rounded-full hover:bg-[#6b1524] transition-colors">
+          🛒 Cart (<span id="cartCount">0</span>)
+          <span id="cartBadge"
+            class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center hidden">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-r from-[#8b1d30] to-[#b38e2f] text-white py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h1 class="text-5xl font-playfair font-bold mb-6">Delicious Dining</h1>
+      <p class="text-xl mb-8 opacity-90 max-w-3xl mx-auto">
+        Experience culinary excellence from the comfort of your room or dine
+        in our elegant restaurant. Fresh ingredients, expert preparation, and
+        exceptional service.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <div class="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
+          <span class="text-sm">🚚 Room Service Available</span>
+        </div>
+        <div class="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
+          <span class="text-sm">⏰ Open 24/7</span>
+        </div>
+        <div class="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
+          <span class="text-sm">🍽️ Dine-in Available</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Menu Categories -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Appetizers -->
+    <section id="appetizers" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
+          🥗 Appetizers
+        </h2>
+        <p class="text-xl text-gray-600">
+          Start your meal with our delicious appetizers
+        </p>
+      </div>
+      o
+      <div id="appetizers-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    </section>
+
+    <!-- Main Courses -->
+    <section id="mains" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
+          🍽️ Main Courses
+        </h2>
+        <p class="text-xl text-gray-600">
+          Expertly prepared dishes for every palate
+        </p>
+      </div>
+      <div id="mains-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    </section>
+
+    <!-- Desserts -->
+    <section id="desserts" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
+          🍰 Desserts
+        </h2>
+        <p class="text-xl text-gray-600">
+          Sweet endings to perfect your meal
+        </p>
+      </div>
+      <div id="desserts-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    </section>
+
+    <!-- Beverages -->
+    <section id="beverages" class="mb-16">
+      <div class="text-center mb-12">
+        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
+          🍹 Beverages
+        </h2>
+        <p class="text-xl text-gray-600">
+          Refreshing drinks to complement your meal
+        </p>
+      </div>
+      <div id="beverages-grid" class="grid md:grid-cols-2 lg:grid-cols-4 gap-8"></div>
+    </section>
+  </main>
+
+  <!-- Cart Sidebar -->
+  <div id="cartSidebar" class="cart-slide fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto">
+    <div class="p-6 border-b border-gray-200">
+      <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-playfair font-bold">Your Order</h2>
+        <button id="closeCart" class="text-gray-500 hover:text-gray-700 text-2xl">
+          &times;
+        </button>
+      </div>
+    </div>
+
+    <div id="cartItems" class="p-6 flex-1">
+      <div class="text-center text-gray-500 py-8">
+        <span class="text-4xl mb-4 block">🛒</span>
+        <p>Your cart is empty</p>
+      </div>
+    </div>
+
+    <div id="cartFooter" class="border-t border-gray-200 p-6 hidden">
+      <div class="mb-4">
+        <div class="flex justify-between text-lg font-semibold">
+          <span>Subtotal:</span>
+          <span id="cartSubtotal">$0.00</span>
+        </div>
+        <div class="flex justify-between text-sm text-gray-600">
+          <span>Tax (8.5%):</span>
+          <span id="cartTax">$0.00</span>
+        </div>
+        <div class="flex justify-between text-sm text-gray-600">
+          <span>Delivery Fee:</span>
+          <span id="deliveryFee">$5.00</span>
+        </div>
+        <div class="border-t pt-2 mt-2">
+          <div class="flex justify-between text-xl font-bold">
+            <span>Total:</span>
+            <span id="cartTotal">$0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Option</label>
+          <select id="deliveryOption" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="room">Room Service (+$5.00)</option>
+            <option value="pickup">Restaurant Pickup (Free)</option>
+          </select>
+        </div>
+
+        <div id="roomNumberDiv">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Room Number</label>
+          <input type="text" id="roomNumber" placeholder="e.g., 205"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
+          <textarea id="specialInstructions" placeholder="Any special requests..."
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 h-20 resize-none"></textarea>
+        </div>
+
+        <button id="checkoutBtn"
+          class="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold">
+          Place Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart Overlay -->
+  <div id="cartOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+  <script>
+    let cart = {};
+    let cartCount = 0;
+    let cartTotal = 0;
+
+    // Show notification
+    function showNotification(message, type = "success") {
+      const notification = document.getElementById("notification");
+      const notificationText = document.getElementById("notificationText");
+
+      notificationText.textContent = message;
+
+      if (type === "success") {
+        notification.className =
+          "notification bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg";
+      } else if (type === "error") {
+        notification.className =
+          "notification bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg";
+      }
+
+      notification.classList.add("show");
+
+      setTimeout(() => {
+        notification.classList.remove("show");
+      }, 3000);
+    }
+
+    // Change quantity
+    function changeQuantity(itemId, change) {
+      const qtyElement = document.getElementById(itemId + "-qty");
+      let currentQty = parseInt(qtyElement.textContent);
+      let newQty = Math.max(0, currentQty + change);
+      qtyElement.textContent = newQty;
+    }
+
+    // Add to cart
+    function addToCart(itemId, itemName, price) {
+      const qtyElement = document.getElementById(itemId + "-qty");
+      const quantity = parseInt(qtyElement.textContent);
+
+      if (quantity === 0) {
+        showNotification("Please select a quantity first", "error");
+        return;
+      }
+
+      if (cart[itemId]) {
+        cart[itemId].quantity += quantity;
+      } else {
+        cart[itemId] = {
+          name: itemName,
+          price: price,
+          quantity: quantity,
+        };
+      }
+
+      // Reset quantity display
+      qtyElement.textContent = "0";
+
+      updateCartDisplay();
+      showNotification(`${itemName} added to cart!`);
+    }
+
+    // Update cart display
+    function updateCartDisplay() {
+      cartCount = 0;
+      cartTotal = 0;
+
+      Object.values(cart).forEach((item) => {
+        cartCount += item.quantity;
+        cartTotal += item.price * item.quantity;
+      });
+
+      document.getElementById("cartCount").textContent = cartCount;
+
+      const cartBadge = document.getElementById("cartBadge");
+      if (cartCount > 0) {
+        cartBadge.textContent = cartCount;
+        cartBadge.classList.remove("hidden");
+      } else {
+        cartBadge.classList.add("hidden");
+      }
+
+      updateCartSidebar();
+    }
+
+    // Update cart sidebar
+    function updateCartSidebar() {
+      const cartItems = document.getElementById("cartItems");
+      const cartFooter = document.getElementById("cartFooter");
+
+      if (cartCount === 0) {
+        cartItems.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <span class="text-4xl mb-4 block">🛒</span>
+                        <p>Your cart is empty</p>
+                    </div>
+                `;
+        cartFooter.classList.add("hidden");
+        return;
+      }
+
+      let itemsHTML = "";
+      Object.entries(cart).forEach(([itemId, item]) => {
+        itemsHTML += `
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                        <div class="flex-1">
+                            <h4 class="font-medium">${item.name}</h4>
+                            <p class="text-sm text-gray-600">$${item.price} each</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="bg-gray-200 hover:bg-gray-300 w-6 h-6 rounded-full flex items-center justify-center text-sm" onclick="updateCartItem('${itemId}', -1)">-</button>
+                            <span class="w-8 text-center">${item.quantity}</span>
+                            <button class="bg-gray-200 hover:bg-gray-300 w-6 h-6 rounded-full flex items-center justify-center text-sm" onclick="updateCartItem('${itemId}', 1)">+</button>
+                            <button class="text-red-500 hover:text-red-700 ml-2" onclick="removeFromCart('${itemId}')">🗑️</button>
+                        </div>
+                    </div>
+                `;
+      });
+
+      cartItems.innerHTML = itemsHTML;
+      cartFooter.classList.remove("hidden");
+
+      // Update totals
+      const subtotal = cartTotal;
+      const tax = subtotal * 0.085;
+      const deliveryOption = document.getElementById("deliveryOption").value;
+      const deliveryFee = deliveryOption === "room" ? 5 : 0;
+      const total = subtotal + tax + deliveryFee;
+
+      document.getElementById(
+        "cartSubtotal"
+      ).textContent = `$${subtotal.toFixed(2)}`;
+      document.getElementById("cartTax").textContent = `$${tax.toFixed(2)}`;
+      document.getElementById(
+        "deliveryFee"
+      ).textContent = `$${deliveryFee.toFixed(2)}`;
+      document.getElementById("cartTotal").textContent = `$${total.toFixed(
+        2
+      )}`;
+    }
+
+    // Update cart item quantity
+    function updateCartItem(itemId, change) {
+      if (cart[itemId]) {
+        cart[itemId].quantity += change;
+        if (cart[itemId].quantity <= 0) {
+          delete cart[itemId];
+        }
+        updateCartDisplay();
+      }
+    }
+
+    // Remove from cart
+    function removeFromCart(itemId) {
+      delete cart[itemId];
+      updateCartDisplay();
+      showNotification("Item removed from cart");
+    }
+
+    // Cart sidebar functionality
+    document
+      .getElementById("cartButton")
+      .addEventListener("click", function () {
+        document.getElementById("cartSidebar").classList.add("open");
+        document.getElementById("cartOverlay").classList.remove("hidden");
+      });
+
+    document
+      .getElementById("closeCart")
+      .addEventListener("click", function () {
+        document.getElementById("cartSidebar").classList.remove("open");
+        document.getElementById("cartOverlay").classList.add("hidden");
+      });
+
+    document
+      .getElementById("cartOverlay")
+      .addEventListener("click", function () {
+        document.getElementById("cartSidebar").classList.remove("open");
+        document.getElementById("cartOverlay").classList.add("hidden");
+      });
+
+    // Delivery option change
+    document
+      .getElementById("deliveryOption")
+      .addEventListener("change", function () {
+        const roomDiv = document.getElementById("roomNumberDiv");
+        if (this.value === "room") {
+          roomDiv.style.display = "block";
+        } else {
+          roomDiv.style.display = "none";
+        }
+        updateCartSidebar();
+      });
+
+    // Checkout
+    document
+      .getElementById("checkoutBtn")
+      .addEventListener("click", async function () {
+        const deliveryOption =
+          document.getElementById("deliveryOption").value;
+        const roomNumber = document.getElementById("roomNumber").value;
+        const specialInstructions = document.getElementById(
+          "specialInstructions"
+        ).value;
+
+        if (deliveryOption === "room" && !roomNumber) {
+          showNotification("Please enter your room number", "error");
+          return;
+        }
+        // Prepare payload for backend
+        const items = Object.values(cart).map((i) => ({
+          id: i.id,
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+        }));
+        const payload = {
+          room_id: deliveryOption === "room" ? roomNumber : null,
+          guest_name: null,
+          items: items.map((i) => `${i.name} x${i.quantity}`).join(", "),
+          total_price: items.reduce(
+            (sum, i) => sum + i.price * i.quantity,
+            0
+          ),
+          status: "pending",
+          notes: specialInstructions || "",
+        };
+
+        try {
+          const cfg = window.APP_CONFIG || {};
+          if (!cfg.USE_MOCK) {
+            await fetch(
+              (cfg.API_URL || "http://localhost:5000/api") +
+              "/room-service-orders",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              }
+            );
+          }
+          showNotification(
+            "Order placed successfully! Estimated delivery: 30-45 minutes"
+          );
+        } catch (err) {
+          showNotification(
+            "Could not submit to backend. Please try again.",
+            "error"
+          );
+          return;
+        }
+
+        // Reset cart
+        cart = {};
+        updateCartDisplay();
+
+        // Close cart
+        document.getElementById("cartSidebar").classList.remove("open");
+        document.getElementById("cartOverlay").classList.add("hidden");
+
+        // Reset form
+        document.getElementById("roomNumber").value = "";
+        document.getElementById("specialInstructions").value = "";
+      });
+
+    // Smooth scrolling for navigation
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+      anchor.addEventListener("click", function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute("href"));
+        if (target) {
+          target.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      });
+    });
+
+    // Add fade-in animation to menu items
+    document.addEventListener("DOMContentLoaded", function () {
+      const menuItems = document.querySelectorAll(".menu-item");
+
+      const observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("fade-in");
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+
+      menuItems.forEach((item) => {
+        observer.observe(item);
+      });
+
+      // --- DYNAMIC MENU LOADING ---
+      const API_URL = window.APP_CONFIG?.API_URL || "http://localhost:5000/api";
+
+      const categoryGrids = {
+        Appetizer: document.getElementById("appetizers-grid"),
+        "Main Course": document.getElementById("mains-grid"),
+        Dessert: document.getElementById("desserts-grid"),
+        Beverage: document.getElementById("beverages-grid"),
+      };
+
+      const categoryIcons = {
+        Appetizer: "🥗",
+        "Main Course": "🍽️",
+        Dessert: "🍰",
+        Beverage: "🍹",
+      };
+
+      function createMenuItemHTML(item) {
+        const itemId = `item-${item.id}`;
+        const icon = categoryIcons[item.category] || "🍴";
+        return `
+                <div class="menu-item bg-white rounded-2xl shadow-lg overflow-hidden fade-in">
+                    <div class="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
+                        ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover">` : `<span class="text-6xl">${icon}</span>`}
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-playfair font-semibold mb-2">${item.name
+          }</h3>
+                        <p class="text-gray-600 mb-4 h-16">${item.description || ""
+          }</p>
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-2xl font-bold text-[#8b1d30]">$${item.price
+          }</span>
+                            <div class="flex items-center space-x-2">
+                                <button class="quantity-btn bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full flex items-center justify-center" onclick="changeQuantity('${itemId}', -1)">-</button>
+                                <span id="${itemId}-qty" class="w-8 text-center">0</span>
+                                <button class="quantity-btn bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full flex items-center justify-center" onclick="changeQuantity('${itemId}', 1)">+</button>
+                            </div>
+                        </div>
+                        <button class="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors" onclick="addToCart('${itemId}', '${item.name}', ${item.price})">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            `;
+      }
+
+      function renderMenu(items) {
+        // Clear any existing content or skeletons
+        Object.values(categoryGrids).forEach((grid) => {
+          if (grid) grid.innerHTML = "";
+        });
+
+        items.forEach((item) => {
+          const grid = categoryGrids[item.category];
+          if (grid) {
+            grid.insertAdjacentHTML("beforeend", createMenuItemHTML(item));
+          }
+        });
+      }
+
+      function showSkeletons() {
+        const skeletonHTML = `
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="h-48 bg-gray-200 animate-pulse"></div>
+                    <div class="p-6">
+                        <div class="h-6 bg-gray-300 rounded w-3/4 mb-4 animate-pulse"></div>
+                        <div class="h-4 bg-gray-200 rounded w-full mb-2 animate-pulse"></div>
+                        <div class="h-4 bg-gray-200 rounded w-5/6 mb-4 animate-pulse"></div>
+                        <div class="flex justify-between items-center">
+                            <div class="h-8 bg-gray-300 rounded w-1/4 animate-pulse"></div>
+                            <div class="h-10 bg-orange-200 rounded-lg w-1/2 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        Object.values(categoryGrids).forEach((grid) => {
+          if (grid) {
+            grid.innerHTML = skeletonHTML.repeat(3);
+          }
+        });
+      }
+
+      async function loadMenu() {
+        showSkeletons();
+        try {
+          const response = await fetch(`${API_URL}/menu`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const menuItems = await response.json();
+          if (menuItems.length > 0) {
+            renderMenu(menuItems);
+          } else {
+            Object.values(categoryGrids).forEach((grid) => {
+              if (grid)
+                grid.innerHTML =
+                  "<p>No menu items available in this category.</p>";
+            });
+          }
+        } catch (error) {
+          console.error("Failed to load menu:", error);
+          Object.values(categoryGrids).forEach((grid) => {
+            if (grid)
+              grid.innerHTML =
+                '<p class="text-red-500">Could not load menu. Please try again later.</p>';
+          });
+        }
+      }
+
+      loadMenu();
+    });
+  </script>
+  <script>
+    (function () {
+      function c() {
+        var b = a.contentDocument || a.contentWindow.document;
+        if (b) {
+          var d = b.createElement("script");
+          d.innerHTML =
+            "window.__CF$cv$params={r:'976cb081372514f9',t:'MTc1NjQ3NzIzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+          b.getElementsByTagName("head")[0].appendChild(d);
+        }
+      }
+      if (document.body) {
+        var a = document.createElement("iframe");
+        a.height = 1;
+        a.width = 1;
+        a.style.position = "absolute";
+        a.style.top = 0;
+        a.style.left = 0;
+        a.style.border = "none";
+        a.style.visibility = "hidden";
+        document.body.appendChild(a);
+        if ("loading" !== document.readyState) c();
+        else if (window.addEventListener)
+          document.addEventListener("DOMContentLoaded", c);
+        else {
+          var e = document.onreadystatechange || function () { };
+          document.onreadystatechange = function (b) {
+            e(b);
+            "loading" !== document.readyState &&
+              ((document.onreadystatechange = e), c());
+          };
+        }
+      }
+    })();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Grand Lynks</title>
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <!-- Tailwind CSS (via CDN for simplicity in this specific file, matching order.html approach) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f6f8;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* CustomScrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 h-screen overflow-hidden flex flex-col">
+
+    <!-- LOGIN SECTION -->
+    <section id="login-section"
+        class="flex items-center justify-center h-full w-full absolute top-0 left-0 bg-gray-900 bg-opacity-50 z-50 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md transform transition-all scale-100">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Sign In</h1>
+                <p class="text-gray-500 text-sm">Grand Lynks Administration</p>
+            </div>
+
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="username"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors"
+                        placeholder="Enter username" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="password"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors"
+                        placeholder="••••••••" required>
+                </div>
+                <div id="loginError" class="text-red-500 text-sm text-center hidden">Invalid credentials</div>
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors font-medium">
+                    Access Dashboard
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- DASHBOARD CONTENT (Hidden by default) -->
+    <div id="dashboard-container" class="flex h-full hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col shadow-lg z-10">
+            <div class="p-6 border-b border-gray-200 flex items-center justify-center">
+                <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Grand Lynks</h2>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto py-4">
+                <ul class="space-y-1 px-3">
+                    <li>
+                        <button onclick="switchTab('rooms')" id="nav-rooms"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">🛏️</span> Rooms
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('menu')" id="nav-menu"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">🍽️</span> Food Menu
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('orders')" id="nav-orders"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">📦</span> Orders
+                        </button>
+                    </li>
+                    <li class="border-t border-gray-100 my-2 pt-2">
+                        <a href="index.html" target="_blank"
+                            class="w-full block px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">
+                            ↗ Visit Website
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center mb-3">
+                    <div
+                        class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs mr-3">
+                        A</div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900" id="adminUsernameDisplay">Admin</p>
+                        <p class="text-xs text-gray-500">Administrator</p>
+                    </div>
+                </div>
+                <button onclick="handleLogout()"
+                    class="w-full text-center px-4 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 text-sm transition-colors">
+                    Log Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-8 relative">
+
+            <!-- ROOMS SECTION -->
+            <section id="section-rooms" class="fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Room Management</h2>
+                    <button onclick="openModal('roomModal')"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+                        + Add Room
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Number</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Type</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Price/Night</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status</th>
+                                <th
+                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roomsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- JS will populate -->
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading rooms...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- MENU SECTION -->
+            <section id="section-menu" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Menu Management</h2>
+                    <button onclick="openModal('menuModal')"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+                        + Add Item
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Image</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Name</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Category</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Price</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Available</th>
+                                <th
+                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menuTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- JS will populate -->
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading menu...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ORDERS SECTION -->
+            <section id="section-orders" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Order Management</h2>
+                    <button onclick="fetchOrders()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        ↻ Refresh
+                    </button>
+                </div>
+
+                <div class="space-y-4" id="ordersContainer">
+                    <!-- JS will populate -->
+                    <div class="text-center text-gray-500 py-10">Loading orders...</div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Add Room Modal -->
+    <div id="roomModal"
+        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Add New Room</h3>
+                <button onclick="closeModal('roomModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form id="addRoomForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Room Number</label>
+                    <input type="text" name="number" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Type</label>
+                    <select name="type" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                        <option value="Standard Room">Standard Room</option>
+                        <option value="Deluxe Room">Deluxe Room</option>
+                        <option value="Executive Room">Executive Room</option>
+                        <option value="VIP Room">VIP Room</option>
+                        <option value="Royal Room">Royal Room</option>
+                        <option value="Grand Royal">Grand Royal</option>
+                        <option value="Grand Studio">Grand Studio</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price (₦)</label>
+                    <input type="number" name="price" required min="0"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" rows="2"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="button" onclick="closeModal('roomModal')"
+                        class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save
+                        Room</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Room Modal -->
+    <div id="editRoomModal"
+        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Edit Room</h3>
+                <button onclick="closeModal('editRoomModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form id="editRoomForm" class="space-y-4">
+                <input type="hidden" name="id" id="editRoomId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Room Number</label>
+                    <input type="text" name="number" id="editRoomNumber" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Type</label>
+                    <select name="type" id="editRoomType" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                        <option value="Standard Room">Standard Room</option>
+                        <option value="Deluxe Room">Deluxe Room</option>
+                        <option value="Executive Room">Executive Room</option>
+                        <option value="VIP Room">VIP Room</option>
+                        <option value="Royal Room">Royal Room</option>
+                        <option value="Grand Royal">Grand Royal</option>
+                        <option value="Grand Studio">Grand Studio</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price (₦)</label>
+                    <input type="number" name="price" id="editRoomPrice" required min="0"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" id="editRoomDescription" rows="2"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Status</label>
+                    <select name="status" id="editRoomStatus"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                        <option value="available">Available</option>
+                        <option value="booked">Booked</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="button" onclick="closeModal('editRoomModal')"
+                        class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Update
+                        Room</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Add Menu Modal -->
+        <div id="menuModal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Add Menu Item</h3>
+                    <button onclick="closeModal('menuModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <form id="addMenuForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <select name="category" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <option value="Appetizer">Appetizer</option>
+                            <option value="Main Course">Main Course</option>
+                            <option value="Dessert">Dessert</option>
+                            <option value="Beverage">Beverage</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Price (₦)</label>
+                        <input type="number" name="price" required min="0"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Image URL</label>
+                        <input type="text" name="image" placeholder="images/food/..."
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" rows="2"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="button" onclick="closeModal('menuModal')"
+                            class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save
+                            Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            const script = document.createElement('script');
+            script.src = `admin.js?v=${new Date().getTime()}`;
+            document.body.appendChild(script);
+        </script>
+</body>
+
+</html>

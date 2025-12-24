@@ -1,0 +1,239 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  password  String    // bcrypt hash
+  role      String    @default("admin")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Room {
+  id            Int       @id @default(autoincrement())
+  number        Int       @unique
+  type          String
+  pricePerNight Float
+  status        String    @default("available") // available, occupied, maintenance, reserved
+  description   String?
+  amenities     String?   // JSON string of amenities
+  images        String?   // JSON string of image paths
+  bookings      Booking[]
+  orders        Order[]
+  maintenanceRequests MaintenanceRequest[]
+  housekeepingTasks   HousekeepingTask[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("rooms")
+}
+
+model Guest {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String
+  email     String
+  idNumber  String?
+  address   String?
+  bookings  Booking[]
+  orders    Order[]
+  payments  Payment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("guests")
+}
+
+model Booking {
+  id           Int       @id @default(autoincrement())
+  guestId      Int
+  roomId       Int
+  startDate    DateTime
+  endDate      DateTime
+  status       String    @default("pending") // pending, confirmed, checked-in, checked-out, cancelled
+  totalAmount  Float
+  specialRequests String?
+  guest        Guest     @relation(fields: [guestId], references: [id])
+  room         Room      @relation(fields: [roomId], references: [id])
+  payments     Payment[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("bookings")
+}
+
+model MenuItem {
+  id          Int         @id @default(autoincrement())
+  name        String
+  category    String
+  price       Float
+  available   Boolean     @default(true)
+  description String?
+  image       String?
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("menu_items")
+}
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  guestId      Int?
+  roomId       Int?
+  status       String      @default("pending") // pending, preparing, ready, delivered, cancelled
+  totalAmount  Float
+  notes        String?
+  guest        Guest?      @relation(fields: [guestId], references: [id])
+  room         Room?       @relation(fields: [roomId], references: [id])
+  orderItems   OrderItem[]
+  payments     Payment[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  orderId    Int
+  menuItemId Int
+  quantity   Int
+  unitPrice  Float
+  order      Order    @relation(fields: [orderId], references: [id])
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@map("order_items")
+}
+
+model Payment {
+  id           Int      @id @default(autoincrement())
+  amount       Float
+  method       String   // card, cash, transfer, etc.
+  reference    String?  // transaction reference
+  status       String   @default("pending") // pending, completed, failed, refunded
+  bookingId    Int?
+  orderId      Int?
+  guestId      Int
+  booking      Booking? @relation(fields: [bookingId], references: [id])
+  order        Order?   @relation(fields: [orderId], references: [id])
+  guest        Guest    @relation(fields: [guestId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("payments")
+}
+
+model Review {
+  id           Int      @id @default(autoincrement())
+  guestName    String
+  guestEmail   String?
+  guestType    String?  // business, leisure, family, etc.
+  rating       Int      // 1-5 stars
+  title        String?
+  content      String
+  highlights   String?
+  suggestions  String?
+  status       String   @default("pending") // pending, approved, rejected
+  featured     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("reviews")
+}
+
+model ContentSection {
+  id          Int      @id @default(autoincrement())
+  page        String   // home, about, rooms, etc.
+  section     String   // hero, about, features, etc.
+  title       String?
+  subtitle    String?
+  content     String?
+  images      String?  // JSON string of image paths
+  metadata    String?  // JSON string for additional data
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([page, section])
+  @@map("content_sections")
+}
+
+model SiteSettings {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  type        String   @default("text") // text, number, boolean, json, image
+  category    String   @default("general") // general, contact, social, booking, etc.
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model Staff {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  phone       String?
+  role        String
+  department  String
+  status      String   @default("active") // active, inactive, on_leave
+  hireDate    DateTime?
+  salary      Float?
+  permissions String?  // JSON string of permissions
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("staff")
+}
+
+model MaintenanceRequest {
+  id          Int      @id @default(autoincrement())
+  roomId      Int?
+  title       String
+  description String
+  priority    String   @default("medium") // low, medium, high, urgent
+  status      String   @default("pending") // pending, in_progress, completed, cancelled
+  assignedTo  String?
+  reportedBy  String
+  estimatedCost Float?
+  actualCost  Float?
+  completedAt DateTime?
+  room        Room?    @relation(fields: [roomId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("maintenance_requests")
+}
+
+model HousekeepingTask {
+  id          Int      @id @default(autoincrement())
+  roomId      Int?
+  taskType    String   // cleaning, maintenance, inspection
+  description String
+  status      String   @default("pending") // pending, in_progress, completed
+  assignedTo  String?
+  priority    String   @default("normal") // low, normal, high
+  estimatedTime Int?   // in minutes
+  completedAt DateTime?
+  notes       String?
+  room        Room?    @relation(fields: [roomId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("housekeeping_tasks")
+}

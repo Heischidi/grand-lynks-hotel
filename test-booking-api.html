@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Booking API Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .test-section {
+        background: white;
+        margin: 20px 0;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .test-button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      .test-button:hover {
+        background: #0056b3;
+      }
+      .result {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+      .error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+      }
+      .loading {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+      }
+      .preloader-controls {
+        background: #e9ecef;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🧪 Booking API Test Page</h1>
+    <p>This page tests the booking API integration and helps debug issues.</p>
+
+    <div class="preloader-controls">
+      <h3>Preloader Controls</h3>
+      <button class="test-button" onclick="window.showPreloader()">
+        Show Preloader
+      </button>
+      <button class="test-button" onclick="window.hidePreloader()">
+        Hide Preloader
+      </button>
+      <button class="test-button" onclick="checkPreloader()">
+        Check Preloader Status
+      </button>
+    </div>
+
+    <div class="test-section">
+      <h3>1. Test Rooms API</h3>
+      <button class="test-button" onclick="testRoomsAPI()">
+        Test /api/rooms
+      </button>
+      <div id="rooms-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>2. Test Guest Creation</h3>
+      <button class="test-button" onclick="testGuestCreation()">
+        Test Guest Creation
+      </button>
+      <div id="guest-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>3. Test Booking Creation</h3>
+      <button class="test-button" onclick="testBookingCreation()">
+        Test Booking Creation
+      </button>
+      <div id="booking-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>4. Test Complete Flow</h3>
+      <button class="test-button" onclick="testCompleteFlow()">
+        Test Complete Flow
+      </button>
+      <div id="flow-result" class="result"></div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:5000/api";
+
+      function showResult(elementId, content, type = "success") {
+        const element = document.getElementById(elementId);
+        element.textContent = content;
+        element.className = `result ${type}`;
+      }
+
+      function showLoading(elementId) {
+        showResult(elementId, "Testing...", "loading");
+      }
+
+      function checkPreloader() {
+        const preloader = document.getElementById("mainPreloader");
+        if (preloader) {
+          console.log("Preloader found:", preloader);
+          console.log("Preloader classes:", preloader.className);
+          console.log(
+            "Preloader display:",
+            window.getComputedStyle(preloader).display
+          );
+        } else {
+          console.log("No preloader found");
+        }
+      }
+
+      async function testRoomsAPI() {
+        showLoading("rooms-result");
+        try {
+          const response = await fetch(`${API_URL}/rooms`);
+          const data = await response.json();
+
+          const summary = {
+            totalRooms: data.length,
+            availableRooms: data.filter(
+              (r) => r.status === "available" || r.available === true
+            ).length,
+            sampleRoom: data[0]
+              ? {
+                  id: data[0].id,
+                  number: data[0].number,
+                  type: data[0].type,
+                  pricePerNight: data[0].pricePerNight,
+                  status: data[0].status,
+                  available: data[0].available,
+                }
+              : null,
+          };
+
+          showResult(
+            "rooms-result",
+            `✅ Rooms API working!\n\n` +
+              `Total rooms: ${summary.totalRooms}\n` +
+              `Available rooms: ${summary.availableRooms}\n\n` +
+              `Sample room:\n${JSON.stringify(
+                summary.sampleRoom,
+                null,
+                2
+              )}\n\n` +
+              `Full response:\n${JSON.stringify(data, null, 2)}`,
+            "success"
+          );
+        } catch (error) {
+          showResult("rooms-result", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function testGuestCreation() {
+        showLoading("guest-result");
+        try {
+          const guestData = {
+            name: "Test Guest",
+            email: "test@example.com",
+            phone: "08012345678",
+          };
+
+          const response = await fetch(`${API_URL}/guests`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(guestData),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              `HTTP ${response.status}: ${errorData.error || "Unknown error"}`
+            );
+          }
+
+          const data = await response.json();
+          showResult(
+            "guest-result",
+            `✅ Guest created successfully!\n\n` +
+              `Guest ID: ${data.guest.id}\n` +
+              `Name: ${data.guest.name}\n` +
+              `Email: ${data.guest.email}\n\n` +
+              `Full response:\n${JSON.stringify(data, null, 2)}`,
+            "success"
+          );
+        } catch (error) {
+          showResult("guest-result", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function testBookingCreation() {
+        showLoading("booking-result");
+        try {
+          // First create a guest
+          const guestData = {
+            name: "Booking Test Guest",
+            email: "booking@example.com",
+            phone: "08087654321",
+          };
+
+          const guestResponse = await fetch(`${API_URL}/guests`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(guestData),
+          });
+
+          if (!guestResponse.ok) {
+            throw new Error("Failed to create guest for booking test");
+          }
+
+          const guest = await guestResponse.json();
+
+          // Then create a booking
+          const bookingData = {
+            guestId: guest.guest.id,
+            roomId: 1, // Assuming room ID 1 exists
+            startDate: "2024-12-20",
+            endDate: "2024-12-22",
+            status: "pending",
+          };
+
+          const bookingResponse = await fetch(`${API_URL}/bookings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bookingData),
+          });
+
+          if (!bookingResponse.ok) {
+            const errorData = await bookingResponse.json();
+            throw new Error(
+              `HTTP ${bookingResponse.status}: ${
+                errorData.error || "Unknown error"
+              }`
+            );
+          }
+
+          const data = await bookingResponse.json();
+          showResult(
+            "booking-result",
+            `✅ Booking created successfully!\n\n` +
+              `Booking ID: ${data.booking.id}\n` +
+              `Guest: ${data.booking.guest.name}\n` +
+              `Room: ${data.booking.room.number}\n` +
+              `Total Amount: ₦${data.booking.totalAmount}\n\n` +
+              `Full response:\n${JSON.stringify(data, null, 2)}`,
+            "success"
+          );
+        } catch (error) {
+          showResult("booking-result", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function testCompleteFlow() {
+        showLoading("flow-result");
+        try {
+          // Test all endpoints in sequence
+          const results = {};
+
+          // 1. Test rooms
+          results.rooms = await fetch(`${API_URL}/rooms`).then((r) => r.json());
+
+          // 2. Test guest creation
+          const guestData = {
+            name: "Flow Test",
+            email: "flow@test.com",
+            phone: "08011111111",
+          };
+          results.guest = await fetch(`${API_URL}/guests`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(guestData),
+          }).then((r) => r.json());
+
+          // 3. Test booking creation
+          const bookingData = {
+            guestId: results.guest.guest.id,
+            roomId: 1,
+            startDate: "2024-12-25",
+            endDate: "2024-12-27",
+            status: "pending",
+          };
+          results.booking = await fetch(`${API_URL}/bookings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bookingData),
+          }).then((r) => r.json());
+
+          const summary = {
+            rooms: `✅ ${results.rooms.length} rooms available`,
+            guest: `✅ Guest created with ID ${results.guest.guest.id}`,
+            booking: `✅ Booking created with ID ${results.booking.booking.id}`,
+          };
+
+          showResult(
+            "flow-result",
+            `🎉 Complete flow test successful!\n\n` +
+              Object.entries(summary)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join("\n") +
+              "\n\nFull results:\n" +
+              JSON.stringify(results, null, 2),
+            "success"
+          );
+        } catch (error) {
+          showResult(
+            "flow-result",
+            `❌ Flow test failed: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
+      // Auto-test rooms API on page load
+      window.onload = function () {
+        testRoomsAPI();
+      };
+    </script>
+  </body>
+</html>
+
+

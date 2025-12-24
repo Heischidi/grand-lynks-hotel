@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Thank you for your booking at Grand Lynks Homes & Apartments. We will confirm your stay shortly." />
+  <meta name="keywords" content="Grand Lynks, Thank You, Booking Confirmation, Hotel, Apartments, Abuja" />
+  <title>Thank You – Grand Lynks</title>
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      /* Consistent font */
+      text-align: center;
+      padding: 100px 20px;
+      background: linear-gradient(to bottom right, #f8f4f0, #e6d9cc);
+      color: var(--text-dark);
+      /* Use variable */
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .thankyou-container {
+      background: #fff8f0;
+      border: 1px solid #d6c2ad;
+      padding: 40px;
+      max-width: 500px;
+      margin: auto;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    h1 {
+      font-size: 42px;
+      color: var(--gold);
+      /* Use variable */
+      margin-bottom: 15px;
+    }
+
+    p {
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 25px;
+      padding: 12px 30px;
+      background-color: var(--burgundy);
+      /* Use variable */
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background 0.3s ease;
+    }
+
+    a:hover {
+      background-color: #5c2f00;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="thankyou-container">
+    <h1>Thank You!</h1>
+    <p>
+      Your booking has been received. We’ll get back to you shortly to confirm
+      your stay.
+    </p>
+    <a href="index.html">Return to Home</a>
+  </div>
+
+  <script>
+    fetch("components/navbar.html?v=" + new Date().getTime())
+      .then((response) => response.text())
+      .then((data) => {
+        document.getElementById("navbar-placeholder").innerHTML = data;
+
+        // Initialize mobile menu functionality
+        const mobileToggle = document.querySelector(".mobile-menu-toggle");
+        const navLinks = document.querySelector(".nav-links");
+
+        if (mobileToggle && navLinks) {
+          mobileToggle.addEventListener("click", function () {
+            navLinks.classList.toggle("active");
+            mobileToggle.classList.toggle("open");
+          });
+
+          // Close mobile menu when clicking on a link
+          navLinks.querySelectorAll("a").forEach((link) => {
+            link.addEventListener("click", () => {
+              navLinks.classList.remove("active");
+              mobileToggle.classList.remove("open");
+            });
+          });
+        }
+      });
+  </script>
+</body>
+
+</html>

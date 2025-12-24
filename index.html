@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Grand Lynks Homes & Apartments - Your comfort, our interest. Luxurious stays in Gwarinpa, Abuja." />
+  <meta name="keywords"
+    content="Grand Lynks, Homes, Apartments, Hotel, Abuja, Gwarinpa, luxury, accommodation, booking, stay" />
+  <title>Grand Lynks Homes & Apartments</title>
+  <link rel="icon" href="images/grandfullfront.jpeg" type="image/jpeg" />
+  <script src="config.js"></script>
+
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400&display=swap"
+    rel="stylesheet" />
+
+  <!-- External CSS -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="preloader.css" />
+  <!-- Add to HEAD -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet" />
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header>
+    <div id="navbar-placeholder"></div>
+  </header>
+
+  <!-- HERO SECTION with FULLSCREEN SLIDESHOW -->
+  <section class="hero-overlay">
+    <div class="slideshow">
+      <div class="slide active" style="
+            background-image: url('images/closeupstraightgrandlynksshot.jpeg');
+          "></div>
+      <div class="slide" style="background-image: url('images/grandVIP201.jpeg')"></div>
+      <div class="slide" style="background-image: url('images/grandroom101.jpeg')"></div>
+    </div>
+
+    <div class="hero-text fade-in">
+      <h1>Grand Lynks Homes & Apartments</h1>
+      <p>Your comfort, our interest..</p>
+      <a href="booking.html" class="btn">Book Your Stay</a>
+    </div>
+  </section>
+  <!-- ABOUT SECTION -->
+  <section class="about" data-aos="fade-up">
+    <h2>The Grand Life</h2>
+    <p>
+      At Grand Lynks Homes & Apartments, we believe every stay should feel
+      intentional, luxurious, and truly unforgettable. Nestled in the heart of
+      Gwarinpa, Abuja, our boutique hotel and apartments are thoughtfully
+      designed for comfort, elegance, and ease — whether you’re visiting for
+      business, leisure, or an escape. Welcome to where comfort meets
+      prestige. <br />
+      Welcome to the Grand living!
+    </p>
+  </section>
+
+  <!-- BROCHURE-STYLE SECTION -->
+  <section class="brochure-section">
+    <div class="brochure-container">
+      <div class="brochure-left">
+        <img src="images/staffsmileworkplantanglefavshot.jpeg" alt="Smiling staff at Grand Lynks"
+          class="brochure-image" />
+        <img src="images/slightcloseupcompoundshot.jpeg" alt="Grand Lynks compound" class="brochure-image" />
+        <div class="brochure-text">
+          <h3>STAY. UNWIND. REPEAT</h3>
+          <p>YOUR URBAN ESCAPE</p>
+        </div>
+      </div>
+      <div class="brochure-middle">
+        <h3>We're Grand!</h3>
+        <p>
+          We're your cozy escape -whether you're here to unwind, spend time
+          with loved ones, or its strictly business, we're here to make your
+          stay easy and enjoyable.
+        </p>
+        <img src="images/closeupstraightgrandlynksshot.jpeg" alt="Grand Lynks interior" class="brochure-image" />
+      </div>
+      <div class="brochure-right">
+        <img src="images/grandroom205.jpeg" alt="Luxury room at Grand Lynks" class="brochure-image" />
+        <div class="brochure-logo">
+          <h2>RELAX. EXPLORE. ENJOY</h2>
+          <p>YOUR HOME AWAY</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVIEWS SECTION -->
+  <section class="reviews-section" data-aos="fade-up">
+    <div class="container">
+      <h2 class="section-title">What Our Guests Say</h2>
+      <div class="reviews-grid">
+        <div class="review-card" data-aos="fade-up" data-aos-delay="100">
+          <div class="review-stars">⭐⭐⭐⭐⭐</div>
+          <p class="review-text">
+            "Absolutely stunning! The rooms are immaculate and the service is
+            exceptional. Grand Lynks truly lives up to its name. Will
+            definitely return!"
+          </p>
+          <div class="review-author">
+            <strong>Sarah Johnson</strong>
+            <span class="review-location">Business Traveler</span>
+          </div>
+        </div>
+
+        <div class="review-card" data-aos="fade-up" data-aos-delay="200">
+          <div class="review-stars">⭐⭐⭐⭐⭐</div>
+          <p class="review-text">
+            "Perfect location in Gwarinpa, beautiful facilities, and the staff
+            went above and beyond to make our family vacation memorable."
+          </p>
+          <div class="review-author">
+            <strong>Michael Chen</strong>
+            <span class="review-location">Family Guest</span>
+          </div>
+        </div>
+
+        <div class="review-card" data-aos="fade-up" data-aos-delay="300">
+          <div class="review-stars">⭐⭐⭐⭐⭐</div>
+          <p class="review-text">
+            "The attention to detail is remarkable. From the elegant decor to
+            the personalized service, this is luxury accommodation at its
+            finest."
+          </p>
+          <div class="review-author">
+            <strong>Amara Okechukwu</strong>
+            <span class="review-location">Local Resident</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVIEW SUBMISSION CTA -->
+      <div class="review-cta" data-aos="fade-up" data-aos-delay="400">
+        <h3 class="review-cta-title">Share Your Experience</h3>
+        <p class="review-cta-subtitle">
+          We'd love to hear about your stay at Grand Lynks
+        </p>
+        <button class="btn btn-primary" onclick="openReviewModal()">
+          ✍️ Write a Review
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVIEW MODAL -->
+  <div id="reviewModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Share Your Experience</h3>
+        <span class="close" onclick="closeReviewModal()">&times;</span>
+      </div>
+
+      <form class="review-form" id="reviewForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="reviewerName">Your Name *</label>
+            <input type="text" id="reviewerName" name="reviewerName" required />
+          </div>
+          <div class="form-group">
+            <label for="reviewerEmail">Email Address</label>
+            <input type="email" id="reviewerEmail" name="reviewerEmail" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="reviewerType">Guest Type</label>
+            <select id="reviewerType" name="reviewerType">
+              <option value="business">Business Traveler</option>
+              <option value="leisure">Leisure Guest</option>
+              <option value="family">Family</option>
+              <option value="couple">Couple</option>
+              <option value="local">Local Resident</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="reviewRating">Rating *</label>
+            <div class="rating-input">
+              <input type="radio" id="star5" name="rating" value="5" required />
+              <label for="star5">⭐</label>
+              <input type="radio" id="star4" name="rating" value="4" />
+              <label for="star4">⭐</label>
+              <input type="radio" id="star3" name="rating" value="3" />
+              <label for="star3">⭐</label>
+              <input type="radio" id="star2" name="rating" value="2" />
+              <label for="star2">⭐</label>
+              <input type="radio" id="star1" name="rating" value="1" />
+              <label for="star1">⭐</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="reviewTitle">Review Title</label>
+          <input type="text" id="reviewTitle" name="reviewTitle"
+            placeholder="e.g., Amazing stay, Perfect location, etc." />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="reviewText">Your Review *</label>
+          <textarea id="reviewText" name="reviewText" rows="4" placeholder="Tell us about your experience..."
+            required></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="reviewHighlights">What did you enjoy most?</label>
+          <textarea id="reviewHighlights" name="reviewHighlights" rows="2"
+            placeholder="e.g., The room comfort, staff service, location, amenities..."></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="reviewSuggestions">Any suggestions for improvement?</label>
+          <textarea id="reviewSuggestions" name="reviewSuggestions" rows="2"
+            placeholder="We're always looking to improve..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-submit">Submit Review</button>
+          <button type="button" class="btn btn-clear" onclick="clearReviewForm()">
+            Clear Form
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-content">
+      <!-- Brand Section -->
+      <div class="footer-section">
+        <h3>Grand Lynks</h3>
+        <p>
+          Your comfort, our interest. Experience updated luxury living in the heart of Gwarinpa, Abuja. We define modern
+          hospitality with a touch of class.
+        </p>
+        <div class="social-links">
+          <a href="#" aria-label="Facebook"><i class="social-icon">📘</i></a>
+          <a href="#" aria-label="Instagram"><i class="social-icon">📷</i></a>
+          <a href="#" aria-label="Twitter"><i class="social-icon">🐦</i></a>
+          <a href="#" aria-label="WhatsApp"><i class="social-icon">📱</i></a>
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="footer-section">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="rooms.html">Our Rooms</a></li>
+          <li><a href="booking.html">Book Now</a></li>
+          <li><a href="order.html">Room Service</a></li>
+          <li><a href="#about">About Us</a></li>
+        </ul>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="footer-section">
+        <h4>Contact Us</h4>
+        <div class="contact-info">
+          <p>
+            <strong>📍 Address:</strong>
+            <span>80 Pa Michael Imoudu (3rd Avenue), Gwarinpa, Abuja, Nigeria</span>
+          </p>
+          <p><strong>📞 Phone:</strong> <span>+234 814 223 4691</span></p>
+          <p><strong>✉️ Email:</strong> <span>grandlynkshomesandapartments@gmail.com</span></p>
+        </div>
+      </div>
+
+      <!-- Amenities/Hours -->
+      <div class="footer-section">
+        <h4>Amenities</h4>
+        <ul>
+          <li><a href="#">24/7 Electricity</a></li>
+          <li><a href="#">Free High-Speed WiFi</a></li>
+          <li><a href="#">Luxury Restaurant</a></li>
+          <li><a href="#">Daily Housekeeping</a></li>
+        </ul>
+        <p style="margin-top: 20px; font-size: 0.9rem; color: #888;">
+          <strong style="color: #fff;">Check-in:</strong> 2:00 PM<br>
+          <strong style="color: #fff;">Check-out:</strong> 11:00 AM
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; 2025 Grand Lynks Homes & Apartments. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Cookie Policy</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Add before </body> -->
+  <script src="config.js"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="preloader.js"></script>
+  <script src="mobile-enhancements.js"></script>
+  <script src="review-integration.js"></script>
+  <script>
+    // SLIDESHOW SCRIPT
+    window.addEventListener("DOMContentLoaded", function () {
+      const slides = document.querySelectorAll(".slide");
+      let currentSlide = 0;
+
+      function showNextSlide() {
+        if (slides.length === 0) return;
+        slides[currentSlide].classList.remove("active");
+        currentSlide = (currentSlide + 1) % slides.length;
+        slides[currentSlide].classList.add("active");
+      }
+
+      setInterval(showNextSlide, 4000); // 4 seconds
+
+      AOS.init({ duration: 1000, easing: "ease-in-out" });
+
+      // Smooth scroll
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          document.querySelector(this.getAttribute("href")).scrollIntoView({
+            behavior: "smooth",
+          });
+        });
+      });
+
+      // Back to top
+      (function () {
+        const backToTop = document.getElementById("backToTop");
+        if (!backToTop) return;
+        window.addEventListener("scroll", () => {
+          if (window.scrollY > 300) {
+            backToTop.style.display = "block";
+          } else {
+            backToTop.style.display = "none";
+          }
+        });
+        backToTop.addEventListener("click", () =>
+          window.scrollTo({ top: 0, behavior: "smooth" })
+        );
+      })();
+    });
+
+    // Review modal functions
+    function openReviewModal() {
+      const modal = document.getElementById("reviewModal");
+      if (modal) {
+        modal.style.display = "block";
+      }
+    }
+
+    function closeReviewModal() {
+      const modal = document.getElementById("reviewModal");
+      if (modal) {
+        modal.style.display = "none";
+      }
+    }
+
+    function clearReviewForm() {
+      const form = document.getElementById("reviewForm");
+      if (form) {
+        form.reset();
+      }
+    }
+
+    // Close modal when clicking outside
+    window.addEventListener("click", function (event) {
+      const modal = document.getElementById("reviewModal");
+      if (event.target === modal) {
+        closeReviewModal();
+      }
+    });
+
+    // Handle review form submission
+    document.addEventListener("DOMContentLoaded", function () {
+      const reviewForm = document.getElementById("reviewForm");
+      if (reviewForm) {
+        reviewForm.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          // Show loading state
+          if (window.Preloader) {
+            window.Preloader.showElementLoading(this, "form");
+            const submitButton = this.querySelector('button[type="submit"]');
+            if (submitButton) {
+              window.Preloader.showButtonLoading(submitButton);
+            }
+          }
+
+          // Simulate form submission
+          setTimeout(() => {
+            // Hide loading state
+            if (window.Preloader) {
+              window.Preloader.hideElementLoading(this, "form");
+              const submitButton = this.querySelector(
+                'button[type="submit"]'
+              );
+              if (submitButton) {
+                window.Preloader.hideButtonLoading(submitButton);
+              }
+            }
+
+            // Show success message
+            if (window.UI && window.UI.toast) {
+              window.UI.toast("Review submitted successfully!", "success");
+            }
+
+            // Close modal and reset form
+            closeReviewModal();
+            clearReviewForm();
+          }, 2000);
+        });
+      }
+    });
+  </script>
+  <button id="backToTop" title="Back to top">&#8679;</button>
+  <script>
+    // Navbar Loader
+    fetch("components/navbar.html?v=" + new Date().getTime())
+      .then((response) => response.text())
+      .then((data) => {
+        document.getElementById("navbar-placeholder").innerHTML = data;
+
+        // Initialize mobile menu functionality
+        const mobileToggle = document.querySelector(".mobile-menu-toggle");
+        const navLinks = document.querySelector(".nav-links");
+
+        if (mobileToggle && navLinks) {
+          mobileToggle.addEventListener("click", function () {
+            navLinks.classList.toggle("active");
+
+            // Toggle hamburger menu animation class
+            mobileToggle.classList.toggle("open");
+          });
+
+          // Close mobile menu when clicking on a link
+          navLinks.querySelectorAll("a").forEach((link) => {
+            link.addEventListener("click", () => {
+              navLinks.classList.remove("active");
+              mobileToggle.classList.remove("open"); // Also remove 'open' class
+            });
+          });
+        }
+      });
+  </script>
+</body>
+
+</html>

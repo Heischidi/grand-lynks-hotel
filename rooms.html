@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Explore the luxurious rooms and apartments at Grand Lynks Homes & Apartments in Gwarinpa, Abuja." />
+  <meta name="keywords"
+    content="Grand Lynks, Rooms, Apartments, Hotel, Abuja, Gwarinpa, luxury, accommodation, VIP, Executive, Royal, Deluxe, Standard, Studio" />
+  <title>Rooms - Grand Lynks</title>
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Poppins:wght@300;400;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="preloader.css" />
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header>
+    <div id="navbar-placeholder"></div>
+  </header>
+
+  <main>
+    <!-- Hero Section for Rooms Page -->
+    <section class="hero-overlay hero-rooms">
+      <div class="slideshow">
+        <div class="slide active" style="background-image: url('images/grandlynksbackground.jpeg')"></div>
+        <div class="slide" style="background-image: url('images/grandreceptionfull.jpeg')"></div>
+        <div class="slide" style="background-image: url('images/grandroom101.jpeg')"></div>
+      </div>
+      <div class="hero-text fade-in">
+        <h1>Our Luxurious Rooms & Suites</h1>
+        <p>
+          Indulge in unparalleled comfort and elegance. Discover your perfect
+          retreat.
+        </p>
+        <a href="#room-listings" class="btn">View All Rooms</a>
+        <a href="order.html" class="btn" style="margin-left: 12px">Order Food / Room Service</a>
+      </div>
+    </section>
+
+    <section class="rooms-section section-muted" id="room-listings">
+      <div class="wrap">
+        <h2>Explore Our Accommodations</h2>
+        <p class="section-description">
+          Each room and suite at Grand Lynks is designed with your utmost
+          comfort and luxury in mind, featuring elegant decor and modern
+          amenities.
+        </p>
+        <div class="room-grid" id="roomCards">
+          <!-- Room cards will be injected here by JS -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2025 Grand Lynks Homes & Apartments. All rights reserved.</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    // Navbar injection
+    fetch("components/navbar.html?v=" + new Date().getTime())
+      .then((response) => response.text())
+      .then((data) => {
+        document.getElementById("navbar-placeholder").innerHTML = data;
+
+        // Initialize mobile menu functionality
+        const mobileToggle = document.querySelector(".mobile-menu-toggle");
+        const navLinks = document.querySelector(".nav-links");
+
+        if (mobileToggle && navLinks) {
+          mobileToggle.addEventListener("click", function () {
+            navLinks.classList.toggle("active");
+            mobileToggle.classList.toggle("open");
+          });
+
+          // Close mobile menu when clicking on a link
+          navLinks.querySelectorAll("a").forEach((link) => {
+            link.addEventListener("click", () => {
+              navLinks.classList.remove("active");
+              mobileToggle.classList.remove("open");
+            });
+          });
+        }
+      });
+
+    // Hero slideshow functionality
+    let currentSlide = 0;
+    const slides = document.querySelectorAll(".hero-rooms .slide");
+    function showSlide(index) {
+      slides.forEach((slide, i) => {
+        slide.classList.remove("active");
+        if (i === index) {
+          slide.classList.add("active");
+        }
+      });
+    }
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % slides.length;
+      showSlide(currentSlide);
+    }
+    setInterval(nextSlide, 5000); // Change slide every 5 seconds
+    showSlide(currentSlide); // Initialize first slide
+
+    // Fetch rooms from backend and display with graceful fallback
+    const API_URL = "http://localhost:5000/api";
+
+    function renderRooms(list) {
+      const container = document.getElementById("roomCards");
+      container.innerHTML = "";
+      list.forEach((room) => {
+        const roomType = room.type || room.room_type || "Room";
+        const priceValue =
+          typeof room.price === "number" ? room.price : room.rate;
+        const isAvailable =
+          typeof room.available === "boolean"
+            ? room.available
+            : typeof room.status === "string"
+              ? room.status.toLowerCase() === "available"
+              : false;
+        let imgSrc = "";
+        switch (roomType) {
+          case "VIP Room":
+            imgSrc = "images/grandVIP201.jpeg";
+            break;
+          case "Executive Room":
+            imgSrc = "images/grandexecutive206.jpeg"; // Updated image
+            break;
+          case "Royal Room":
+            imgSrc = "images/grandroom103.jpeg";
+            break;
+          case "Deluxe Room":
+            imgSrc = "images/deluxe102bettershot.jpeg";
+            break;
+          case "Standard Room":
+            imgSrc = "images/standard20fullshot202.jpeg";
+            break;
+          case "Grand Royal":
+            imgSrc = "images/grandroom205.jpeg"; // Updated image
+            break;
+          case "Grand Studio":
+            imgSrc = "images/studiomirrorangleshot.jpeg";
+            break;
+          default:
+            imgSrc = "images/grandroom101.jpeg";
+        }
+        container.innerHTML += `
+            <div class="room-card" onclick="showRoomPreview('${roomType}', '${imgSrc}', ${priceValue}, '${room.description || "Comfortable and elegant."
+          }', ${room.id})">
+              <img loading="lazy" src="${imgSrc}" alt="${roomType}">
+              <div class="room-info">
+                <h3>${roomType}</h3>
+                <p>${room.description || "Comfortable and elegant."}</p>
+                <p class="room-price"><strong>₦${typeof priceValue === "number"
+            ? priceValue.toLocaleString()
+            : "N/A"
+          }</strong> per night</p>
+                <p class="room-availability ${isAvailable ? "available" : "booked"
+          }">
+                  ${isAvailable ? "Available" : "Booked"}
+                </p>
+                <button class="btn" onclick="event.stopPropagation(); checkAvailability(${room.id
+          }, '${roomType}')">Check Availability</button>
+                <a href="booking.html?room=${encodeURIComponent(
+            roomType
+          )}&price=${priceValue ?? ""
+          }" class="btn" onclick="event.stopPropagation()">Book Now</a>
+              </div>
+            </div>
+          `;
+      });
+    }
+
+    const MOCK_ROOMS = [
+      { type: "Standard Room", price: 20000, status: "available" },
+      { type: "Deluxe Room", price: 30000, status: "available" },
+      { type: "Executive Room", price: 45000, status: "booked" },
+    ];
+
+    // Show loading placeholders
+    (function showSkeletons() {
+      const container = document.getElementById("roomCards");
+      if (!container) return;
+      container.innerHTML = Array.from({ length: 6 })
+        .map(
+          () => `
+          <div class="room-card">
+            <div class="room-image-skeleton" style="height:180px;background:#eee;border-radius:8px"></div>
+            <div class="room-info">
+              <div style="height:18px;background:#eee;border-radius:6px;margin:8px 0;width:60%"></div>
+              <div style="height:14px;background:#f3f3f3;border-radius:6px;margin:8px 0;width:90%"></div>
+              <div style="height:14px;background:#f3f3f3;border-radius:6px;margin:8px 0;width:40%"></div>
+            </div>
+          </div>`
+        )
+        .join("");
+    })();
+
+    fetch(`${API_URL}/rooms`)
+      .then((res) => res.json())
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        if (!list.length) {
+          console.warn("Rooms API returned no data. Rendering mock rooms.");
+          renderRooms(MOCK_ROOMS);
+          return;
+        }
+        renderRooms(list);
+      })
+      .catch((error) => {
+        console.error("Error fetching rooms:", error);
+        renderRooms(MOCK_ROOMS);
+      });
+
+    // Room preview modal functionality
+    function showRoomPreview(roomType, imgSrc, price, description, roomId) {
+      const modal = document.createElement("div");
+      modal.className = "room-preview-modal";
+      modal.innerHTML = `
+          <div class="modal-overlay" onclick="closeRoomPreview()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+              <button class="close-btn" onclick="closeRoomPreview()">&times;</button>
+              <img src="${imgSrc}" alt="${roomType}" class="preview-image">
+              <div class="preview-info">
+                <h2>${roomType}</h2>
+                <p class="preview-description">${description}</p>
+                <p class="preview-price">₦${price?.toLocaleString()} per night</p>
+                <div class="preview-actions">
+                  <button class="btn" onclick="checkAvailability(${roomId}, '${roomType}')">Check Availability</button>
+                  <a href="booking.html?room=${encodeURIComponent(
+        roomType
+      )}&price=${price}" class="btn btn-primary">Book Now</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      document.body.appendChild(modal);
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeRoomPreview() {
+      const modal = document.querySelector(".room-preview-modal");
+      if (modal) {
+        modal.remove();
+        document.body.style.overflow = "";
+      }
+    }
+
+    // Check availability for specific room
+    async function checkAvailability(roomId, roomType) {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const checkIn = today.toISOString().split("T")[0];
+      const checkOut = tomorrow.toISOString().split("T")[0];
+
+      try {
+        const response = await fetch(`${API_URL}/check-availability`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ checkIn, checkOut }),
+        });
+
+        const availableRooms = await response.json();
+        const isAvailable = availableRooms.some((room) => room.id === roomId);
+
+        if (isAvailable) {
+          alert(`✅ ${roomType} is available! Redirecting to booking...`);
+          window.location.href = `booking.html?room=${encodeURIComponent(
+            roomType
+          )}&roomId=${roomId}`;
+        } else {
+          alert(
+            `❌ ${roomType} is not available for today. Please try different dates or choose another room.`
+          );
+        }
+      } catch (error) {
+        console.error("Error checking availability:", error);
+        alert(
+          "Unable to check availability. Please try again or contact us directly."
+        );
+      }
+    }
+  </script>
+  <script src="preloader.js"></script>
+  <script src="mobile-enhancements.js"></script>
+</body>
+
+</html>
