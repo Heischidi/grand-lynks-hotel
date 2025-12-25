@@ -12,7 +12,8 @@ const adminUsernameDisplay = document.getElementById('adminUsernameDisplay');
 const sections = {
     rooms: document.getElementById('section-rooms'),
     menu: document.getElementById('section-menu'),
-    orders: document.getElementById('section-orders')
+    orders: document.getElementById('section-orders'),
+    walkin: document.getElementById('section-walkin')
 };
 
 // --- AUTHENTICATION ---
@@ -130,6 +131,7 @@ function switchTab(tabName) {
         if (tabName === 'rooms') fetchRooms();
         if (tabName === 'menu') fetchMenu();
         if (tabName === 'orders') fetchOrders();
+        if (tabName === 'walkin') fetchAvailableRoomsForWalkIn();
     }
 }
 
@@ -451,6 +453,97 @@ async function updateOrderStatus(id, status) {
 
 // --- MODAL UTILS ---
 
+// --- WALK-IN MANAGEMENT ---
+
+async function fetchAvailableRoomsForWalkIn() {
+    const select = document.getElementById('walkInRoomSelect');
+    select.innerHTML = '<option value="">Loading...</option>';
+
+    const response = await fetch(`${API_URL}/rooms`);
+    if (response && response.ok) {
+        const rooms = await response.json();
+        const availableRooms = rooms.filter(r => r.available);
+
+        if (availableRooms.length === 0) {
+            select.innerHTML = '<option value="">No rooms available</option>';
+            return;
+        }
+
+        select.innerHTML = availableRooms.map(r =>
+            `<option value="${r.id}">${r.roomNumber || r.number} - ${r.type} (₦${r.pricePerNight || r.price})</option>`
+        ).join('');
+    } else {
+        select.innerHTML = '<option value="">Failed to load rooms</option>';
+    }
+}
+
+async function handleWalkInSubmit(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    const formData = new FormData(e.target);
+
+    try {
+        // 1. Create Guest
+        const guestData = {
+            name: formData.get('guestName'),
+            phone: formData.get('guestPhone'),
+            email: formData.get('guestEmail')
+        };
+
+        const guestResponse = await fetch(`${API_URL}/guests`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(guestData)
+        });
+
+        if (!guestResponse.ok) throw new Error('Failed to create guest record');
+        const guestResult = await guestResponse.json();
+        const guestId = guestResult.guest.id;
+
+        // 2. Create Booking
+        const bookingData = {
+            guestId: guestId,
+            roomId: formData.get('roomId'),
+            startDate: formData.get('startDate'),
+            endDate: formData.get('endDate'),
+            status: 'checked-in' // Walk-ins are usually immediate
+        };
+
+        // Note: Using authFetch for bookings if required, but server.js POST /bookings is confusingly open or closed.
+        // Line 395 in server.js: app.post("/api/bookings", validateBooking, ...) -> NO AUTH middleware listed in the line itself?
+        // Wait, other POSTs like /api/rooms have authenticateToken.
+        // Safer to use authFetch just in case, but if it fails due to no token (if user not logged in?), wait.
+        // Admin dashboard requires login, so authFetch is perfect.
+
+        const bookingResponse = await authFetch('/bookings', {
+            method: 'POST',
+            body: JSON.stringify(bookingData)
+        });
+
+        if (bookingResponse && bookingResponse.ok) {
+            alert('Guest successfully registered and checked in!');
+            e.target.reset();
+            switchTab('rooms'); // Go to rooms to see the status change
+        } else {
+            const err = await bookingResponse.json();
+            throw new Error(err.error || 'Failed to create booking');
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert('Error: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
+// --- MODAL UTILS ---
+
 window.openModal = function (id) {
     document.getElementById(id).classList.remove('hidden');
 }
@@ -465,6 +558,7 @@ loginForm.addEventListener('submit', handleLogin);
 document.getElementById('addRoomForm').addEventListener('submit', handleAddRoom);
 document.getElementById('editRoomForm').addEventListener('submit', handleEditRoom);
 document.getElementById('addMenuForm').addEventListener('submit', handleAddMenu);
+document.getElementById('walkInForm').addEventListener('submit', handleWalkInSubmit);
 
 // Init
 document.addEventListener('DOMContentLoaded', init);
