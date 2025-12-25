@@ -360,64 +360,112 @@ async function deleteMenuItem(id) {
 
 async function fetchOrders() {
     const container = document.getElementById('ordersContainer');
-    container.innerHTML = '<div class="text-center py-10">Loading orders...</div>';
+    container.innerHTML = '<div class="text-center py-10">Loading transactions...</div>';
 
-    const response = await authFetch('/orders');
-    // Note: server.js snippet shows app.get("/api/orders", authenticateToken...) -> NEEDS AUTH.
+    try {
+        const [ordersRes, bookingsRes] = await Promise.all([
+            authFetch('/orders'),
+            authFetch('/bookings')
+        ]);
 
-    if (response && response.ok) {
-        const orders = await response.json();
-        renderOrders(orders);
-    } else {
-        container.innerHTML = '<div class="text-center py-10 text-red-500">Failed to load orders</div>';
+        let allTransactions = [];
+
+        if (ordersRes && ordersRes.ok) {
+            const orders = await ordersRes.json();
+            // Tag them
+            orders.forEach(o => o.type = 'order');
+            allTransactions = [...allTransactions, ...orders];
+        }
+
+        if (bookingsRes && bookingsRes.ok) {
+            const bookings = await bookingsRes.json();
+            // Tag them
+            bookings.forEach(b => b.type = 'booking');
+            allTransactions = [...allTransactions, ...bookings];
+        }
+
+        // Sort by date desc
+        allTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        renderOrders(allTransactions);
+
+    } catch (error) {
+        console.error("Error fetching transactions:", error);
+        container.innerHTML = '<div class="text-center py-10 text-red-500">Failed to load transactions</div>';
     }
 }
 
-function renderOrders(orders) {
+function renderOrders(items) {
     const container = document.getElementById('ordersContainer');
     container.innerHTML = '';
 
-    if (orders.length === 0) {
-        container.innerHTML = '<div class="text-center py-10 text-gray-500">No active orders found.</div>';
+    if (items.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-500">No active orders or bookings found.</div>';
         return;
     }
 
-    orders.forEach(order => {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-lg shadow p-6 border-l-4 ' + getStatusColor(order.status);
+    items.forEach(item => {
+        const isBooking = item.type === 'booking';
 
-        const date = new Date(order.createdAt || Date.now()).toLocaleString();
-        const itemsList = order.orderItems ? order.orderItems.map(i =>
-            `<li>${i.quantity}x ${i.menuItem?.name || 'Item'} - ₦${i.unitPrice}</li>`
-        ).join('') : '<li>No details</li>';
+        const card = document.createElement('div');
+        // Blue border for bookings, Status color for orders
+        const borderColor = isBooking ? 'border-blue-500' : getStatusColor(item.status);
+        card.className = `bg-white rounded-lg shadow p-6 border-l-4 ${borderColor}`;
+
+        const date = new Date(item.createdAt || Date.now()).toLocaleString();
+
+        let itemsListHtml = '';
+        let title = '';
+        let statusBadge = '';
+
+        if (isBooking) {
+            title = `Booking #${item.id}`;
+            const nights = Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / (1000 * 60 * 60 * 24));
+            itemsListHtml = `
+                <li><strong>Room Booking</strong></li>
+                <li>Room: ${item.room ? item.room.number + ' (' + item.room.type + ')' : 'N/A'}</li>
+                <li>Check-in: ${new Date(item.startDate).toLocaleDateString()}</li>
+                <li>Duration: ${nights} night(s)</li>
+            `;
+            statusBadge = `<span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800 uppercase mt-1">${item.status}</span>`;
+        } else {
+            title = `Order #${item.id}`;
+            itemsListHtml = item.orderItems ? item.orderItems.map(i =>
+                `<li>${i.quantity}x ${i.menuItem?.name || 'Item'} - ₦${i.unitPrice}</li>`
+            ).join('') : '<li>No details</li>';
+            statusBadge = `<span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-gray-100 uppercase mt-1">${item.status}</span>`;
+        }
 
         card.innerHTML = `
             <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h3 class="text-lg font-bold">Order #${order.id}</h3>
+                    <h3 class="text-lg font-bold flex items-center">
+                        ${isBooking ? '<span class="mr-2">📅</span>' : '<span class="mr-2">🍽️</span>'}
+                        ${title}
+                    </h3>
                     <p class="text-sm text-gray-500">${date}</p>
                     <p class="text-sm font-medium mt-1">
-                        ${order.guest ? order.guest.name : 'Unknown Guest'} 
-                        ${order.room ? '(Room ' + order.room.roomNumber + ')' : ''}
+                        ${item.guest ? item.guest.name : 'Unknown Guest'} 
+                        ${item.room && !isBooking ? '(Room ' + item.room.roomNumber + ')' : ''}
                     </p>
                 </div>
                 <div class="text-right">
-                    <p class="text-xl font-bold text-blue-600">₦${order.totalAmount?.toLocaleString()}</p>
-                    <span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-gray-100 uppercase mt-1">
-                        ${order.status}
-                    </span>
+                    <p class="text-xl font-bold text-blue-600">₦${item.totalAmount?.toLocaleString()}</p>
+                    ${statusBadge}
                 </div>
             </div>
             <div class="border-t border-b border-gray-100 py-3 my-3">
                 <ul class="list-disc list-inside text-sm text-gray-700">
-                    ${itemsList}
+                    ${itemsListHtml}
                 </ul>
             </div>
             <div class="flex justify-end space-x-2">
-                 ${order.status !== 'completed' && order.status !== 'cancelled' ? `
-                    <button onclick="updateOrderStatus(${order.id}, 'completed')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">Mark Completed</button>
-                    <button onclick="updateOrderStatus(${order.id}, 'cancelled')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200 transition">Cancel</button>
-                 ` : '<span class="text-gray-400 text-sm">No actions available</span>'}
+                 ${!isBooking && item.status !== 'completed' && item.status !== 'cancelled' ? `
+                    <button onclick="updateOrderStatus(${item.id}, 'completed')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">Mark Completed</button>
+                    <button onclick="updateOrderStatus(${item.id}, 'cancelled')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200 transition">Cancel</button>
+                 ` : ''}
+                 ${isBooking ? '<span class="text-xs text-gray-400">Manage bookings in Rooms tab</span>' : ''}
+                 ${!isBooking && (item.status === 'completed' || item.status === 'cancelled') ? '<span class="text-gray-400 text-sm">No actions available</span>' : ''}
             </div>
         `;
         container.appendChild(card);
