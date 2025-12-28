@@ -437,7 +437,7 @@
                     <h3 class="text-lg font-bold">Add Menu Item</h3>
                     <button onclick="closeModal('menuModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
                 </div>
-                <form id="addMenuForm" class="space-y-4">
+                <form id="addMenuForm" class="space-y-4" enctype="multipart/form-data">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Name</label>
                         <input type="text" name="name" required
@@ -459,9 +459,10 @@
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Image URL</label>
-                        <input type="text" name="image" placeholder="images/food/..."
-                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                        <label class="block text-sm font-medium text-gray-700">Image</label>
+                        <input type="file" name="image" accept="image/*"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <p class="text-xs text-gray-500 mt-1">Upload an image (Max 5MB)</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Description</label>

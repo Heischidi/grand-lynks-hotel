@@ -314,27 +314,19 @@ function renderMenu(items) {
 async function handleAddMenu(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const data = {
-        name: formData.get('name'),
-        category: formData.get('category'),
-        price: parseFloat(formData.get('price')),
-        image: formData.get('image'),
-        description: formData.get('description'),
-        available: true
-    };
 
-    // NOTE: Server currently might verify token for api/menu POST based on implementation plan check?
-    // Let's assume it needs auth or we add it safely.
-    // Looking at server.js: app.post("/api/menu" ... ) DOES NOT have authenticateToken middleware in the provided snippet!
-    // But we should send the token anyway in case it gets added later.
+    // Explicitly set available to true if not present (checkbox) or just default
+    // Since we don't have a checkbox in the form for available yet, we assume true as per default schema
+    // If we added a checkbox, we'd handle it here.
+    formData.append('available', 'true');
 
-    // Wait, the snippet showed: app.post("/api/menu", async ... ) -> NO AUTH.
-    // Ideally user adds auth middleware, but for now we just hit the endpoint.
+    // Remove empty file object if user didn't select one? 
+    // Multer handles empty file fine (req.file will be undefined).
 
+    // Note: We do NOT set Content-Type header manually for FormData.
     const response = await fetch(`${API_URL}/menu`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: formData
     });
 
     if (response && response.ok) {
@@ -342,7 +334,8 @@ async function handleAddMenu(e) {
         e.target.reset();
         fetchMenu();
     } else {
-        alert('Failed to add menu item');
+        const err = await response.json().catch(() => ({}));
+        alert('Failed to add menu item: ' + (err.error || 'Unknown error'));
     }
 }
 

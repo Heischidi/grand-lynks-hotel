@@ -548,6 +548,38 @@ app.post("/api/check-availability", async (req, res) => {
   }
 });
 
+const multer = require("multer");
+const fs = require('fs');
+
+// Configure Multer for image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = 'images/menu';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    // Clean filename: timestamp + original name (replace spaces with underscores)
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const cleanName = file.originalname.replace(/\s+/g, '_');
+    cb(null, uniqueSuffix + '-' + cleanName);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed'));
+    }
+  }
+});
+
 // --- MENU ---
 app.get("/api/menu", async (req, res) => {
   try {
@@ -561,9 +593,12 @@ app.get("/api/menu", async (req, res) => {
   }
 });
 
-app.post("/api/menu", async (req, res) => {
+app.post("/api/menu", upload.single('image'), async (req, res) => {
   try {
-    const { name, category, price, description, available, image } = req.body;
+    // If file uploaded, use its path. Otherwise check body (for URL or fallback)
+    const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : req.body.image;
+
+    const { name, category, price, description, available } = req.body;
 
     if (!name || !category || !price) {
       return res
@@ -577,8 +612,8 @@ app.post("/api/menu", async (req, res) => {
         category,
         price: parseFloat(price),
         description,
-        available: available !== undefined ? available : true,
-        image,
+        available: available !== undefined ? (available === 'true' || available === true) : true,
+        image: imagePath,
       },
     });
     res.json({ message: "Menu item added", menuItem });
@@ -588,19 +623,28 @@ app.post("/api/menu", async (req, res) => {
   }
 });
 
-app.put("/api/menu/:id", async (req, res) => {
+app.put("/api/menu/:id", upload.single('image'), async (req, res) => {
   try {
-    const { name, category, price, description, available, image } = req.body;
+    const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : req.body.image;
+
+    // Note: FormData sends params as strings, so we might need to parse bools/numbers if not handled automatically
+    const { name, category, price, description, available } = req.body;
+
+    const updateData = {
+      name,
+      category,
+      price: price !== undefined ? parseFloat(price) : undefined,
+      description,
+      available: available !== undefined ? (available === 'true' || available === true) : undefined,
+    };
+
+    if (imagePath) {
+      updateData.image = imagePath;
+    }
+
     const menuItem = await prisma.menuItem.update({
       where: { id: parseInt(req.params.id) },
-      data: {
-        name,
-        category,
-        price: price !== undefined ? parseFloat(price) : undefined,
-        description,
-        available,
-        image,
-      },
+      data: updateData,
     });
     res.json({ message: "Menu item updated", menuItem });
   } catch (error) {
