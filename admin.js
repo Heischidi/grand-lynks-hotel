@@ -598,7 +598,10 @@ window.closeModal = function (id) {
 loginForm.addEventListener('submit', handleLogin);
 document.getElementById('addRoomForm').addEventListener('submit', handleAddRoom);
 document.getElementById('editRoomForm').addEventListener('submit', handleEditRoom);
-document.getElementById('addMenuForm').addEventListener('submit', handleAddMenu);
+const addMenuForm = document.getElementById('addMenuForm');
+if (addMenuForm) {
+    addMenuForm.addEventListener('submit', handleAddMenu);
+}
 document.getElementById('walkInForm').addEventListener('submit', handleWalkInSubmit);
 
 // Init
