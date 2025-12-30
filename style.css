@@ -1316,6 +1316,14 @@ body.admin-page {
   .rooms {
     background: #181818;
   }
+
+  /* Mobile menu dark background */
+  @media (max-width: 768px) {
+    .nav-links {
+      background: rgba(30, 30, 30, 0.98);
+      border-right: 1px solid #333;
+    }
+  }
 }
 
 /* Menu Preview Styles (for order.html) */
