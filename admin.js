@@ -191,15 +191,15 @@ function renderRooms(rooms) {
     rooms.forEach(room => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap font-medium">${room.roomNumber || room.number || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap">${room.type}</td>
-            <td class="px-6 py-4 whitespace-nowrap">₦${(room.pricePerNight || room.price).toLocaleString()}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm">${room.roomNumber || room.number || 'N/A'}</td>
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm">${room.type}</td>
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm">₦${(room.pricePerNight || room.price).toLocaleString()}</td>
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${room.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                     ${room.available ? 'Available' : 'Booked'}
                 </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium">
                 <button onclick="openEditRoomModal(${room.id})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
                 <button onclick="deleteRoom(${room.id})" class="text-red-600 hover:text-red-900">Delete</button>
             </td>
@@ -319,18 +319,18 @@ function renderMenu(items) {
     items.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap">
-                <img src="${item.image || 'images/placeholder-food.jpg'}" class="h-10 w-10 rounded-full object-cover" onerror="this.src='https://via.placeholder.com/40'">
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap">
+                <img src="${item.image || 'images/placeholder-food.jpg'}" class="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover" onerror="this.src='https://via.placeholder.com/40'">
             </td>
-            <td class="px-6 py-4 whitespace-nowrap font-medium">${item.name}</td>
-            <td class="px-6 py-4 whitespace-nowrap">${item.category}</td>
-            <td class="px-6 py-4 whitespace-nowrap">₦${item.price.toLocaleString()}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm">${item.name}</td>
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm">${item.category}</td>
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm">₦${item.price.toLocaleString()}</td>
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
                     ${item.available ? 'Yes' : 'No'}
                 </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium">
                 <button onclick="deleteMenuItem(${item.id})" class="text-red-600 hover:text-red-900">Delete</button>
             </td>
         `;
