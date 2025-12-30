@@ -16,7 +16,7 @@
   <!-- Link booking.css -->
   <!-- Paystack -->
   <script src="config.js"></script>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <!-- Paystack Removed -->
   <script src="preloader.js"></script>
   <script src="booking-integration.js"></script>
 </head>
@@ -86,7 +86,7 @@
                   <a href="#" id="openTerms">Terms & Conditions</a></span>
               </label>
 
-              <button id="btnPay" disabled>Pay with Paystack</button>
+              <button id="btnPay" disabled>Confirm Booking</button>
             </div>
           </section>
         </div>
@@ -95,6 +95,9 @@
         <aside class="summary" aria-live="polite">
           <h3>Booking Summary</h3>
           <div class="row"><span>Room:</span><span id="sumRoom">—</span></div>
+          <div class="row"><span>Check-in:</span><span id="sumCheckin">—</span></div>
+          <div class="row"><span>Check-out:</span><span id="sumCheckout">—</span></div>
+          <div class="row"><span>Guests:</span><span id="sumGuests">—</span></div>
           <div class="row">
             <span>Price (per night):</span><span id="sumPrice">—</span>
           </div>
@@ -229,7 +232,12 @@
 
       function updateSummary() {
         const roomPrice = selectedRoom ? (selectedRoom.pricePerNight || selectedRoom.price) : 0;
+
         el("sumRoom").textContent = selectedRoom ? selectedRoom.type : "—";
+        el("sumCheckin").textContent = el("checkin").value || "—";
+        el("sumCheckout").textContent = el("checkout").value || "—";
+        el("sumGuests").textContent = el("guests").value || "—";
+
         el("sumPrice").textContent = selectedRoom
           ? money(roomPrice)
           : "—";
@@ -351,8 +359,8 @@
         document.body.style.overflow = "";
       }
 
-      // 4) Paystack
-      function payWithPaystack() {
+      // 4) Manual Booking (Bank Transfer)
+      async function handleBookingSubmission() {
         const total = updateSummary();
         if (!total) {
           alert("Please select a room and valid dates.");
@@ -364,114 +372,49 @@
           window.Preloader.showButtonLoading(el("btnPay"));
         }
 
-        const handler = PaystackPop.setup({
-          key: PAYSTACK_PUBLIC_KEY,
-          email: el("email").value.trim(),
-          amount: total * 100, // kobo
-          currency: "NGN",
-          ref: "GL-" + Date.now(),
-          metadata: {
-            custom_fields: [
-              {
-                display_name: "Name",
-                variable_name: "name",
-                value: el("fullName").value.trim(),
-              },
-              {
-                display_name: "Phone",
-                variable_name: "phone",
-                value: el("phone").value.trim(),
-              },
-              {
-                display_name: "Room",
-                variable_name: "room",
-                value: selectedRoom.type,
-              },
-              {
-                display_name: "Nights",
-                variable_name: "nights",
-                value: String(nights),
-              },
-              {
-                display_name: "Check-in",
-                variable_name: "checkin",
-                value: el("checkin").value,
-              },
-              {
-                display_name: "Check-out",
-                variable_name: "checkout",
-                value: el("checkout").value,
-              },
-            ],
-          },
-          callback: function (response) {
-            // Hide loading state
-            if (window.Preloader) {
-              window.Preloader.hideButtonLoading(el("btnPay"));
-            }
+        try {
+          // First create/find guest
+          const guestData = {
+            name: el("fullName").value.trim(),
+            email: el("email").value.trim(),
+            phone: el("phone").value.trim(),
+          };
 
-            alert("Payment successful! Ref: " + response.reference);
+          const guestRes = await fetch(`${API_BASE}/guests`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(guestData),
+          });
+          const guestResponse = await guestRes.json();
+          const guestId = guestResponse.guest ? guestResponse.guest.id : guestResponse.id;
 
-            // First create/find guest, then create booking
-            const guestData = {
-              name: el("fullName").value.trim(),
-              email: el("email").value.trim(),
-              phone: el("phone").value.trim(),
-            };
+          // Create booking (Pending)
+          const bookingRes = await fetch(`${API_BASE}/bookings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              guestId: guestId,
+              roomId: selectedRoom.id,
+              startDate: el("checkin").value,
+              endDate: el("checkout").value,
+              status: 'pending' // Important: Pending payment
+            }),
+          });
 
-            // Create guest first, then booking
-            fetch(`${API_BASE}/guests`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(guestData),
-            })
-              .then(res => res.json())
-              .then(guestResponse => {
-                const guestId = guestResponse.guest ? guestResponse.guest.id : guestResponse.id;
+          if (bookingRes.ok) {
+            // Success! Redirect to Thank You page
+            window.location.href = "thankyou.html?payment=transfer";
+          } else {
+            throw new Error("Booking failed");
+          }
 
-                // Now create the booking
-                return fetch(`${API_BASE}/bookings`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    guestId: guestId,
-                    roomId: selectedRoom.id,
-                    startDate: el("checkin").value,
-                    endDate: el("checkout").value,
-                    status: 'confirmed'
-                  }),
-                });
-              })
-              .then(res => res.json())
-              .then(bookingResponse => {
-                // Create payment record
-                return fetch(`${API_BASE}/payments`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    amount: total,
-                    method: 'card',
-                    reference: response.reference,
-                    status: 'completed',
-                    guestId: bookingResponse.booking ? bookingResponse.booking.guestId : bookingResponse.guestId,
-                    bookingId: bookingResponse.booking ? bookingResponse.booking.id : bookingResponse.id
-                  }),
-                });
-              })
-              .catch(error => {
-                console.error('Error creating booking/payment:', error);
-              });
-            window.location.href = "thankyou.html";
-          },
-          onClose: function () {
-            // Hide loading state
-            if (window.Preloader) {
-              window.Preloader.hideButtonLoading(el("btnPay"));
-            }
-            alert("Payment window closed.");
-          },
-        });
-        handler.openIframe();
+        } catch (err) {
+          console.error(err);
+          alert("Something went wrong. Please try again.");
+          if (window.Preloader) {
+            window.Preloader.hideButtonLoading(el("btnPay"));
+          }
+        }
       }
 
       // ------- Events -------
@@ -484,6 +427,8 @@
           gatePayButton();
         });
       });
+
+      el("guests").addEventListener("change", updateSummary);
 
       ["fullName", "email", "phone"].forEach((id) => {
         el(id).addEventListener("input", gatePayButton);
@@ -501,7 +446,7 @@
         closeTerms();
       });
 
-      el("btnPay").addEventListener("click", payWithPaystack);
+      el("btnPay").addEventListener("click", handleBookingSubmission);
     });
   </script>
   <script src="mobile-enhancements.js"></script>

@@ -81,10 +81,23 @@
 <body>
   <div class="thankyou-container">
     <h1>Thank You!</h1>
-    <p>
+    <p id="thankYouMessage">
       Your booking has been received. We’ll get back to you shortly to confirm
       your stay.
     </p>
+
+    <div id="bankDetails"
+      style="display: none; margin-top: 20px; text-align: left; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+      <h3 style="color: var(--burgundy); margin-bottom: 10px;">Payment Instructions</h3>
+      <p style="font-size: 14px; margin: 0;">Please complete your transfer to:</p>
+      <ul style="list-style: none; padding: 0; margin: 10px 0; font-size: 15px;">
+        <li><strong>Bank:</strong> GTBank</li>
+        <li><strong>Account Name:</strong> Grand Lynks Nigeria Limited</li>
+        <li><strong>Account No:</strong> 0123456789</li>
+      </ul>
+      <p style="font-size: 13px; color: #666;">Use your <strong>Name</strong> as the transfer description.</p>
+    </div>
+
     <a href="index.html">Return to Home</a>
   </div>
 
@@ -113,6 +126,14 @@
           });
         }
       });
+
+    // Check for payment=transfer param
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'transfer') {
+      document.getElementById('thankYouMessage').textContent =
+        "Your booking request has been received! Please complete the payment below to confirm your reservation. We have also sent the details to your email.";
+      document.getElementById('bankDetails').style.display = 'block';
+    }
   </script>
 </body>
 

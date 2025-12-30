@@ -10,6 +10,60 @@ const path = require('path');
 app.use(cors());
 app.use(bodyParser.json());
 
+const nodemailer = require("nodemailer");
+
+// Email Transporter (Configure with real credentials in .env)
+const transporter = nodemailer.createTransport({
+  service: "gmail", // or 'smtp.ethereal.email' for testing
+  auth: {
+    user: process.env.EMAIL_USER || "grandlynkshomesandapartments@gmail.com",
+    pass: process.env.EMAIL_PASS || "your_app_password"
+  }
+});
+
+async function sendConfirmationEmail(booking, guest, room) {
+  const mailOptions = {
+    from: '"Grand Lynks Hotel" <grandlynkshomesandapartments@gmail.com>',
+    to: guest.email,
+    subject: 'Booking Confirmation - Grand Lynks Hotel',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #8b1d30;">Booking Confirmation</h2>
+        <p>Dear ${guest.name},</p>
+        <p>Thank you for choosing Grand Lynks Homes & Apartments. Your booking has been received.</p>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Booking Details</h3>
+          <p><strong>Room:</strong> ${room.type}</p>
+          <p><strong>Check-in:</strong> ${new Date(booking.startDate).toDateString()}</p>
+          <p><strong>Check-out:</strong> ${new Date(booking.endDate).toDateString()}</p>
+          <p><strong>Total Amount:</strong> ₦${booking.totalAmount.toLocaleString()}</p>
+          <p><strong>Status:</strong> Pending Payment</p>
+        </div>
+
+        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #8b1d30; margin-top: 0;">Payment Instructions</h3>
+          <p>Please transfer the total amount to the account below to confirm your reservation:</p>
+          <p><strong>Bank Name:</strong> GTBank</p>
+          <p><strong>Account Name:</strong> Grand Lynks Nigeria Limited</p>
+          <p><strong>Account Number:</strong> 0123456789</p>
+          <p>Please start the transfer description with your name.</p>
+        </div>
+
+        <p>Need help? Contact us at +234 814 223 4691.</p>
+        <p>Warm regards,<br>The Grand Lynks Team</p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Confirmation email sent to " + guest.email);
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
+}
+
 // Serve static files from the parent directory (frontend)
 app.use(express.static(path.join(__dirname, '../')));
 
@@ -459,6 +513,11 @@ app.post("/api/bookings", validateBooking, async (req, res) => {
         room: true,
       },
     });
+
+    // Send confirmation email
+    // Note: We need the room details which are included in 'booking.room'
+    // and guest details in 'booking.guest'
+    sendConfirmationEmail(booking, booking.guest, booking.room);
 
     res.json({ message: "Booking created successfully", booking });
   } catch (error) {
