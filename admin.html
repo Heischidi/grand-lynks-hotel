@@ -97,36 +97,61 @@
     </section>
 
     <!-- DASHBOARD CONTENT (Hidden by default) -->
-    <div id="dashboard-container" class="flex h-full hidden">
+    <div id="dashboard-container" class="flex h-full hidden relative overflow-hidden">
+
+        <!-- MOBILE HEADER (Visible only on mobile) -->
+        <div
+            class="md:hidden w-full bg-white border-b border-gray-200 p-4 flex items-center justify-between absolute top-0 left-0 z-20">
+            <h2 class="text-xl font-bold text-gray-800 tracking-tight">Grand Lynks</h2>
+            <button onclick="toggleSidebar()" class="text-gray-600 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- SIDEBAR OVERLAY (Mobile only) -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()"
+            class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden transition-opacity duration-300 opacity-0">
+        </div>
 
         <!-- SIDEBAR -->
-        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col shadow-lg z-10">
-            <div class="p-6 border-b border-gray-200 flex items-center justify-center">
+        <aside id="sidebar"
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col shadow-lg transform -translate-x-full transition-transform duration-300 md:relative md:translate-x-0">
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between">
                 <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Grand Lynks</h2>
+                <!-- Close button for mobile -->
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
             </div>
 
             <nav class="flex-1 overflow-y-auto py-4">
                 <ul class="space-y-1 px-3">
                     <li>
-                        <button onclick="switchTab('rooms')" id="nav-rooms"
+                        <button onclick="switchTab('rooms'); closeSidebarOnMobile()" id="nav-rooms"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">🛏️</span> Rooms
                         </button>
                     </li>
                     <li>
-                        <button onclick="switchTab('menu')" id="nav-menu"
+                        <button onclick="switchTab('menu'); closeSidebarOnMobile()" id="nav-menu"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">🍽️</span> Food Menu
                         </button>
                     </li>
                     <li>
-                        <button onclick="switchTab('orders')" id="nav-orders"
+                        <button onclick="switchTab('orders'); closeSidebarOnMobile()" id="nav-orders"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">📦</span> Orders
                         </button>
                     </li>
                     <li>
-                        <button onclick="switchTab('walkin')" id="nav-walkin"
+                        <button onclick="switchTab('walkin'); closeSidebarOnMobile()" id="nav-walkin"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">🏨</span> Walk-in Booking
                         </button>
@@ -158,7 +183,7 @@
         </aside>
 
         <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 overflow-y-auto bg-gray-50 p-8 relative">
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-8 relative pt-20 md:pt-8">
 
             <!-- ROOMS SECTION -->
             <section id="section-rooms" class="fade-in">

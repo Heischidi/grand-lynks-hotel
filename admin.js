@@ -8,6 +8,33 @@ const loginForm = document.getElementById('loginForm');
 const loginError = document.getElementById('loginError');
 const adminUsernameDisplay = document.getElementById('adminUsernameDisplay');
 
+// Sidebar logic
+window.toggleSidebar = function () {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const isOpen = !sidebar.classList.contains('-translate-x-full');
+
+    if (isOpen) {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+        overlay.classList.remove('opacity-100');
+    } else {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+        // Small delay to allow transition to render
+        setTimeout(() => overlay.classList.add('opacity-100'), 10);
+    }
+}
+
+window.closeSidebarOnMobile = function () {
+    if (window.innerWidth < 768) { // Tailwind md breakpoint
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar.classList.contains('-translate-x-full')) {
+            window.toggleSidebar();
+        }
+    }
+}
+
 // Sections
 const sections = {
     rooms: document.getElementById('section-rooms'),
