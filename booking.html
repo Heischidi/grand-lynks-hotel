@@ -32,11 +32,7 @@
       <div class="columns">
         <!-- Left stack: Availability → Room selection → Guest details -->
         <div class="col-left">
-          <!-- Booking Summary (hidden initially) -->
-          <section class="panel hidden" id="bookingSummaryPanel">
-            <h3>Booking Summary</h3>
-            <div id="bookingSummary"></div>
-          </section>
+          <!-- Booking Summary Panel Removed (Duplicate) -->
           <!-- Step 1: Availability -->
           <section class="panel" id="availabilityPanel" aria-labelledby="availabilityTitle">
             <h2 id="availabilityTitle">Book Your Stay</h2>
@@ -207,146 +203,9 @@
 
       // ------- Config -------
       const API_BASE = window.APP_CONFIG.API_URL;
-      const PAYSTACK_PUBLIC_KEY = window.APP_CONFIG?.PAYSTACK_PUBLIC_KEY || "pk_test_51b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8";
-
-      // ------- State -------
-      let rooms = []; // from API
-      let selectedRoom = null; // { id, type, price, available }
-
-      let nights = 0;
 
       // ------- Helpers -------
       const el = (id) => document.getElementById(id);
-      const money = (n) => "₦" + (n || 0).toLocaleString();
-
-      function calcNights() {
-        const inVal = el("checkin").value;
-        const outVal = el("checkout").value;
-        if (!inVal || !outVal) return 0;
-        const inDate = new Date(inVal);
-        const outDate = new Date(outVal);
-        const ms = outDate - inDate;
-        if (ms <= 0) return 0;
-        return Math.ceil(ms / (1000 * 60 * 60 * 24));
-      }
-
-      function updateSummary() {
-        const roomPrice = selectedRoom ? (selectedRoom.pricePerNight || selectedRoom.price) : 0;
-
-        el("sumRoom").textContent = selectedRoom ? selectedRoom.type : "—";
-        el("sumCheckin").textContent = el("checkin").value || "—";
-        el("sumCheckout").textContent = el("checkout").value || "—";
-        el("sumGuests").textContent = el("guests").value || "—";
-
-        el("sumPrice").textContent = selectedRoom
-          ? money(roomPrice)
-          : "—";
-        el("sumNights").textContent = nights || "—";
-        const total = selectedRoom && nights ? roomPrice * nights : 0;
-        el("sumTotal").textContent = total ? money(total) : "—";
-        return total;
-      }
-
-      function renderRoomsList(list) {
-        const container = el("roomsList");
-        container.innerHTML = "";
-        list.forEach((room) => {
-          const roomPrice = room.pricePerNight || room.price;
-          const div = document.createElement("div");
-          div.className = "room-option";
-          div.setAttribute("role", "listitem");
-          div.textContent = `${room.type} – ${money(roomPrice)}/night`;
-
-          div.onclick = () => {
-            selectedRoom = room;
-            el("detailsPanel").classList.remove("hidden");
-            updateSummary();
-            // enable pay only when T&C checked & fields completed
-            gatePayButton();
-            window.scrollTo({
-              top: document.body.scrollHeight,
-              behavior: "smooth",
-            });
-          };
-          container.appendChild(div);
-        });
-      }
-
-      function gatePayButton() {
-        const ok =
-          selectedRoom &&
-          nights > 0 &&
-          el("fullName").value.trim() &&
-          el("email").value.trim() &&
-          el("phone").value.trim() &&
-          el("acceptTerms").checked;
-        el("btnPay").disabled = !ok;
-      }
-
-      // ------- Flow -------
-      // 1) Load rooms once
-      async function loadRooms() {
-        const res = await fetch(`${API_BASE}/rooms`);
-        rooms = await res.json(); // expects [{id,type,price,available},...]
-      }
-
-      // 2) Check availability
-      async function onCheckAvailability() {
-        nights = calcNights();
-        if (!nights) {
-          el("availabilityNote").textContent =
-            "Please choose a valid date range.";
-          return;
-        }
-        el("availabilityNote").textContent = `Stay length: ${nights} night${nights > 1 ? "s" : ""
-          }.`;
-
-        const checkButton = el("btnCheck");
-        const roomsPanel = el("roomsPanel");
-
-        // --- Show loading state ---
-        if (window.Preloader) {
-          window.Preloader.showButtonLoading(checkButton);
-        }
-        roomsPanel.classList.remove("hidden");
-        el("roomsList").innerHTML = '<div class="loader-dots-small"></div>'; // Show inline loader
-
-        try {
-          // Always fetch from backend
-          const res = await fetch(`${API_BASE}/check-availability`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              checkIn: el("checkin").value,
-              checkOut: el("checkout").value
-            })
-          });
-
-          if (!res.ok) throw new Error("Network response was not ok");
-
-          const available = await res.json();
-
-          // ✅ This part shows rooms OR "no rooms available"
-          if (Array.isArray(available)) {
-            renderRoomsList(available);
-            console.log("Available rooms:", available);
-
-            el("altNote").textContent = available.length
-              ? ""
-              : "Selected dates have no available rooms at the moment. Please try different dates or contact us.";
-          } else {
-            throw new Error("Unexpected response format");
-          }
-
-        } catch (error) {
-          console.error("Error checking availability:", error);
-          el("altNote").textContent = "Error checking availability. Please try again.";
-        } finally {
-          if (window.Preloader) {
-            window.Preloader.hideButtonLoading(checkButton);
-          }
-        }
-      }
 
       // 3) Terms modal
       const modal = el("termsModalBackdrop");
@@ -359,82 +218,7 @@
         document.body.style.overflow = "";
       }
 
-      // 4) Manual Booking (Bank Transfer)
-      async function handleBookingSubmission() {
-        const total = updateSummary();
-        if (!total) {
-          alert("Please select a room and valid dates.");
-          return;
-        }
-
-        // Show loading state
-        if (window.Preloader) {
-          window.Preloader.showButtonLoading(el("btnPay"));
-        }
-
-        try {
-          // First create/find guest
-          const guestData = {
-            name: el("fullName").value.trim(),
-            email: el("email").value.trim(),
-            phone: el("phone").value.trim(),
-          };
-
-          const guestRes = await fetch(`${API_BASE}/guests`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(guestData),
-          });
-          const guestResponse = await guestRes.json();
-          const guestId = guestResponse.guest ? guestResponse.guest.id : guestResponse.id;
-
-          // Create booking (Pending)
-          const bookingRes = await fetch(`${API_BASE}/bookings`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              guestId: guestId,
-              roomId: selectedRoom.id,
-              startDate: el("checkin").value,
-              endDate: el("checkout").value,
-              status: 'pending' // Important: Pending payment
-            }),
-          });
-
-          if (bookingRes.ok) {
-            // Success! Redirect to Thank You page
-            window.location.href = "thankyou.html?payment=transfer";
-          } else {
-            throw new Error("Booking failed");
-          }
-
-        } catch (err) {
-          console.error(err);
-          alert("Something went wrong. Please try again.");
-          if (window.Preloader) {
-            window.Preloader.hideButtonLoading(el("btnPay"));
-          }
-        }
-      }
-
       // ------- Events -------
-      el("btnCheck").addEventListener("click", onCheckAvailability);
-
-      ["checkin", "checkout"].forEach((id) => {
-        el(id).addEventListener("change", () => {
-          nights = calcNights();
-          updateSummary();
-          gatePayButton();
-        });
-      });
-
-      el("guests").addEventListener("change", updateSummary);
-
-      ["fullName", "email", "phone"].forEach((id) => {
-        el(id).addEventListener("input", gatePayButton);
-      });
-
-      el("acceptTerms").addEventListener("change", gatePayButton);
       el("openTerms").addEventListener("click", (e) => {
         e.preventDefault();
         openTerms();
@@ -442,7 +226,9 @@
       el("closeTerms").addEventListener("click", closeTerms);
       el("acceptAndClose").addEventListener("click", () => {
         el("acceptTerms").checked = true;
-        gatePayButton();
+        // Trigger validation in BookingIntegration
+        const event = new Event('change');
+        el("acceptTerms").dispatchEvent(event);
         closeTerms();
       });
 
