@@ -108,7 +108,7 @@
     showSlide(currentSlide); // Initialize first slide
 
     // Fetch rooms from backend and display with graceful fallback
-    const API_URL = "http://localhost:5000/api";
+    const API_URL = window.APP_CONFIG.API_URL;
 
     function renderRooms(list) {
       const container = document.getElementById("roomCards");
