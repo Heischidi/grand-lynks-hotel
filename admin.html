@@ -60,6 +60,44 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* Mobile Card View Transition */
+        @media (max-width: 768px) {
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tr {
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+                margin-bottom: 1rem;
+                background-color: white;
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            }
+
+            td {
+                border: none;
+                border-bottom: 1px solid #f3f4f6;
+                position: relative;
+                padding-left: 50%;
+            }
+
+            td:last-child {
+                border-bottom: none;
+            }
+        }
     </style>
 </head>
 
@@ -498,6 +536,67 @@
                         <button type="button" onclick="closeModal('menuModal')"
                             class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
                         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save
+                            Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Menu Modal -->
+        <div id="editMenuModal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Edit Menu Item</h3>
+                    <button onclick="closeModal('editMenuModal')"
+                        class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <form id="editMenuForm" class="space-y-4" enctype="multipart/form-data">
+                    <input type="hidden" name="id" id="editMenuId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" id="editMenuName" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <select name="category" id="editMenuCategory" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <option value="Appetizer">Appetizer</option>
+                            <option value="Main Course">Main Course</option>
+                            <option value="Dessert">Dessert</option>
+                            <option value="Beverage">Beverage</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Price (₦)</label>
+                        <input type="number" name="price" id="editMenuPrice" required min="0"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Image</label>
+                        <input type="file" name="image" accept="image/*"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <p class="text-xs text-gray-500 mt-1">Leave blank to keep existing image</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" id="editMenuDescription" rows="2"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select name="available" id="editMenuAvailable"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <option value="true">Available</option>
+                            <option value="false">Unavailable</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="button" onclick="closeModal('editMenuModal')"
+                            class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                        <button type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Update
                             Item</button>
                     </div>
                 </form>

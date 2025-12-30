@@ -191,15 +191,16 @@ function renderRooms(rooms) {
     rooms.forEach(room => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm">${room.roomNumber || room.number || 'N/A'}</td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm">${room.type}</td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm">₦${(room.pricePerNight || room.price).toLocaleString()}</td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap">
+            <td data-label="Number" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm text-gray-900 block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Number:</span>${room.roomNumber || room.number || 'N/A'}</td>
+            <td data-label="Type" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Type:</span>${room.type}</td>
+            <td data-label="Price" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Price:</span>₦${(room.pricePerNight || room.price).toLocaleString()}</td>
+            <td data-label="Status" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
+                <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Status:</span>
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${room.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                     ${room.available ? 'Available' : 'Booked'}
                 </span>
             </td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium">
+            <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium block md:table-cell">
                 <button onclick="openEditRoomModal(${room.id})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
                 <button onclick="deleteRoom(${room.id})" class="text-red-600 hover:text-red-900">Delete</button>
             </td>
@@ -301,6 +302,8 @@ async function fetchMenu() {
     const response = await fetch(`${API_URL}/menu`);
     if (response && response.ok) {
         const items = await response.json();
+        // Store items globally to easily find them later for editing
+        window.currentMenuItems = items;
         renderMenu(items);
     } else {
         tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Failed to load menu</td></tr>';
@@ -319,18 +322,21 @@ function renderMenu(items) {
     items.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap">
-                <img src="${item.image || 'images/placeholder-food.jpg'}" class="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover" onerror="this.src='https://via.placeholder.com/40'">
+            <td data-label="Image" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
+                <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Image:</span>
+                <img src="${item.image || 'images/placeholder-food.jpg'}" class="h-10 w-10 md:h-10 md:w-10 rounded-full object-cover inline-block" onerror="this.src='https://via.placeholder.com/40'">
             </td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm">${item.name}</td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm">${item.category}</td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm">₦${item.price.toLocaleString()}</td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap">
+            <td data-label="Name" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Name:</span>${item.name}</td>
+            <td data-label="Category" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Category:</span>${item.category}</td>
+            <td data-label="Price" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Price:</span>₦${item.price.toLocaleString()}</td>
+            <td data-label="Available" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
+                <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Available:</span>
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
                     ${item.available ? 'Yes' : 'No'}
                 </span>
             </td>
-            <td class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium">
+            <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium block md:table-cell">
+                 <button onclick="openEditMenuModal(${item.id})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
                 <button onclick="deleteMenuItem(${item.id})" class="text-red-600 hover:text-red-900">Delete</button>
             </td>
         `;
@@ -363,6 +369,54 @@ async function handleAddMenu(e) {
     } else {
         const err = await response.json().catch(() => ({}));
         alert('Failed to add menu item: ' + (err.error || 'Unknown error'));
+    }
+}
+
+function openEditMenuModal(menuId) {
+    const item = window.currentMenuItems.find(i => i.id === menuId);
+    if (!item) return;
+
+    document.getElementById('editMenuId').value = item.id;
+    document.getElementById('editMenuName').value = item.name;
+    document.getElementById('editMenuCategory').value = item.category;
+    document.getElementById('editMenuPrice').value = item.price;
+    document.getElementById('editMenuDescription').value = item.description || '';
+
+    // Status select
+    const statusSelect = document.getElementById('editMenuAvailable');
+    if (statusSelect) {
+        statusSelect.value = item.available ? 'true' : 'false';
+    }
+
+    openModal('editMenuModal');
+}
+
+async function handleEditMenu(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const id = formData.get('id');
+
+    // Note: server.js expects 'available' as standard param.
+    // formData.get('available') will be "true" or "false" string from select
+
+    // Auth check? Server uses upload.single so maybe tricky with authFetch helper if it enforces JSON.
+    // We should use fetch with Authorization header manually for FormData
+    const token = localStorage.getItem('adminToken');
+
+    const response = await fetch(`${API_URL}/menu/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`
+            // Don't set Content-Type, letting browser set boundary
+        },
+        body: formData
+    });
+
+    if (response && response.ok) {
+        closeModal('editMenuModal');
+        fetchMenu();
+    } else {
+        alert('Failed to update menu item');
     }
 }
 
@@ -628,6 +682,10 @@ document.getElementById('editRoomForm').addEventListener('submit', handleEditRoo
 const addMenuForm = document.getElementById('addMenuForm');
 if (addMenuForm) {
     addMenuForm.addEventListener('submit', handleAddMenu);
+}
+const editMenuForm = document.getElementById('editMenuForm');
+if (editMenuForm) {
+    editMenuForm.addEventListener('submit', handleEditMenu);
 }
 document.getElementById('walkInForm').addEventListener('submit', handleWalkInSubmit);
 
