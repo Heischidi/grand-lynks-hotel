@@ -202,10 +202,33 @@ app.get("/api/rooms", async (req, res) => {
   }
 });
 
-app.post("/api/rooms", authenticateToken, validateRoom, async (req, res) => {
+app.post("/api/rooms", authenticateToken, upload.single('image'), async (req, res) => {
   try {
+    const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : null;
+    const { number, type, pricePerNight, description } = req.body;
+
+    // Validate manually since Multer parses body
+    if (!number || !type || !pricePerNight) {
+      return res.status(400).json({ error: "Missing required fields: number, type, pricePerNight" });
+    }
+
+    const roomData = {
+      number: parseInt(number),
+      type,
+      pricePerNight: parseFloat(pricePerNight),
+      description,
+      status: "available"
+    };
+
+    if (imagePath) {
+      // Store as JSON string array as per schema comment, or just flat string if cleaner?
+      // Schema says: images String? // JSON string of image paths
+      // Let's stick to the schema convention.
+      roomData.images = JSON.stringify([imagePath]);
+    }
+
     const room = await prisma.room.create({
-      data: req.body,
+      data: roomData,
     });
     res.json({ message: "Room added", room });
   } catch (error) {
@@ -218,11 +241,25 @@ app.post("/api/rooms", authenticateToken, validateRoom, async (req, res) => {
   }
 });
 
-app.put("/api/rooms/:id", authenticateToken, validateRoom, async (req, res) => {
+app.put("/api/rooms/:id", authenticateToken, upload.single('image'), async (req, res) => {
   try {
+    const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : null;
+    const { number, type, pricePerNight, description, status } = req.body;
+
+    const updateData = {};
+    if (number) updateData.number = parseInt(number);
+    if (type) updateData.type = type;
+    if (pricePerNight) updateData.pricePerNight = parseFloat(pricePerNight);
+    if (description !== undefined) updateData.description = description;
+    if (status) updateData.status = status;
+
+    if (imagePath) {
+      updateData.images = JSON.stringify([imagePath]);
+    }
+
     const room = await prisma.room.update({
       where: { id: parseInt(req.params.id) },
-      data: req.body,
+      data: updateData,
     });
     res.json({ message: "Room updated", room });
   } catch (error) {

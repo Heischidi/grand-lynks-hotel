@@ -281,13 +281,32 @@ function renderRooms(rooms) {
     tbody.innerHTML = '';
 
     if (rooms.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">No rooms found. Add one!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center">No rooms found. Add one!</td></tr>';
         return;
     }
 
     rooms.forEach(room => {
+        let imageSrc = 'images/placeholder-room.jpg';
+        if (room.images) {
+            try {
+                // Handle both JSON array string and potential future flat string
+                if (room.images.startsWith('[')) {
+                    const parsed = JSON.parse(room.images);
+                    if (parsed.length > 0) imageSrc = parsed[0];
+                } else {
+                    imageSrc = room.images;
+                }
+            } catch (e) {
+                console.warn('Failed to parse room images', e);
+            }
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td data-label="Image" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
+                <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Image:</span>
+                <img src="${imageSrc}" class="h-10 w-10 md:h-12 md:w-16 object-cover rounded shadow-sm inline-block" onerror="this.src='https://placehold.co/60x40?text=Room'">
+            </td>
             <td data-label="Number" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm text-gray-900 block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Number:</span>${room.roomNumber || room.number || 'N/A'}</td>
             <td data-label="Type" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Type:</span>${room.type}</td>
             <td data-label="Price" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Price:</span>₦${(room.pricePerNight || room.price).toLocaleString()}</td>
@@ -309,17 +328,15 @@ function renderRooms(rooms) {
 async function handleAddRoom(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const data = {
-        number: formData.get('number'),
-        type: formData.get('type'),
-        pricePerNight: parseFloat(formData.get('price')),
-        description: formData.get('description'),
-        status: 'available'
-    };
+    // Note: 'status' is not in Add form, backend defaults to available.
 
-    const response = await authFetch('/rooms', {
+    const token = localStorage.getItem('adminToken');
+    const response = await fetch(`${API_URL}/rooms`, {
         method: 'POST',
-        body: JSON.stringify(data)
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        body: formData
     });
 
     if (response && response.ok) {
@@ -327,7 +344,8 @@ async function handleAddRoom(e) {
         e.target.reset();
         fetchRooms();
     } else {
-        alert('Failed to add room');
+        const err = await response.json().catch(() => ({}));
+        alert('Failed to add room: ' + (err.error || 'Unknown error'));
     }
 }
 
@@ -354,7 +372,17 @@ window.openEditRoomModal = function (roomId) {
 
     const statusSelect = document.getElementById('editRoomStatus');
     if (statusSelect) {
-        statusSelect.value = room.available ? 'available' : 'booked';
+        // Backend stores 'status' string, but UI often uses 'available' boolean derived status.
+        // Let's rely on room.status which is raw.
+        // Wait, schema says status: String // available, occupied, maintenance, reserved
+        // The select options are: available, booked, maintenance
+        // Map 'occupied'/'reserved' to 'booked' for the dropdown if needed?
+        // Or just set value directly if it matches.
+        if (room.status) {
+            statusSelect.value = (room.status === 'occupied' || room.status === 'reserved') ? 'booked' : room.status;
+        } else {
+            statusSelect.value = room.available ? 'available' : 'booked';
+        }
     }
 
     openModal('editRoomModal');
@@ -364,29 +392,22 @@ async function handleEditRoom(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const id = formData.get('id');
-    // Basic status mapping logic
-    const status = formData.get('status');
-    const available = status === 'available';
 
-    const data = {
-        number: formData.get('number'),
-        type: formData.get('type'),
-        pricePerNight: parseFloat(formData.get('price')),
-        description: formData.get('description'),
-        available: available,
-        status: status
-    };
-
-    const response = await authFetch(`/rooms/${id}`, {
+    const token = localStorage.getItem('adminToken');
+    const response = await fetch(`${API_URL}/rooms/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(data)
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        body: formData
     });
 
     if (response && response.ok) {
         closeModal('editRoomModal');
         fetchRooms();
     } else {
-        alert('Failed to update room');
+        const err = await response.json().catch(() => ({}));
+        alert('Failed to update room: ' + (err.error || 'Unknown error'));
     }
 }
 
