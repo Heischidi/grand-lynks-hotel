@@ -673,37 +673,7 @@ app.post("/api/check-availability", async (req, res) => {
   }
 });
 
-const multer = require("multer");
-const fs = require('fs');
 
-// Configure Multer for image uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = 'images/menu';
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    // Clean filename: timestamp + original name (replace spaces with underscores)
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const cleanName = file.originalname.replace(/\s+/g, '_');
-    cb(null, uniqueSuffix + '-' + cleanName);
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only images are allowed'));
-    }
-  }
-});
 
 // --- MENU ---
 app.get("/api/menu", async (req, res) => {
