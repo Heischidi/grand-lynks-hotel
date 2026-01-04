@@ -104,11 +104,13 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <div class="flex items-center">
-          <h1 class="text-2xl font-playfair font-bold text-[#8b1d30]">
+          <a href="index.html"
+            class="text-2xl font-playfair font-bold text-[#8b1d30] hover:opacity-80 transition-opacity">
             Grand Lynks
-          </h1>
+          </a>
         </div>
         <div class="hidden md:flex space-x-8">
+          <a href="index.html" class="text-gray-700 hover:text-[#b38e2f] transition-colors font-medium">Home</a>
           <a href="#appetizers" class="text-gray-700 hover:text-[#b38e2f] transition-colors">Appetizers</a>
           <a href="#mains" class="text-gray-700 hover:text-[#b38e2f] transition-colors">Main Courses</a>
           <a href="#desserts" class="text-gray-700 hover:text-[#b38e2f] transition-colors">Desserts</a>
@@ -149,59 +151,11 @@
 
   <!-- Menu Categories -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <!-- Appetizers -->
-    <section id="appetizers" class="mb-16">
-      <div class="text-center mb-12">
-        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-          🥗 Appetizers
-        </h2>
-        <p class="text-xl text-gray-600">
-          Start your meal with our delicious appetizers
-        </p>
-      </div>
-      o
-      <div id="appetizers-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
-    </section>
-
-    <!-- Main Courses -->
-    <section id="mains" class="mb-16">
-      <div class="text-center mb-12">
-        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-          🍽️ Main Courses
-        </h2>
-        <p class="text-xl text-gray-600">
-          Expertly prepared dishes for every palate
-        </p>
-      </div>
-      <div id="mains-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
-    </section>
-
-    <!-- Desserts -->
-    <section id="desserts" class="mb-16">
-      <div class="text-center mb-12">
-        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-          🍰 Desserts
-        </h2>
-        <p class="text-xl text-gray-600">
-          Sweet endings to perfect your meal
-        </p>
-      </div>
-      <div id="desserts-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
-    </section>
-
-    <!-- Beverages -->
-    <section id="beverages" class="mb-16">
-      <div class="text-center mb-12">
-        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-          🍹 Beverages
-        </h2>
-        <p class="text-xl text-gray-600">
-          Refreshing drinks to complement your meal
-        </p>
-      </div>
-      <div id="beverages-grid" class="grid md:grid-cols-2 lg:grid-cols-4 gap-8"></div>
-    </section>
+    <!-- Content will be loaded dynamically -->
   </main>
+
+
+
 
   <!-- Cart Sidebar -->
   <div id="cartSidebar" class="cart-slide fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto">
@@ -223,31 +177,32 @@
 
     <div id="cartFooter" class="border-t border-gray-200 p-6 hidden">
       <div class="mb-4">
-        <div class="flex justify-between text-lg font-semibold">
+        <div class="flex justify-between text-lg font-bold text-gray-900">
           <span>Subtotal:</span>
-          <span id="cartSubtotal">$0.00</span>
+          <span id="cartSubtotal">₦0.00</span>
         </div>
-        <div class="flex justify-between text-sm text-gray-600">
+        <div class="flex justify-between text-base font-medium text-gray-800 mt-2">
           <span>Tax (8.5%):</span>
-          <span id="cartTax">$0.00</span>
+          <span id="cartTax">₦0.00</span>
         </div>
-        <div class="flex justify-between text-sm text-gray-600">
+        <div class="flex justify-between text-base font-medium text-gray-800 mt-1">
           <span>Delivery Fee:</span>
-          <span id="deliveryFee">$5.00</span>
+          <span id="deliveryFee">₦1000.00</span>
         </div>
-        <div class="border-t pt-2 mt-2">
-          <div class="flex justify-between text-xl font-bold">
+        <div class="border-t border-gray-300 pt-3 mt-3">
+          <div class="flex justify-between text-xl font-black text-gray-900">
             <span>Total:</span>
-            <span id="cartTotal">$0.00</span>
+            <span id="cartTotal">₦0.00</span>
           </div>
         </div>
       </div>
 
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Option</label>
-          <select id="deliveryOption" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-            <option value="room">Room Service (+$5.00)</option>
+          <label class="block text-sm font-bold text-gray-900 mb-2">Delivery Option</label>
+          <select id="deliveryOption"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium">
+            <option value="room">Room Service (+₦1,000)</option>
             <option value="pickup">Restaurant Pickup (Free)</option>
           </select>
         </div>
@@ -382,7 +337,7 @@
                     <div class="flex justify-between items-center py-3 border-b border-gray-100">
                         <div class="flex-1">
                             <h4 class="font-medium">${item.name}</h4>
-                            <p class="text-sm text-gray-600">$${item.price} each</p>
+                            <p class="text-sm text-gray-600">₦${item.price} each</p>
                         </div>
                         <div class="flex items-center space-x-2">
                             <button class="bg-gray-200 hover:bg-gray-300 w-6 h-6 rounded-full flex items-center justify-center text-sm" onclick="updateCartItem('${itemId}', -1)">-</button>
@@ -401,17 +356,17 @@
       const subtotal = cartTotal;
       const tax = subtotal * 0.085;
       const deliveryOption = document.getElementById("deliveryOption").value;
-      const deliveryFee = deliveryOption === "room" ? 5 : 0;
+      const deliveryFee = deliveryOption === "room" ? 1000 : 0;
       const total = subtotal + tax + deliveryFee;
 
       document.getElementById(
         "cartSubtotal"
-      ).textContent = `$${subtotal.toFixed(2)}`;
-      document.getElementById("cartTax").textContent = `$${tax.toFixed(2)}`;
+      ).textContent = `₦${subtotal.toFixed(2)}`;
+      document.getElementById("cartTax").textContent = `₦${tax.toFixed(2)}`;
       document.getElementById(
         "deliveryFee"
-      ).textContent = `$${deliveryFee.toFixed(2)}`;
-      document.getElementById("cartTotal").textContent = `$${total.toFixed(
+      ).textContent = `₦${deliveryFee.toFixed(2)}`;
+      document.getElementById("cartTotal").textContent = `₦${total.toFixed(
         2
       )}`;
     }
@@ -576,18 +531,17 @@
       // --- DYNAMIC MENU LOADING ---
       const API_URL = window.APP_CONFIG?.API_URL || "http://localhost:5000/api";
 
-      const categoryGrids = {
-        Appetizer: document.getElementById("appetizers-grid"),
-        "Main Course": document.getElementById("mains-grid"),
-        Dessert: document.getElementById("desserts-grid"),
-        Beverage: document.getElementById("beverages-grid"),
-      };
-
+      // Icons for categories (can be extended)
       const categoryIcons = {
         Appetizer: "🥗",
         "Main Course": "🍽️",
         Dessert: "🍰",
         Beverage: "🍹",
+        Breakfast: "🍳",
+        Lunch: "🍔",
+        Dinner: "🍖",
+        Soup: "🥣",
+        Food: "🍲"
       };
 
       function createMenuItemHTML(item) {
@@ -604,7 +558,7 @@
                         <p class="text-gray-600 mb-4 h-16">${item.description || ""
           }</p>
                         <div class="flex justify-between items-center mb-4">
-                            <span class="text-2xl font-bold text-[#8b1d30]">$${item.price
+                            <span class="text-2xl font-bold text-[#8b1d30]">₦${item.price
           }</span>
                             <div class="flex items-center space-x-2">
                                 <button class="quantity-btn bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full flex items-center justify-center" onclick="changeQuantity('${itemId}', -1)">-</button>
@@ -620,40 +574,82 @@
             `;
       }
 
+      function createSectionHTML(category) {
+        const sectionId = category.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const icon = categoryIcons[category] || "🍽️";
+
+        return `
+          <section id="${sectionId}" class="mb-16 fade-in">
+            <div class="text-center mb-12">
+              <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
+                ${icon} ${category}
+              </h2>
+              <p class="text-xl text-gray-600">
+                Freshly prepared ${category} for you
+              </p>
+            </div>
+            <div id="${sectionId}-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+          </section>
+        `;
+      }
+
+      function updateNavigation(categories) {
+        const navContainer = document.querySelector('.hidden.md\\:flex.space-x-8');
+        if (navContainer) {
+          navContainer.innerHTML = categories.map(cat => {
+            const sectionId = cat.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            return `<a href="#${sectionId}" class="text-gray-700 hover:text-[#b38e2f] transition-colors">${cat}</a>`;
+          }).join('');
+
+          // Re-attach smooth scroll
+          document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+            anchor.addEventListener("click", function (e) {
+              e.preventDefault();
+              const target = document.querySelector(this.getAttribute("href"));
+              if (target) {
+                target.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }
+            });
+          });
+        }
+      }
+
       function renderMenu(items) {
-        // Clear any existing content or skeletons
-        Object.values(categoryGrids).forEach((grid) => {
-          if (grid) grid.innerHTML = "";
+        const mainContainer = document.querySelector('main');
+        // Group items by category
+        const groupedItems = {};
+
+        items.forEach(item => {
+          const cat = item.category || 'Uncategorized';
+          if (!groupedItems[cat]) groupedItems[cat] = [];
+          groupedItems[cat].push(item);
         });
 
-        items.forEach((item) => {
-          const grid = categoryGrids[item.category];
+        mainContainer.innerHTML = '';
+
+        Object.keys(groupedItems).sort().forEach(category => {
+          const sectionHtml = createSectionHTML(category);
+          mainContainer.insertAdjacentHTML('beforeend', sectionHtml);
+
+          const sectionId = category.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          const grid = document.getElementById(`${sectionId}-grid`);
+
           if (grid) {
-            grid.insertAdjacentHTML("beforeend", createMenuItemHTML(item));
+            groupedItems[category].forEach(item => {
+              grid.insertAdjacentHTML("beforeend", createMenuItemHTML(item));
+            });
           }
         });
+
+        updateNavigation(Object.keys(groupedItems).sort());
       }
 
       function showSkeletons() {
-        const skeletonHTML = `
-                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-                    <div class="h-48 bg-gray-200 animate-pulse"></div>
-                    <div class="p-6">
-                        <div class="h-6 bg-gray-300 rounded w-3/4 mb-4 animate-pulse"></div>
-                        <div class="h-4 bg-gray-200 rounded w-full mb-2 animate-pulse"></div>
-                        <div class="h-4 bg-gray-200 rounded w-5/6 mb-4 animate-pulse"></div>
-                        <div class="flex justify-between items-center">
-                            <div class="h-8 bg-gray-300 rounded w-1/4 animate-pulse"></div>
-                            <div class="h-10 bg-orange-200 rounded-lg w-1/2 animate-pulse"></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        Object.values(categoryGrids).forEach((grid) => {
-          if (grid) {
-            grid.innerHTML = skeletonHTML.repeat(3);
-          }
-        });
+        const main = document.querySelector('main');
+        if (main) main.innerHTML = '<div class="text-center py-20"><div class="animate-pulse text-2xl text-gray-400">Loading menu...</div></div>';
       }
 
       async function loadMenu() {
@@ -667,60 +663,20 @@
           if (menuItems.length > 0) {
             renderMenu(menuItems);
           } else {
-            Object.values(categoryGrids).forEach((grid) => {
-              if (grid)
-                grid.innerHTML =
-                  "<p>No menu items available in this category.</p>";
-            });
+            const main = document.querySelector('main');
+            if (main) main.innerHTML = '<div class="text-center py-20 text-gray-500">No menu items found.</div>';
           }
         } catch (error) {
           console.error("Failed to load menu:", error);
-          Object.values(categoryGrids).forEach((grid) => {
-            if (grid)
-              grid.innerHTML =
-                '<p class="text-red-500">Could not load menu. Please try again later.</p>';
-          });
+          const main = document.querySelector('main');
+          if (main) main.innerHTML = '<div class="text-center py-20 text-red-500">Could not load menu. Please try again later.</div>';
         }
       }
 
       loadMenu();
     });
   </script>
-  <script>
-    (function () {
-      function c() {
-        var b = a.contentDocument || a.contentWindow.document;
-        if (b) {
-          var d = b.createElement("script");
-          d.innerHTML =
-            "window.__CF$cv$params={r:'976cb081372514f9',t:'MTc1NjQ3NzIzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
-          b.getElementsByTagName("head")[0].appendChild(d);
-        }
-      }
-      if (document.body) {
-        var a = document.createElement("iframe");
-        a.height = 1;
-        a.width = 1;
-        a.style.position = "absolute";
-        a.style.top = 0;
-        a.style.left = 0;
-        a.style.border = "none";
-        a.style.visibility = "hidden";
-        document.body.appendChild(a);
-        if ("loading" !== document.readyState) c();
-        else if (window.addEventListener)
-          document.addEventListener("DOMContentLoaded", c);
-        else {
-          var e = document.onreadystatechange || function () { };
-          document.onreadystatechange = function (b) {
-            e(b);
-            "loading" !== document.readyState &&
-              ((document.onreadystatechange = e), c());
-          };
-        }
-      }
-    })();
-  </script>
+
 </body>
 
 </html>

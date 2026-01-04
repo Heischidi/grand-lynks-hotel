@@ -1645,8 +1645,15 @@ body.order-page {
   gap: 5px;
 }
 
+
+
 .rating-input input {
-  display: none;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  /* Use clip to ensure it takes no space but exists */
+  clip: rect(0, 0, 0, 0);
 }
 
 .rating-input label {

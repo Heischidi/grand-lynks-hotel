@@ -98,43 +98,10 @@
   <section class="reviews-section" data-aos="fade-up">
     <div class="container">
       <h2 class="section-title">What Our Guests Say</h2>
-      <div class="reviews-grid">
-        <div class="review-card" data-aos="fade-up" data-aos-delay="100">
-          <div class="review-stars">⭐⭐⭐⭐⭐</div>
-          <p class="review-text">
-            "Absolutely stunning! The rooms are immaculate and the service is
-            exceptional. Grand Lynks truly lives up to its name. Will
-            definitely return!"
-          </p>
-          <div class="review-author">
-            <strong>Sarah Johnson</strong>
-            <span class="review-location">Business Traveler</span>
-          </div>
-        </div>
-
-        <div class="review-card" data-aos="fade-up" data-aos-delay="200">
-          <div class="review-stars">⭐⭐⭐⭐⭐</div>
-          <p class="review-text">
-            "Perfect location in Gwarinpa, beautiful facilities, and the staff
-            went above and beyond to make our family vacation memorable."
-          </p>
-          <div class="review-author">
-            <strong>Michael Chen</strong>
-            <span class="review-location">Family Guest</span>
-          </div>
-        </div>
-
-        <div class="review-card" data-aos="fade-up" data-aos-delay="300">
-          <div class="review-stars">⭐⭐⭐⭐⭐</div>
-          <p class="review-text">
-            "The attention to detail is remarkable. From the elegant decor to
-            the personalized service, this is luxury accommodation at its
-            finest."
-          </p>
-          <div class="review-author">
-            <strong>Amara Okechukwu</strong>
-            <span class="review-location">Local Resident</span>
-          </div>
+      <div class="reviews-grid" id="reviewsGrid">
+        <!-- Reviews will be loaded dynamically here -->
+        <div class="loading-state" style="grid-column: 1/-1; text-align: center; padding: 40px;">
+          <p>Loading reviews...</p>
         </div>
       </div>
 
@@ -187,15 +154,15 @@
             <label for="reviewRating">Rating *</label>
             <div class="rating-input">
               <input type="radio" id="star5" name="rating" value="5" required />
-              <label for="star5">⭐</label>
+              <label for="star5"><i class="fas fa-star"></i></label>
               <input type="radio" id="star4" name="rating" value="4" />
-              <label for="star4">⭐</label>
+              <label for="star4"><i class="fas fa-star"></i></label>
               <input type="radio" id="star3" name="rating" value="3" />
-              <label for="star3">⭐</label>
+              <label for="star3"><i class="fas fa-star"></i></label>
               <input type="radio" id="star2" name="rating" value="2" />
-              <label for="star2">⭐</label>
+              <label for="star2"><i class="fas fa-star"></i></label>
               <input type="radio" id="star1" name="rating" value="1" />
-              <label for="star1">⭐</label>
+              <label for="star1"><i class="fas fa-star"></i></label>
             </div>
           </div>
         </div>
@@ -384,46 +351,7 @@
     });
 
     // Handle review form submission
-    document.addEventListener("DOMContentLoaded", function () {
-      const reviewForm = document.getElementById("reviewForm");
-      if (reviewForm) {
-        reviewForm.addEventListener("submit", function (e) {
-          e.preventDefault();
-
-          // Show loading state
-          if (window.Preloader) {
-            window.Preloader.showElementLoading(this, "form");
-            const submitButton = this.querySelector('button[type="submit"]');
-            if (submitButton) {
-              window.Preloader.showButtonLoading(submitButton);
-            }
-          }
-
-          // Simulate form submission
-          setTimeout(() => {
-            // Hide loading state
-            if (window.Preloader) {
-              window.Preloader.hideElementLoading(this, "form");
-              const submitButton = this.querySelector(
-                'button[type="submit"]'
-              );
-              if (submitButton) {
-                window.Preloader.hideButtonLoading(submitButton);
-              }
-            }
-
-            // Show success message
-            if (window.UI && window.UI.toast) {
-              window.UI.toast("Review submitted successfully!", "success");
-            }
-
-            // Close modal and reset form
-            closeReviewModal();
-            clearReviewForm();
-          }, 2000);
-        });
-      }
-    });
+    // Inline review handler removed in favor of review-integration.js
   </script>
   <button id="backToTop" title="Back to top">&#8679;</button>
   <script>

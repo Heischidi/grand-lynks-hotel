@@ -51,7 +51,18 @@
 
               </select>
 
-              <button id="btnCheck">Check Availability</button>
+              <!-- New: Room Selection (Hidden by default, shown if no URL param) -->
+              <div id="selectRoomSection" class="stack hidden" style="margin-bottom: 2rem;">
+                <h2>Select a Room</h2>
+                <p class="muted">Please choose a room to proceed with your booking.</p>
+                <select id="roomSelect" class="input-field"
+                  style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc;">
+                  <option value="">-- Choose a Room --</option>
+                </select>
+                <div id="roomLoading" class="hidden">Loading rooms...</div>
+              </div>
+
+              <!-- Button Removed -->
               <div id="availabilityNote" class="muted"></div>
             </div>
           </section>
@@ -67,6 +78,11 @@
           <section class="panel hidden" id="detailsPanel" aria-labelledby="detailsTitle">
             <h3 id="detailsTitle">Your Details</h3>
             <div class="stack">
+              <!-- New Field: Selected Room -->
+              <label for="displayRoom">Selected Room</label>
+              <input id="displayRoom" type="text" readonly class="readonly-input"
+                style="background-color: #f3f3f3; color: #555;" />
+
               <label for="fullName">Full Name</label>
               <input id="fullName" type="text" required />
 
@@ -79,7 +95,8 @@
               <label style="display: flex; gap: 8px; align-items: center">
                 <input id="acceptTerms" type="checkbox" />
                 <span>I agree to the
-                  <a href="#" id="openTerms">Terms & Conditions</a></span>
+                  <a href="javascript:void(0)" id="openTerms" style="cursor:pointer; text-decoration:underline;">Terms &
+                    Conditions</a></span>
               </label>
 
               <button id="btnPay" disabled>Confirm Booking</button>
@@ -114,54 +131,30 @@
           <h2 id="termsTitle">Terms & Conditions</h2>
         </header>
         <div class="content">
-          <p>
-            <strong>1. Check-in / Check-out</strong><br />
-            Check-in is from 1:00 PM; check-out by 12:00 PM. Early/late options
-            are subject to availability and may incur charges.
-          </p>
-          <p>
-            <strong>2. Booking & Payment</strong><br />
-            A booking is confirmed only after full payment is
-            received. Prices are in NGN and may vary by date and availability.
-          </p>
-          <p>
-            <strong>3. Cancellation & No-Show</strong><br />
-            Cancellations within 24 hours of check-in are non-refundable.
-            No-shows forfeit payments made.
-          </p>
-          <p>
-            <strong>4. Identification</strong><br />
-            Valid government ID are required at check-in.
-          </p>
-          <p>
-            <strong>5. Security & Damages</strong><br />
-            Guests are responsible for damages or losses to property during
-            their stay. A security deposit may be required.
-          </p>
-          <p>
-            <strong>6. Smoking & Conduct</strong><br />
-            Smoking is prohibited in rooms. Excessive noise or misconduct may
-            result in eviction without refund.
-          </p>
-          <p>
-            <strong>7. Liability</strong><br />
-            The property is not liable for loss of money, jewelry, or valuables
-            not deposited with management.
-          </p>
-          <p>
-            <strong>8. Force Majeure</strong><br />
-            The property is not responsible for events beyond reasonable control
-            (e.g., power outages, strikes, acts of God).
-          </p>
-          <p>
-            <strong>9. Privacy</strong><br />
-            Booking details are used to manage your stay and comply with legal
-            requirements.
-          </p>
-          <p>
-            <strong>10. Special Requests</strong><br />
-            Subject to availability and not guaranteed.
-          </p>
+          <h3 style="margin-top:0; color:var(--gold); text-align:center; margin-bottom:1rem;">Grand Lynks Homes &
+            Apartments</h3>
+          <ul style="list-style-type: disc; padding-left: 20px; line-height: 1.6; color: #ffffff !important;">
+            <li style="color:#ffffff;">All bookings are subject to availability and confirmation.</li>
+            <li style="color:#ffffff;">A reservation is confirmed only after successful payment.</li>
+            <li style="color:#ffffff;">Valid government-issued ID is required at check-in.</li>
+            <li style="color:#ffffff;">Check-in and check-out times must be strictly observed.</li>
+            <li style="color:#ffffff;">Early check-in or late check-out is subject to availability and additional
+              charges.</li>
+            <li style="color:#ffffff;">Cancellations and refunds are governed by the stated cancellation policy.</li>
+            <li style="color:#ffffff;">Maximum room occupancy must not be exceeded.</li>
+            <li style="color:#ffffff;">Guests are responsible for any damage to property or missing items.</li>
+            <li style="color:#ffffff;">Smoking is not permitted in rooms.</li>
+            <li style="color:#ffffff;">Illegal activities, excessive noise, or disruptive behavior are strictly
+              prohibited.</li>
+            <li style="color:#ffffff;">Management reserves the right to deny service or request checkout without refund
+              for policy violations.</li>
+            <li style="color:#ffffff;">Personal belongings are the responsibility of the guest.</li>
+            <li style="color:#ffffff;">Grand Lynks Homes & Apartments is not liable for loss, theft, or damage to
+              personal items.</li>
+            <li style="color:#ffffff;">Guest information is handled in line with our privacy policy.</li>
+            <li style="color:#ffffff;">Terms may be updated without prior notice.</li>
+            <li style="color:#ffffff;">By proceeding with a booking, you agree to these terms and conditions.</li>
+          </ul>
         </div>
         <footer>
           <button class="btn btn-secondary" id="closeTerms">Close</button>
@@ -207,32 +200,10 @@
       // ------- Helpers -------
       const el = (id) => document.getElementById(id);
 
-      // 3) Terms modal
-      const modal = el("termsModalBackdrop");
-      function openTerms() {
-        modal.classList.add("open");
-        document.body.style.overflow = "hidden";
-      }
-      function closeTerms() {
-        modal.classList.remove("open");
-        document.body.style.overflow = "";
-      }
+      // 3) Terms modal logic moved to booking-integration.js
 
-      // ------- Events -------
-      el("openTerms").addEventListener("click", (e) => {
-        e.preventDefault();
-        openTerms();
-      });
-      el("closeTerms").addEventListener("click", closeTerms);
-      el("acceptAndClose").addEventListener("click", () => {
-        el("acceptTerms").checked = true;
-        // Trigger validation in BookingIntegration
-        const event = new Event('change');
-        el("acceptTerms").dispatchEvent(event);
-        closeTerms();
-      });
 
-      el("btnPay").addEventListener("click", handleBookingSubmission);
+      // btnPay event is handled in booking-integration.js
     });
   </script>
   <script src="mobile-enhancements.js"></script>

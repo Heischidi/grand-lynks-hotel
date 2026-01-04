@@ -1020,12 +1020,15 @@ app.delete("/api/settings/:key", async (req, res) => {
 });
 
 // --- REVIEWS ---
+// --- REVIEWS ---
 app.get("/api/reviews", async (req, res) => {
   try {
     const { status, featured } = req.query;
     let where = {};
 
     if (status) where.status = status;
+    else where.status = "approved"; // Default to approved only for public API
+
     if (featured !== undefined) where.featured = featured === "true";
 
     const reviews = await prisma.review.findMany({
@@ -1040,10 +1043,26 @@ app.get("/api/reviews", async (req, res) => {
   }
 });
 
+
+app.get("/api/admin/reviews", authenticateToken, async (req, res) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(reviews);
+  } catch (error) {
+    console.error("Error fetching admin reviews:", error);
+    res.status(500).json({ error: "Failed to fetch reviews" });
+  }
+});
+
 app.post("/api/reviews", async (req, res) => {
   try {
     const review = await prisma.review.create({
-      data: req.body,
+      data: {
+        ...req.body,
+        status: "pending" // Force pending for new submissions
+      },
     });
     res.json({ message: "Review submitted", review });
   } catch (error) {
@@ -1052,7 +1071,7 @@ app.post("/api/reviews", async (req, res) => {
   }
 });
 
-app.put("/api/reviews/:id", async (req, res) => {
+app.put("/api/reviews/:id", authenticateToken, async (req, res) => {
   try {
     const review = await prisma.review.update({
       where: { id: parseInt(req.params.id) },
@@ -1069,7 +1088,7 @@ app.put("/api/reviews/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/reviews/:id", async (req, res) => {
+app.delete("/api/reviews/:id", authenticateToken, async (req, res) => {
   try {
     await prisma.review.delete({
       where: { id: parseInt(req.params.id) },
@@ -1236,6 +1255,46 @@ app.delete("/api/staff/:id", async (req, res) => {
     } else {
       res.status(500).json({ error: "Failed to delete staff member" });
     }
+  }
+});
+
+// --- BOOKINGS ---
+app.post("/api/bookings", async (req, res) => {
+  try {
+    const { guestId, roomId, startDate, endDate, status } = req.body;
+
+    // Calculate total amount
+    const room = await prisma.room.findUnique({ where: { id: parseInt(roomId) } });
+    if (!room) return res.status(404).json({ error: "Room not found" });
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const pricePerNight = room.pricePerNight || room.price || 0;
+    const totalAmount = pricePerNight * nights;
+
+    const booking = await prisma.booking.create({
+      data: {
+        guestId: parseInt(guestId),
+        roomId: parseInt(roomId),
+        startDate: startDate,
+        endDate: endDate,
+        status: status || "pending",
+        totalAmount: totalAmount
+      },
+      include: { guest: true, room: true }
+    });
+
+    // Send email
+    if (booking.guest) {
+      // Run asynchronously, don't block response
+      sendConfirmationEmail(booking, booking.guest, booking.room).catch(console.error);
+    }
+
+    res.json({ message: "Booking created", booking });
+  } catch (error) {
+    console.error("Error creating booking:", error);
+    res.status(500).json({ error: "Failed to create booking" });
   }
 });
 

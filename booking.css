@@ -7,7 +7,8 @@
 .booking-content-wrapper {
   position: relative;
   z-index: 1;
-  padding-top: 80px; /* Space for fixed navbar */
+  padding-top: 80px;
+  /* Space for fixed navbar */
   padding-bottom: 40px;
   min-height: 100vh;
   display: flex;
@@ -18,24 +19,28 @@
 
 /* Adjustments for the .wrap container within the booking page */
 .booking-content-wrapper .wrap {
-  max-width: 1000px; /* Wider for the two-column layout */
+  max-width: 1000px;
+  /* Wider for the two-column layout */
   padding: 20px;
-  background: rgba(
-    255,
-    255,
-    255,
-    0.08
-  ); /* Slightly lighter overlay for content */
-  backdrop-filter: blur(5px); /* Additional blur for content area */
+  background: rgba(255,
+      255,
+      255,
+      0.08);
+  /* Slightly lighter overlay for content */
+  backdrop-filter: blur(5px);
+  /* Additional blur for content area */
   border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  color: #f5f5f5; /* Light text for dark background */
+  color: #f5f5f5;
+  /* Light text for dark background */
 }
 
 .booking-content-wrapper h2,
 .booking-content-wrapper h3 {
-  font-family: "Cinzel", serif; /* Use theme font for headings */
-  color: var(--gold); /* Use theme gold color */
+  font-family: "Cinzel", serif;
+  /* Use theme font for headings */
+  color: var(--gold);
+  /* Use theme gold color */
   text-align: center;
   margin-bottom: 20px;
 }
@@ -48,12 +53,14 @@
 }
 
 .booking-content-wrapper .col-left {
-  flex: 2; /* Left column takes more space */
+  flex: 2;
+  /* Left column takes more space */
   min-width: 300px;
 }
 
 .booking-content-wrapper .summary {
-  flex: 1; /* Right column for summary */
+  flex: 1;
+  /* Right column for summary */
   min-width: 250px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
@@ -87,7 +94,8 @@
 
 /* Panel styling for steps */
 .panel {
-  background: rgba(0, 0, 0, 0.3); /* Darker background for panels */
+  background: rgba(0, 0, 0, 0.3);
+  /* Darker background for panels */
   padding: 30px;
   border-radius: 10px;
   margin-bottom: 20px;
@@ -132,8 +140,10 @@
 .stack input:focus,
 .stack select:focus,
 .stack textarea:focus {
-  border-color: var(--gold); /* Gold border on focus */
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3); /* Gold glow on focus */
+  border-color: var(--gold);
+  /* Gold border on focus */
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3);
+  /* Gold glow on focus */
 }
 
 .stack button {
@@ -149,7 +159,8 @@
   transition: all 0.32s ease;
   box-shadow: 0 8px 20px rgba(212, 175, 55, 0.2);
   cursor: pointer;
-  width: auto; /* Override width: 100% from previous .btn */
+  width: auto;
+  /* Override width: 100% from previous .btn */
   margin-top: 25px;
 }
 
@@ -166,12 +177,14 @@
 }
 
 .stack a {
-  color: var(--gold); /* Use theme gold for links */
+  color: var(--gold);
+  /* Use theme gold for links */
   text-decoration: underline;
 }
 
 .stack a:hover {
-  color: var(--burgundy); /* Use theme burgundy on hover */
+  color: var(--burgundy);
+  /* Use theme burgundy on hover */
 }
 
 .room-option {
@@ -212,7 +225,12 @@
 }
 
 .modal {
-  background: #1c1c1c; /* Dark background for modal */
+  display: block;
+  /* Override style.css display:none */
+  position: relative;
+  /* Override style.css position:fixed */
+  background: #1c1c1c;
+  /* Dark background for modal */
   color: #f5f5f5;
   padding: 30px;
   border-radius: 15px;
@@ -237,7 +255,8 @@
 .modal .content {
   max-height: 400px;
   overflow-y: auto;
-  padding-right: 10px; /* For scrollbar */
+  padding-right: 10px;
+  /* For scrollbar */
   margin-bottom: 20px;
 }
 
@@ -287,7 +306,7 @@
     padding-top: 70px;
     padding-bottom: 30px;
   }
-  
+
   .booking-content-wrapper .wrap {
     padding: 20px;
     margin: 20px auto;
@@ -303,24 +322,26 @@
     min-width: unset;
     width: 100%;
   }
-  
+
   .booking-content-wrapper .summary {
-    order: -1; /* Show summary first on mobile */
+    order: -1;
+    /* Show summary first on mobile */
   }
 
   .panel {
     padding: 25px 20px;
   }
-  
+
   .stack input[type="date"],
   .stack select,
   .stack input[type="text"],
   .stack input[type="email"],
   .stack input[type="tel"] {
     padding: 15px;
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px;
+    /* Prevents zoom on iOS */
   }
-  
+
   .stack button {
     width: 100%;
     padding: 18px 25px;
@@ -351,12 +372,12 @@
     padding-top: 65px;
     padding-bottom: 20px;
   }
-  
+
   .booking-content-wrapper .wrap {
     padding: 15px;
     margin: 15px auto;
   }
-  
+
   .booking-content-wrapper .columns {
     gap: 20px;
   }
@@ -364,7 +385,7 @@
   .panel {
     padding: 20px 15px;
   }
-  
+
   .stack input[type="date"],
   .stack select,
   .stack input[type="text"],
@@ -372,7 +393,7 @@
   .stack input[type="tel"] {
     padding: 12px;
   }
-  
+
   .stack button {
     padding: 15px 20px;
     font-size: 0.95rem;
@@ -382,7 +403,7 @@
     padding: 20px;
     width: 98%;
   }
-  
+
   .modal footer .btn {
     padding: 12px 18px;
     font-size: 0.9rem;
@@ -393,16 +414,16 @@
   .booking-content-wrapper {
     padding-top: 60px;
   }
-  
+
   .booking-content-wrapper .wrap {
     padding: 12px;
     margin: 10px auto;
   }
-  
+
   .panel {
     padding: 18px 12px;
   }
-  
+
   .stack button {
     padding: 12px 18px;
     font-size: 0.9rem;
@@ -422,12 +443,12 @@
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
 .room-card:hover {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
 }
 
@@ -479,12 +500,18 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error and Success Messages */
-.error-message, .success-message {
+.error-message,
+.success-message {
   padding: 12px 16px;
   border-radius: 6px;
   margin-bottom: 20px;

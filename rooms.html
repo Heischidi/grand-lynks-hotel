@@ -115,8 +115,12 @@
       container.innerHTML = "";
       list.forEach((room) => {
         const roomType = room.type || room.room_type || "Room";
-        const priceValue =
-          typeof room.price === "number" ? room.price : room.rate;
+
+        // Robust price parsing
+        let rawPrice = room.price || room.pricePerNight || room.rate;
+        if (typeof rawPrice === 'string') rawPrice = parseFloat(rawPrice.replace(/,/g, ''));
+        const priceValue = Number(rawPrice) || 0;
+
         const isAvailable =
           typeof room.available === "boolean"
             ? room.available
@@ -149,27 +153,21 @@
           default:
             imgSrc = "images/grandroom101.jpeg";
         }
+
+        // Pass formatted price or 0 to modal
         container.innerHTML += `
-            <div class="room-card" onclick="showRoomPreview('${roomType}', '${imgSrc}', ${priceValue}, '${room.description || "Comfortable and elegant."
-          }', ${room.id})">
+            <div class="room-card" onclick="showRoomPreview('${roomType}', '${imgSrc}', ${priceValue}, '${room.description || "Comfortable and elegant."}', ${room.id})">
               <img loading="lazy" src="${imgSrc}" alt="${roomType}">
               <div class="room-info">
                 <h3>${roomType}</h3>
                 <p>${room.description || "Comfortable and elegant."}</p>
-                <p class="room-price"><strong>₦${typeof priceValue === "number"
-            ? priceValue.toLocaleString()
-            : "N/A"
-          }</strong> per night</p>
-                <p class="room-availability ${isAvailable ? "available" : "booked"
-          }">
+                <p class="room-price"><strong>₦${priceValue ? priceValue.toLocaleString() : "Contact for Price"}</strong> per night</p>
+                <p class="room-availability ${isAvailable ? "available" : "booked"}">
                   ${isAvailable ? "Available" : "Booked"}
                 </p>
-                <button class="btn" onclick="event.stopPropagation(); checkAvailability(${room.id
-          }, '${roomType}')">Check Availability</button>
-                <a href="booking.html?room=${encodeURIComponent(
-            roomType
-          )}&price=${priceValue ?? ""
-          }" class="btn" onclick="event.stopPropagation()">Book Now</a>
+                <!-- Check availability button removed -->
+                <a href="booking.html?room=${encodeURIComponent(roomType)}&price=${priceValue}&roomId=${room.id}" 
+                   class="btn" onclick="event.stopPropagation()">Book Now</a>
               </div>
             </div>
           `;
@@ -229,12 +227,10 @@
               <div class="preview-info">
                 <h2>${roomType}</h2>
                 <p class="preview-description">${description}</p>
-                <p class="preview-price">₦${price?.toLocaleString()} per night</p>
+                <p class="preview-price">₦${price ? price.toLocaleString() : "Contact for Price"} per night</p>
                 <div class="preview-actions">
-                  <button class="btn" onclick="checkAvailability(${roomId}, '${roomType}')">Check Availability</button>
-                  <a href="booking.html?room=${encodeURIComponent(
-        roomType
-      )}&price=${price}" class="btn btn-primary">Book Now</a>
+                  <!-- Check availability button removed -->
+                  <a href="booking.html?room=${encodeURIComponent(roomType)}&price=${price}&roomId=${roomId}" class="btn btn-primary">Book Now</a>
                 </div>
               </div>
             </div>

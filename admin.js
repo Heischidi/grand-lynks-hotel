@@ -1,6 +1,91 @@
 // Configuration
 const API_URL = window.APP_CONFIG?.API_URL || 'http://localhost:5000/api';
 
+console.log('Admin JS starting execution...');
+// alert('Debug: Admin Script Loaded'); // User can confirm this if needed
+
+// EXPOSE GLOBALS IMMEDIATELY
+window.openModal = function (id) {
+    console.log('openModal called:', id);
+    // alert('Debug: openModal called for ' + id); 
+    const el = document.getElementById(id);
+    if (!el) {
+        alert('Error: Modal ' + id + ' not found');
+        return;
+    }
+    el.classList.remove('hidden');
+    // NUCLEAR FIX: Move to body to ensure it's on top of everything
+    document.body.appendChild(el);
+
+    // Force visibility
+    el.style.display = 'flex';
+    el.style.zIndex = '99999';
+    // el.style.border = '5px solid red'; // Visual debug
+    console.log('openModal: Moved to body and forced flex. InnerHTML length:', el.innerHTML.length);
+};
+
+window.closeModal = function (id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+};
+
+// Define placeholders for other globals so they exist
+// Define placeholders only? No, define implementation immediately!
+window.openEditMenuModal = function (menuId) {
+    console.log('openEditMenuModal called with ID:', menuId, typeof menuId);
+
+    if (!window.currentMenuItems) {
+        console.error('window.currentMenuItems is undefined or empty');
+        alert('Error: Menu items not loaded. Try refreshing.');
+        return;
+    }
+
+    // Try finding by number and string to be safe
+    const item = window.currentMenuItems.find(i => i.id == menuId); // Weak equality
+
+    console.log('Found item:', item);
+
+    if (!item) {
+        console.error('Item not found in currentMenuItems:', window.currentMenuItems);
+        alert('Error: Item not found!');
+        return;
+    }
+
+    try {
+        const idInput = document.getElementById('editMenuId');
+        const nameInput = document.getElementById('editMenuName');
+        const catInput = document.getElementById('editMenuCategory');
+        const priceInput = document.getElementById('editMenuPrice');
+        const descInput = document.getElementById('editMenuDescription');
+        const statusSelect = document.getElementById('editMenuAvailable');
+
+        if (idInput) { idInput.value = item.id; console.log('Set id:', item.id); }
+        if (nameInput) { nameInput.value = item.name; console.log('Set name:', item.name); }
+        if (catInput) {
+            catInput.value = item.category;
+            console.log('Set category:', item.category);
+            if (catInput.value !== item.category) console.warn('Category value mismatch! Select likely missing option:', item.category);
+        }
+        if (priceInput) { priceInput.value = item.price; console.log('Set price:', item.price); }
+        if (descInput) { descInput.value = item.description || ''; console.log('Set desc:', item.description); }
+
+        // Status select
+        if (statusSelect) {
+            statusSelect.value = item.available ? 'true' : 'false';
+            console.log('Set available:', statusSelect.value);
+        }
+
+        console.log('Opening edit modal...');
+        window.openModal('editMenuModal');
+    } catch (e) {
+        console.error('Error populating edit modal:', e);
+        alert('Error opening edit modal: ' + e.message);
+    }
+};
+
+// Global function placeholders removed - implementations are defined directly on window
+
+
 // DOM Elements
 const loginSection = document.getElementById('login-section');
 const dashboardContainer = document.getElementById('dashboard-container');
@@ -40,7 +125,8 @@ const sections = {
     rooms: document.getElementById('section-rooms'),
     menu: document.getElementById('section-menu'),
     orders: document.getElementById('section-orders'),
-    walkin: document.getElementById('section-walkin')
+    walkin: document.getElementById('section-walkin'),
+    reviews: document.getElementById('section-reviews')
 };
 
 // --- AUTHENTICATION ---
@@ -159,6 +245,7 @@ function switchTab(tabName) {
         if (tabName === 'menu') fetchMenu();
         if (tabName === 'orders') fetchOrders();
         if (tabName === 'walkin') fetchAvailableRoomsForWalkIn();
+        if (tabName === 'reviews') fetchAdminReviews();
     }
 }
 
@@ -234,7 +321,7 @@ async function handleAddRoom(e) {
     }
 }
 
-async function deleteRoom(id) {
+window.deleteRoom = async function (id) {
     if (!confirm('Are you sure you want to delete this room?')) return;
 
     const response = await authFetch(`/rooms/${id}`, { method: 'DELETE' });
@@ -243,9 +330,9 @@ async function deleteRoom(id) {
     } else {
         alert('Failed to delete room');
     }
-}
+};
 
-function openEditRoomModal(roomId) {
+window.openEditRoomModal = function (roomId) {
     const room = window.currentRooms.find(r => r.id === roomId);
     if (!room) return;
 
@@ -261,7 +348,7 @@ function openEditRoomModal(roomId) {
     }
 
     openModal('editRoomModal');
-}
+};
 
 async function handleEditRoom(e) {
     e.preventDefault();
@@ -324,7 +411,7 @@ function renderMenu(items) {
         tr.innerHTML = `
             <td data-label="Image" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
                 <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Image:</span>
-                <img src="${item.image || 'images/placeholder-food.jpg'}" class="h-10 w-10 md:h-10 md:w-10 rounded-full object-cover inline-block" onerror="this.src='https://via.placeholder.com/40'">
+                <img src="${item.image || 'images/placeholder-food.jpg'}" class="h-10 w-10 md:h-10 md:w-10 rounded-full object-cover inline-block" onerror="this.src='https://placehold.co/40x40?text=Food'">
             </td>
             <td data-label="Name" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Name:</span>${item.name}</td>
             <td data-label="Category" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Category:</span>${item.category}</td>
@@ -373,22 +460,44 @@ async function handleAddMenu(e) {
 }
 
 function openEditMenuModal(menuId) {
-    const item = window.currentMenuItems.find(i => i.id === menuId);
-    if (!item) return;
+    console.log('openEditMenuModal called with ID:', menuId, typeof menuId);
 
-    document.getElementById('editMenuId').value = item.id;
-    document.getElementById('editMenuName').value = item.name;
-    document.getElementById('editMenuCategory').value = item.category;
-    document.getElementById('editMenuPrice').value = item.price;
-    document.getElementById('editMenuDescription').value = item.description || '';
-
-    // Status select
-    const statusSelect = document.getElementById('editMenuAvailable');
-    if (statusSelect) {
-        statusSelect.value = item.available ? 'true' : 'false';
+    if (!window.currentMenuItems) {
+        console.error('window.currentMenuItems is undefined or empty');
+        alert('Error: Menu items not loaded. Try refreshing.');
+        return;
     }
 
-    openModal('editMenuModal');
+    // Try finding by number and string to be safe
+    const item = window.currentMenuItems.find(i => i.id == menuId); // Weak equality
+
+    console.log('Found item:', item);
+
+    if (!item) {
+        console.error('Item not found in currentMenuItems:', window.currentMenuItems);
+        alert('Error: Item not found!');
+        return;
+    }
+
+    try {
+        document.getElementById('editMenuId').value = item.id;
+        document.getElementById('editMenuName').value = item.name;
+        document.getElementById('editMenuCategory').value = item.category;
+        document.getElementById('editMenuPrice').value = item.price;
+        document.getElementById('editMenuDescription').value = item.description || '';
+
+        // Status select
+        const statusSelect = document.getElementById('editMenuAvailable');
+        if (statusSelect) {
+            statusSelect.value = item.available ? 'true' : 'false';
+        }
+
+        console.log('Opening edit modal...');
+        openModal('editMenuModal');
+    } catch (e) {
+        console.error('Error populating edit modal:', e);
+        alert('Error opening edit modal: ' + e.message);
+    }
 }
 
 async function handleEditMenu(e) {
@@ -420,15 +529,15 @@ async function handleEditMenu(e) {
     }
 }
 
-async function deleteMenuItem(id) {
+window.deleteMenuItem = async function (id) {
     if (!confirm('Delete this item?')) return;
-    const response = await fetch(`${API_URL}/menu/${id}`, { method: 'DELETE' });
+    const response = await authFetch(`/menu/${id}`, { method: 'DELETE' });
     if (response && response.ok) {
         fetchMenu();
     } else {
         alert('Failed to delete item');
     }
-}
+};
 
 // --- ORDERS MANAGEMENT ---
 
@@ -555,7 +664,7 @@ function getStatusColor(status) {
     }
 }
 
-async function updateOrderStatus(id, status) {
+window.updateOrderStatus = async function (id, status) {
     if (!confirm(`Mark order #${id} as ${status}?`)) return;
 
     const response = await fetch(`${API_URL}/orders/${id}`, { // Note: PUT orders might not be auth protected in snippet, but likely is. Let's try raw fetch if snippet said no auth, or authFetch if yes.
@@ -571,7 +680,7 @@ async function updateOrderStatus(id, status) {
     } else {
         alert('Failed to update order');
     }
-}
+};
 
 // --- MODAL UTILS ---
 
@@ -664,15 +773,101 @@ async function handleWalkInSubmit(e) {
     }
 }
 
-// --- MODAL UTILS ---
+// --- REVIEW MANAGEMENT ---
 
-window.openModal = function (id) {
-    document.getElementById(id).classList.remove('hidden');
+async function fetchAdminReviews() {
+    const container = document.getElementById('reviewsContainer');
+    container.innerHTML = '<div class="text-center py-10">Loading reviews...</div>';
+
+    const response = await authFetch('/admin/reviews');
+    if (response && response.ok) {
+        const reviews = await response.json();
+        renderAdminReviews(reviews);
+    } else {
+        container.innerHTML = '<div class="text-center py-10 text-red-500">Failed to load reviews</div>';
+    }
 }
 
-window.closeModal = function (id) {
-    document.getElementById(id).classList.add('hidden');
+function renderAdminReviews(reviews) {
+    const container = document.getElementById('reviewsContainer');
+    container.innerHTML = '';
+
+    if (reviews.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-500">No reviews found.</div>';
+        return;
+    }
+
+    reviews.forEach(review => {
+        const card = document.createElement('div');
+        const isPending = review.status === 'pending';
+        const borderColor = isPending ? 'border-yellow-500' : (review.status === 'approved' ? 'border-green-500' : 'border-red-500');
+
+        card.className = `bg-white rounded-lg shadow p-6 border-l-4 ${borderColor}`;
+
+        const stars = '⭐'.repeat(review.rating);
+        const date = new Date(review.createdAt).toLocaleDateString();
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-lg">${review.guestName}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">${review.guestType || 'Guest'}</span>
+                    </div>
+                    <div class="text-sm text-gray-500">${date}</div>
+                </div>
+                <div class="text-xl">${stars}</div>
+            </div>
+            
+            <div class="mb-4">
+                <p class="text-gray-800 italic">"${review.content}"</p>
+            </div>
+            
+            <div class="flex justify-between items-center mt-4 border-t pt-4">
+                <span class="text-xs font-semibold uppercase tracking-wide ${isPending ? 'text-yellow-600' : (review.status === 'approved' ? 'text-green-600' : 'text-red-600')}">
+                    Status: ${review.status}
+                </span>
+                <div class="space-x-2">
+                    ${review.status !== 'approved' ? `
+                        <button onclick="approveReview(${review.id})" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">Approve</button>
+                    ` : ''}
+                    ${review.status !== 'rejected' && isPending ? `
+                        <button onclick="rejectReview(${review.id})" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600 transition">Reject</button>
+                    ` : ''}
+                    <button onclick="deleteReview(${review.id})" class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200 transition">Delete</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 }
+
+window.approveReview = async function (id) {
+    if (!confirm('Approve this review for public display?')) return;
+    const response = await authFetch(`/reviews/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'approved' })
+    });
+    if (response && response.ok) fetchAdminReviews();
+    else alert('Failed to approve review');
+};
+
+window.rejectReview = async function (id) {
+    if (!confirm('Reject this review?')) return;
+    const response = await authFetch(`/reviews/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'rejected' })
+    });
+    if (response && response.ok) fetchAdminReviews();
+    else alert('Failed to reject review');
+};
+
+window.deleteReview = async function (id) {
+    if (!confirm('Permanently delete this review?')) return;
+    const response = await authFetch(`/reviews/${id}`, { method: 'DELETE' });
+    if (response && response.ok) fetchAdminReviews();
+    else alert('Failed to delete review');
+};
 
 // --- EVENT LISTENERS ---
 
@@ -688,6 +883,8 @@ if (editMenuForm) {
     editMenuForm.addEventListener('submit', handleEditMenu);
 }
 document.getElementById('walkInForm').addEventListener('submit', handleWalkInSubmit);
+
+console.log('All functions successfully defined and attached to window.');
 
 // Init
 document.addEventListener('DOMContentLoaded', init);

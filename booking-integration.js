@@ -8,22 +8,18 @@ class BookingIntegration {
   }
 
   init() {
+    console.log("URL Search:", window.location.search);
     this.setupEventListeners();
     this.setupDateValidation();
+    this.setupTermsModal();
     this.checkUrlParams();
   }
 
   setupEventListeners() {
-    // Check availability button
-    const btnCheck = document.getElementById("btnCheck");
-    if (btnCheck) {
-      btnCheck.addEventListener("click", () => this.checkAvailability());
-    }
-
     // Confirm Booking button
     const btnPay = document.getElementById("btnPay");
     if (btnPay) {
-      btnPay.addEventListener("click", () => this.processBooking()); // Rename to processBooking
+      btnPay.addEventListener("click", () => this.processBooking());
     }
 
     // Terms checkbox
@@ -36,18 +32,63 @@ class BookingIntegration {
     ["fullName", "email", "phone", "guests"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", () => {
-        if (id === 'guests') this.updateBooking(); // Update booking state on guest change
+        if (id === 'guests') this.updateBooking();
         this.validateForm();
       });
     });
 
-    // Dates
+    // Dates - Auto update summary
     ["checkin", "checkout"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("change", () => {
-        this.updateBooking(); // Recalculate nights/price
+        // Just update the booking state locally (nights/price calculation)
+        console.log("Date changed, updating summary...");
+        this.updateBooking();
         this.validateForm();
       });
+    });
+  }
+
+  setupTermsModal() {
+    const modal = document.getElementById("termsModalBackdrop");
+    const openBtn = document.getElementById("openTerms");
+    const closeBtn = document.getElementById("closeTerms");
+    const acceptBtn = document.getElementById("acceptAndClose");
+    const checkbox = document.getElementById("acceptTerms");
+
+    if (!modal || !openBtn) return;
+
+    const open = (e) => {
+      if (e) e.preventDefault();
+      modal.classList.add("open");
+      modal.style.display = "flex"; // Force flex
+      modal.style.zIndex = "99999"; // Force top
+      document.body.style.overflow = "hidden";
+      console.log("Opening terms modal");
+    };
+
+    const close = () => {
+      modal.classList.remove("open");
+      document.body.style.overflow = "";
+    };
+
+    openBtn.addEventListener("click", open);
+    if (closeBtn) closeBtn.addEventListener("click", close);
+
+    if (acceptBtn) {
+      acceptBtn.addEventListener("click", () => {
+        if (checkbox) {
+          checkbox.checked = true;
+          // Trigger change event for validation
+          checkbox.dispatchEvent(new Event('change'));
+        }
+        close();
+      });
+    }
+
+    // Close on backdrop click
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) close();
     });
   }
 
@@ -81,107 +122,113 @@ class BookingIntegration {
     const price = params.get('price');
     const roomId = params.get('roomId');
 
-    if (roomType && price) {
+    if (roomType) {
       console.log("Found URL params:", { roomType, price, roomId });
 
-      // Mock a room object since we trust the URL (or double check via API if critical)
+      // Mock a room object since we trust the URL
       const room = {
-        id: roomId ? parseInt(roomId) : Date.now(), // Fallback ID if missing
+        id: roomId ? parseInt(roomId) : Date.now(),
         type: roomType,
-        price: parseFloat(price),
+        price: parseFloat(price) || 0,
         description: "Selected via direct link"
       };
 
-      // Pre-select dates if missing (e.g. today + tomorrow)
-      const checkinEl = document.getElementById("checkin");
-      const checkoutEl = document.getElementById("checkout");
-      if (!checkinEl.value) {
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        checkinEl.value = today.toISOString().split("T")[0];
-        checkoutEl.value = tomorrow.toISOString().split("T")[0];
-
-        // Trigger min-date logic
-        const event = new Event('change');
-        checkinEl.dispatchEvent(event);
-      }
-
-      // Set state
+      this.prefillDates();
       this.selectRoom(room);
+      this.showDetails();
 
-      // Reveal Details Panel immediately
-      document.getElementById("detailsPanel").classList.remove("hidden");
+    } else {
+      // No URL params -> Direct navigation. Show room selector.
+      console.log("No URL params - Direct navigation mode");
+      this.resetView(); // Ensure details are hidden
+      await this.loadRoomsForSelection();
     }
   }
 
-  async checkAvailability() {
-    const checkin = document.getElementById("checkin").value;
-    const checkout = document.getElementById("checkout").value;
-    const guests = document.getElementById("guests").value;
+  prefillDates() {
+    const checkinEl = document.getElementById("checkin");
+    const checkoutEl = document.getElementById("checkout");
+    if (!checkinEl.value) {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      checkinEl.value = today.toISOString().split("T")[0];
+      checkoutEl.value = tomorrow.toISOString().split("T")[0];
 
-    if (!checkin || !checkout || !guests) {
-      this.showError("Please fill in all required fields");
-      return;
+      // Trigger min-date logic
+      const event = new Event('change');
+      checkinEl.dispatchEvent(event);
     }
+  }
 
-    this.showLoading("btnCheck", "Checking...");
+  showDetails() {
+    const details = document.getElementById("detailsPanel");
+    if (details) details.classList.remove("hidden");
+  }
+
+  resetView() {
+    const details = document.getElementById("detailsPanel");
+    const selectSection = document.getElementById("selectRoomSection");
+    if (details) details.classList.add("hidden");
+    if (selectSection) selectSection.classList.remove("hidden");
+  }
+
+  async loadRoomsForSelection() {
+    const select = document.getElementById("roomSelect");
+    const loading = document.getElementById("roomLoading");
+    if (!select) return;
+
+    if (loading) loading.classList.remove("hidden");
 
     try {
-      const response = await fetch(`${this.API_URL}/check-availability`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checkIn: checkin, checkOut: checkout })
+      const res = await fetch(`${this.API_URL}/rooms`);
+      if (!res.ok) throw new Error("Failed to load rooms");
+
+      const rooms = await res.json();
+      this.availableRooms = rooms; // Cache them
+
+      select.innerHTML = '<option value="">-- Choose a Room --</option>';
+      rooms.forEach(room => {
+        const price = room.pricePerNight || room.price || 0;
+        const option = document.createElement("option");
+        option.value = room.id;
+        option.textContent = `${room.type} - ₦${price.toLocaleString()}`;
+        option.dataset.room = JSON.stringify(room);
+        select.appendChild(option);
       });
 
-      if (!response.ok) throw new Error("Network response was not ok");
-      const available = await response.json(); // Array of available rooms
+      // Listen for selection
+      select.addEventListener("change", (e) => {
+        const selectedId = e.target.value;
+        if (selectedId) {
+          const room = this.availableRooms.find(r => r.id == selectedId);
+          if (room) {
+            this.prefillDates();
+            this.selectRoom(room);
+            this.showDetails();
 
-      if (Array.isArray(available) && available.length > 0) {
-        this.showAvailableRooms(available);
-      } else {
-        this.showNoAvailability();
-      }
+            // Optional: Hide selector after selection? Or keep it?
+            // keeping it allows changing room easily.
+          }
+        }
+      });
 
-    } catch (error) {
-      console.error("Error checking availability:", error);
-      this.showError("Error checking availability. Please try again.");
+    } catch (err) {
+      console.error(err);
+      select.innerHTML = '<option value="">Error loading rooms</option>';
     } finally {
-      this.hideLoading("btnCheck", "Check Availability");
+      if (loading) loading.classList.add("hidden");
     }
   }
 
-  showAvailableRooms(rooms) {
-    const roomsPanel = document.getElementById("roomsPanel");
-    const roomsList = document.getElementById("roomsList");
-    const availabilityPanel = document.getElementById("availabilityPanel");
-
-    // Keep availability panel visible but maybe collapse it? 
-    // For now, let's just show results below.
-    roomsPanel.classList.remove("hidden");
-    roomsList.innerHTML = "";
-
-    rooms.forEach((room) => {
-      const price = room.pricePerNight || room.price;
-      const roomCard = document.createElement("div");
-      roomCard.className = "room-card room-option"; // reuse room-option style
-      roomCard.innerHTML = `
-            <div class="room-info">
-                <h4>${room.type}</h4>
-                <div class="room-price">₦${price.toLocaleString()}/night</div>
-            </div>
-            <button class="btn-select-room btn btn-primary btn-sm">Select</button>
-      `;
-
-      roomCard.querySelector(".btn-select-room").addEventListener("click", () => {
-        this.selectRoom(room);
-        // Scroll to details
-        document.getElementById("detailsPanel").scrollIntoView({ behavior: 'smooth' });
-      });
-
-      roomsList.appendChild(roomCard);
-    });
+  // checkAvailability method deprecated/integrated into initial load or submit check
+  async checkAvailability() {
+    console.warn("Manual checkAvailability is deprecated. Changes are handled via URL or auto-update.");
   }
+
+  /* 
+   * showAvailableRooms removed as we rely on URL pre-selection or full list
+   */
 
   showNoAvailability() {
     const container = document.getElementById("roomsList");
@@ -190,6 +237,7 @@ class BookingIntegration {
   }
 
   selectRoom(room) {
+    console.log("selectRoom called with:", room);
     this.currentBooking = {
       room: room,
       checkin: document.getElementById("checkin").value,
@@ -199,6 +247,12 @@ class BookingIntegration {
 
     // Show details
     document.getElementById("detailsPanel").classList.remove("hidden");
+
+    // Fill the new display input if it exists
+    const displayRoomEl = document.getElementById("displayRoom");
+    if (displayRoomEl) {
+      displayRoomEl.value = room.type;
+    }
 
     // Update summary
     this.updateBookingSummary();
@@ -258,6 +312,9 @@ class BookingIntegration {
   }
 
   async processBooking() {
+    console.log("processBooking called");
+    console.log("Current booking state:", this.currentBooking);
+
     // Manual Bank Transfer Logic
     const btnPay = document.getElementById("btnPay");
     this.showLoading("btnPay", "Processing...");
@@ -293,14 +350,17 @@ class BookingIntegration {
         body: JSON.stringify(bookingData),
       });
 
-      if (!bookingRes.ok) throw new Error("Booking creation failed");
+      if (!bookingRes.ok) {
+        const errText = await bookingRes.text();
+        throw new Error(`Server Error (${bookingRes.status}): ${errText}`);
+      }
 
       // Success
       window.location.href = "thankyou.html?payment=transfer";
 
     } catch (error) {
       console.error(error);
-      this.showError("Booking failed. Please try again.");
+      this.showError(`Booking failed: ${error.message}`);
       this.hideLoading("btnPay", "Confirm Booking");
     }
   }

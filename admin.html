@@ -194,6 +194,12 @@
                             <span class="mr-3">🏨</span> Walk-in Booking
                         </button>
                     </li>
+                    <li>
+                        <button onclick="switchTab('reviews'); closeSidebarOnMobile()" id="nav-reviews"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">⭐</span> Reviews
+                        </button>
+                    </li>
                     <li class="border-t border-gray-100 my-2 pt-2">
                         <a href="index.html" target="_blank"
                             class="w-full block px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">
@@ -384,6 +390,20 @@
                 </div>
             </section>
 
+            <!-- REVIEWS SECTION -->
+            <section id="section-reviews" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Review Management</h2>
+                    <button onclick="fetchAdminReviews()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        ↻ Refresh
+                    </button>
+                </div>
+
+                <div class="space-y-4" id="reviewsContainer">
+                    <div class="text-center text-gray-500 py-10">Loading reviews...</div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -514,6 +534,11 @@
                             <option value="Main Course">Main Course</option>
                             <option value="Dessert">Dessert</option>
                             <option value="Beverage">Beverage</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                            <option value="Soup">Soup</option>
+                            <option value="Food">Food</option>
                         </select>
                     </div>
                     <div>
@@ -566,6 +591,13 @@
                             <option value="Main Course">Main Course</option>
                             <option value="Dessert">Dessert</option>
                             <option value="Beverage">Beverage</option>
+                            <option value="Beverages">Beverages</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                            <option value="Soup">Soup</option>
+                            <option value="Food">Food</option>
+                            <option value="Test">Test</option>
                         </select>
                     </div>
                     <div>

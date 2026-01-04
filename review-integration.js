@@ -7,6 +7,73 @@ class ReviewIntegration {
 
     init() {
         this.setupEventListeners();
+        this.fetchReviews();
+    }
+
+    async fetchReviews() {
+        const grid = document.getElementById('reviewsGrid');
+        if (!grid) return;
+
+        try {
+            const response = await fetch(`${this.API_URL}/reviews?status=approved`);
+            if (response.ok) {
+                const reviews = await response.json();
+                this.renderReviews(reviews);
+            } else {
+                throw new Error('Failed to load reviews');
+            }
+        } catch (error) {
+            console.error('Error fetching reviews:', error);
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px;"><p>Unable to load reviews at the moment.</p></div>';
+        }
+    }
+
+    renderReviews(reviews) {
+        const grid = document.getElementById('reviewsGrid');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+
+        if (reviews.length === 0) {
+            // Empty State
+            grid.innerHTML = `
+                <div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 40px; background: #1a0505; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    <h3 style="color: var(--gold); margin-bottom: 10px; font-family: 'Playfair Display', serif;">Be the first to say something!</h3>
+                    <p style="color: #fff; font-size: 1.1rem; opacity: 0.9;">We'd love to hear about your experience.</p>
+                </div>
+            `;
+            return;
+        }
+
+        reviews.forEach((review, index) => {
+            const delay = (index % 3) * 100; // Stagger animation
+            const stars = '⭐'.repeat(review.rating);
+
+            const card = document.createElement('div');
+            card.className = 'review-card';
+            card.setAttribute('data-aos', 'fade-up');
+            card.setAttribute('data-aos-delay', delay);
+
+            card.innerHTML = `
+                <div class="review-stars">${stars}</div>
+                <p class="review-text">"${this.escapeHtml(review.content)}"</p>
+                <div class="review-author">
+                    <strong>${this.escapeHtml(review.guestName)}</strong>
+                    <span class="review-location">${this.escapeHtml(review.guestType || 'Guest')}</span>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     setupEventListeners() {
@@ -15,27 +82,6 @@ class ReviewIntegration {
         if (reviewForm) {
             reviewForm.addEventListener('submit', (e) => this.handleReviewSubmission(e));
         }
-
-        // Rating stars interaction
-        this.setupRatingStars();
-    }
-
-    setupRatingStars() {
-        const ratingInputs = document.querySelectorAll('input[name="rating"]');
-        const ratingLabels = document.querySelectorAll('.rating-input label');
-
-        ratingInputs.forEach((input, index) => {
-            input.addEventListener('change', () => {
-                // Update visual feedback
-                ratingLabels.forEach((label, labelIndex) => {
-                    if (labelIndex < index + 1) {
-                        label.style.color = '#FFD700'; // Gold color for selected stars
-                    } else {
-                        label.style.color = '#ccc'; // Gray for unselected stars
-                    }
-                });
-            });
-        });
     }
 
     async handleReviewSubmission(event) {
@@ -43,14 +89,14 @@ class ReviewIntegration {
 
         const form = event.target;
         const submitButton = form.querySelector('button[type="submit"]');
-        
+
         // Show loading state
         this.showLoading(submitButton, 'Submitting Review...');
 
         try {
             // Collect form data
             const formData = this.collectFormData(form);
-            
+
             // Validate form data
             if (!this.validateReviewData(formData)) {
                 this.showError('Please fill in all required fields');
@@ -71,10 +117,10 @@ class ReviewIntegration {
             }
 
             const result = await response.json();
-            
+
             // Show success message
             this.showSuccess('Thank you! Your review has been submitted successfully.');
-            
+
             // Close modal and reset form
             this.closeReviewModal();
             this.resetReviewForm(form);
@@ -91,21 +137,28 @@ class ReviewIntegration {
         const formData = new FormData(form);
         const data = {};
 
-        // Convert FormData to object
-        for (let [key, value] of formData.entries()) {
-            data[key] = value;
-        }
+        // Map form fields to database schema
+        data.guestName = formData.get('reviewerName');
+        data.guestEmail = formData.get('reviewerEmail');
+        data.guestType = formData.get('reviewerType');
+        data.rating = parseInt(formData.get('rating'), 10);
+        data.title = formData.get('reviewTitle');
+        data.content = formData.get('reviewText');
+        data.highlights = formData.get('reviewHighlights');
+        data.suggestions = formData.get('reviewSuggestions');
 
-        // Add timestamp
-        data.submittedAt = new Date().toISOString();
+        // Add metadata
         data.status = 'pending'; // For admin approval
 
         return data;
     }
 
     validateReviewData(data) {
-        const required = ['reviewerName', 'rating', 'reviewText'];
-        return required.every(field => data[field] && data[field].trim() !== '');
+        const required = ['guestName', 'rating', 'content'];
+        return required.every(field => {
+            if (field === 'rating') return data[field] && data[field] > 0;
+            return data[field] && data[field].trim() !== '';
+        });
     }
 
     showLoading(button, text) {
@@ -134,10 +187,10 @@ class ReviewIntegration {
                 modalContent.insertBefore(errorDiv, modalContent.querySelector('.review-form'));
             }
         }
-        
+
         errorDiv.innerHTML = `<p>${message}</p>`;
         errorDiv.style.display = 'block';
-        
+
         // Auto-hide after 5 seconds
         setTimeout(() => {
             errorDiv.style.display = 'none';
@@ -156,10 +209,10 @@ class ReviewIntegration {
                 modalContent.insertBefore(successDiv, modalContent.querySelector('.review-form'));
             }
         }
-        
+
         successDiv.innerHTML = `<p>${message}</p>`;
         successDiv.style.display = 'block';
-        
+
         // Auto-hide after 3 seconds
         setTimeout(() => {
             successDiv.style.display = 'none';
@@ -176,7 +229,7 @@ class ReviewIntegration {
     resetReviewForm(form) {
         if (form) {
             form.reset();
-            
+
             // Reset rating stars
             const ratingLabels = document.querySelectorAll('.rating-input label');
             ratingLabels.forEach(label => {
