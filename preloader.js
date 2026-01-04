@@ -16,14 +16,6 @@
             <div class="preloader-logo">Grand Lynks</div>
             <div class="preloader-text">Preparing your luxury experience...</div>
             <div class="preloader-spinner"></div>
-            <div class="preloader-progress">
-              <div class="preloader-progress-bar"></div>
-            </div>
-            <div class="preloader-dots">
-              <div class="preloader-dot"></div>
-              <div class="preloader-dot"></div>
-              <div class="preloader-dot"></div>
-            </div>
           </div>
         </div>
       `;
