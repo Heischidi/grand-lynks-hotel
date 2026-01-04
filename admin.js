@@ -132,6 +132,13 @@ const sections = {
 // --- AUTHENTICATION ---
 
 function init() {
+    // Re-bind sections just in case DOM wasn't ready at top-level
+    sections.rooms = document.getElementById('section-rooms');
+    sections.menu = document.getElementById('section-menu');
+    sections.orders = document.getElementById('section-orders');
+    sections.walkin = document.getElementById('section-walkin');
+    sections.reviews = document.getElementById('section-reviews');
+
     const token = localStorage.getItem('adminToken');
     const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
 
@@ -221,7 +228,10 @@ async function authFetch(endpoint, options = {}) {
 
 function switchTab(tabName) {
     // Hide all sections
-    Object.values(sections).forEach(sec => sec.classList.add('hidden'));
+    // Hide all sections - SAFELY
+    Object.values(sections).forEach(sec => {
+        if (sec) sec.classList.add('hidden');
+    });
 
     // Reset nav styles
     document.querySelectorAll('aside nav button').forEach(btn => {
