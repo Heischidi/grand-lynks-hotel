@@ -272,13 +272,35 @@ app.post("/api/rooms", authenticateToken, upload.single('image'), async (req, re
 
 app.put("/api/rooms/:id", authenticateToken, upload.single('image'), async (req, res) => {
   try {
+    console.log("PUT /rooms/:id called");
+    console.log("Headers CT:", req.headers['content-type']);
+    console.log("Body:", req.body);
+    console.log("File:", req.file);
+
     const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : null;
     const { number, type, pricePerNight, description, status } = req.body;
 
     const updateData = {};
-    if (number) updateData.number = parseInt(number);
+
+    // Improved validation and parsing
+    if (number) {
+      const parsedNumber = parseInt(number);
+      if (isNaN(parsedNumber)) {
+        return res.status(400).json({ error: "Invalid room number" });
+      }
+      updateData.number = parsedNumber;
+    }
+
     if (type) updateData.type = type;
-    if (pricePerNight) updateData.pricePerNight = parseFloat(pricePerNight);
+
+    if (pricePerNight) {
+      const parsedPrice = parseFloat(pricePerNight);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        return res.status(400).json({ error: "Invalid price per night" });
+      }
+      updateData.pricePerNight = parsedPrice;
+    }
+
     if (description !== undefined) updateData.description = description;
     if (status) updateData.status = status;
 
@@ -290,13 +312,22 @@ app.put("/api/rooms/:id", authenticateToken, upload.single('image'), async (req,
       where: { id: parseInt(req.params.id) },
       data: updateData,
     });
+
     res.json({ message: "Room updated", room });
   } catch (error) {
-    console.error("Error updating room:", error);
+    console.error("Error updating room (FULL):", error);
     if (error.code === "P2025") {
       res.status(404).json({ error: "Room not found" });
+    } else if (error.code === "P2002") {
+      // Handle unique constraint violation (e.g., room number already exists)
+      const target = error.meta?.target;
+      if (target && target.includes('number')) {
+        res.status(409).json({ error: "Room number already exists" });
+      } else {
+        res.status(409).json({ error: "Unique constraint violation" });
+      }
     } else {
-      res.status(500).json({ error: "Failed to update room" });
+      res.status(500).json({ error: "Failed to update room: " + error.message });
     }
   }
 });
