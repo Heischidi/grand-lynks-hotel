@@ -177,137 +177,137 @@ async function main() {
   }
 
   // Seed Sample Rooms
+  console.log("   - Clearing existing rooms and dependent data...");
+
+  // Clear dependent tables first to avoid FK errors
+  await prisma.payment.deleteMany({});
+  await prisma.orderItem.deleteMany({});
+  await prisma.booking.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.maintenanceRequest.deleteMany({});
+  await prisma.housekeepingTask.deleteMany({});
+
+  await prisma.room.deleteMany({}); // Clear existing rooms to ensure exact list
+
   const rooms = [
-    {
-      number: 101,
-      type: "Standard Single",
-      pricePerNight: 20000,
-      status: "available",
-      description: "Comfortable single room with modern amenities",
-      amenities: JSON.stringify([
-        "Free WiFi",
-        "Air Conditioning",
-        "TV",
-        "Private Bathroom",
-      ]),
-      images: JSON.stringify(["images/grandroom101.jpeg"]),
-    },
-    {
-      number: 102,
-      type: "Deluxe Double",
-      pricePerNight: 25000,
-      status: "available",
-      description: "Spacious double room with premium furnishing",
-      amenities: JSON.stringify([
-        "Free WiFi",
-        "Air Conditioning",
-        "TV",
-        "Private Bathroom",
-        "Mini Fridge",
-      ]),
-      images: JSON.stringify(["images/deluxe102bettershot.jpeg"]),
-    },
-    {
-      number: 103,
-      type: "Executive Suite",
-      pricePerNight: 35000,
-      status: "maintenance",
-      description: "Luxurious suite with separate living area",
-      amenities: JSON.stringify([
-        "Free WiFi",
-        "Air Conditioning",
-        "TV",
-        "Private Bathroom",
-        "Mini Fridge",
-        "Living Area",
-      ]),
-      images: JSON.stringify(["images/grandroom103.jpeg"]),
-    },
+    // 1 VIP Suite - 50,000
     {
       number: 201,
       type: "VIP Suite",
-      pricePerNight: 45000,
-      status: "occupied",
-      description: "Premium VIP suite with luxury amenities",
+      pricePerNight: 50000,
+      status: "available",
+      description: "Premium VIP suite with luxury amenities and exclusive view",
       amenities: JSON.stringify([
-        "Free WiFi",
-        "Air Conditioning",
-        "TV",
-        "Private Bathroom",
-        "Mini Fridge",
-        "Living Area",
-        "Balcony",
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom",
+        "Mini Fridge", "Living Area", "Balcony", "Jacuzzi"
       ]),
       images: JSON.stringify(["images/grandVIP201.jpeg"]),
     },
+    // 2 Executive Rooms - 40,000 each
     {
       number: 202,
-      type: "Standard Double",
-      pricePerNight: 22000,
-      status: "cleaning",
-      description: "Comfortable double room for two guests",
+      type: "Executive Room",
+      pricePerNight: 40000,
+      status: "available",
+      description: "Spacious executive room perfect for business travelers",
       amenities: JSON.stringify([
-        "Free WiFi",
-        "Air Conditioning",
-        "TV",
-        "Private Bathroom",
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom",
+        "Work Desk", "Mini Fridge"
       ]),
-      images: JSON.stringify(["images/standard20fullshot202.jpeg"]),
+      images: JSON.stringify(["images/grandexecutive206.jpeg"]),
     },
     {
       number: 203,
-      type: "Deluxe Suite",
-      pricePerNight: 30000,
-      status: "reserved",
-      description: "Elegant deluxe suite with modern facilities",
-      amenities: JSON.stringify([
-        "Free WiFi",
-        "Air Conditioning",
-        "TV",
-        "Private Bathroom",
-        "Mini Fridge",
-        "Work Desk",
-      ]),
-      images: JSON.stringify(["images/deluxe203fullshot.jpeg"]),
-    },
-    {
-      number: 205,
-      type: "Premium Room",
-      pricePerNight: 28000,
+      type: "Executive Room",
+      pricePerNight: 40000,
       status: "available",
-      description: "Premium room with city view",
+      description: "Spacious executive room perfect for business travelers",
       amenities: JSON.stringify([
-        "Free WiFi",
-        "Air Conditioning",
-        "TV",
-        "Private Bathroom",
-        "City View",
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom",
+        "Work Desk", "Mini Fridge"
+      ]),
+      images: JSON.stringify(["images/grandexecutive206.jpeg"]),
+    },
+    // 2 Royal Rooms - 35,000 each
+    {
+      number: 204,
+      type: "Royal Room",
+      pricePerNight: 35000,
+      status: "available",
+      description: "Elegant royal room with king-size bed",
+      amenities: JSON.stringify([
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom",
+        "King Bed", "Sitting Area"
       ]),
       images: JSON.stringify(["images/grandroom205.jpeg"]),
     },
     {
-      number: 206,
-      type: "Executive Room",
-      pricePerNight: 32000,
+      number: 205,
+      type: "Royal Room",
+      pricePerNight: 35000,
       status: "available",
-      description: "Executive room perfect for business travelers",
+      description: "Elegant royal room with king-size bed",
       amenities: JSON.stringify([
-        "Free WiFi",
-        "Air Conditioning",
-        "TV",
-        "Private Bathroom",
-        "Work Desk",
-        "Business Center Access",
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom",
+        "King Bed", "Sitting Area"
       ]),
-      images: JSON.stringify(["images/grandexecutive206.jpeg"]),
+      images: JSON.stringify(["images/grandroom205.jpeg"]),
+    },
+    // 2 Deluxe Rooms - 30,000 each
+    {
+      number: 101,
+      type: "Deluxe Room",
+      pricePerNight: 30000,
+      status: "available",
+      description: "Comfortable deluxe room with modern amenities",
+      amenities: JSON.stringify([
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom",
+        "Mini Fridge"
+      ]),
+      images: JSON.stringify(["images/deluxe102bettershot.jpeg"]),
+    },
+    {
+      number: 102,
+      type: "Deluxe Room",
+      pricePerNight: 30000,
+      status: "available",
+      description: "Comfortable deluxe room with modern amenities",
+      amenities: JSON.stringify([
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom",
+        "Mini Fridge"
+      ]),
+      images: JSON.stringify(["images/deluxe102bettershot.jpeg"]),
+    },
+    // 1 Standard Room - 25,000
+    {
+      number: 103,
+      type: "Standard Room",
+      pricePerNight: 25000,
+      status: "available",
+      description: "Cozy standard room for a pleasant stay",
+      amenities: JSON.stringify([
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom"
+      ]),
+      images: JSON.stringify(["images/grandroom101.jpeg"]),
+    },
+    // 1 Standard 2.0 - 27,000
+    {
+      number: 104,
+      type: "Standard 2.0",
+      pricePerNight: 27000,
+      status: "available",
+      description: "Upgraded standard room with extra space",
+      amenities: JSON.stringify([
+        "Free WiFi", "Air Conditioning", "TV", "Private Bathroom",
+        "Coffee Maker"
+      ]),
+      images: JSON.stringify(["images/grandroom101.jpeg"]),
     },
   ];
 
   for (const room of rooms) {
-    await prisma.room.upsert({
-      where: { number: room.number },
-      update: room,
-      create: room,
+    await prisma.room.create({
+      data: room,
     });
   }
 
