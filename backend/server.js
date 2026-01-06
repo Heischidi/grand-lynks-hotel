@@ -44,9 +44,9 @@ async function sendConfirmationEmail(booking, guest, room) {
         <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <h3 style="color: #8b1d30; margin-top: 0;">Payment Instructions</h3>
           <p>Please transfer the total amount to the account below to confirm your reservation:</p>
-          <p><strong>Bank Name:</strong> GTBank</p>
-          <p><strong>Account Name:</strong> Grand Lynks Nigeria Limited</p>
-          <p><strong>Account Number:</strong> 0123456789</p>
+          <p><strong>Bank Name:</strong> Moniepoint</p>
+          <p><strong>Account Name:</strong> Grand lynks Homes and Apartments</p>
+          <p><strong>Account Number:</strong> 5015151292</p>
           <p>Please start the transfer description with your name.</p>
         </div>
 
