@@ -13,12 +13,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="booking.css" />
   <link rel="stylesheet" href="preloader.css" />
-  <!-- Link booking.css -->
-  <!-- Paystack -->
   <script src="config.js"></script>
-  <!-- Paystack Removed -->
-  <script src="preloader.js"></script>
-  <script src="booking-integration.js"></script>
 </head>
 
 <body class="booking-page">
@@ -164,7 +159,6 @@
         </footer>
       </div>
     </div>
-    </div>
   </main>
 
   <script>
@@ -194,8 +188,7 @@
           }
         });
 
-      // ------- Config -------
-      const API_BASE = window.APP_CONFIG.API_URL;
+      // API config is handled by booking-integration.js
 
       // ------- Helpers -------
       const el = (id) => document.getElementById(id);
@@ -206,6 +199,8 @@
       // btnPay event is handled in booking-integration.js
     });
   </script>
+  <script src="preloader.js"></script>
+  <script src="booking-integration.js"></script>
   <script src="mobile-enhancements.js"></script>
 </body>
 

@@ -29,7 +29,7 @@ async function main() {
     // Contact Information
     {
       key: "contact_address",
-      value: "80 Pa Michael Imoudu (3rd Avenue), Gwarinpa, Abuja. Nigeria",
+      value: "80 Pa Michael Imoudu Ave, Gwarinpa, 900108, Federal Capital Territory, Nigeria",
       category: "contact",
       description: "Hotel address",
     },

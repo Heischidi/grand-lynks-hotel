@@ -14,5 +14,5 @@ window.APP_CONFIG = {
 
 // Legacy support
 window.API_BASE_URL = window.APP_CONFIG.API_URL;
-}) ();
+
 
