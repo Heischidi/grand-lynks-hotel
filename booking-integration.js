@@ -12,6 +12,7 @@ class BookingIntegration {
     this.setupEventListeners();
     this.setupDateValidation();
     this.setupTermsModal();
+    this.setupPaymentNoticeModal();
     this.checkUrlParams();
   }
 
@@ -311,12 +312,62 @@ class BookingIntegration {
     }
   }
 
-  async processBooking() {
-    console.log("processBooking called");
-    console.log("Current booking state:", this.currentBooking);
+  // Step 1: Show the payment notice modal instead of booking immediately
+  processBooking() {
+    console.log("processBooking called - showing payment notice");
+    this.showPaymentNotice();
+  }
 
-    // Manual Bank Transfer Logic
-    const btnPay = document.getElementById("btnPay");
+  showPaymentNotice() {
+    const backdrop = document.getElementById("paymentNoticeBackdrop");
+    const step1 = document.getElementById("paymentNoticeStep1");
+    const step2 = document.getElementById("paymentNoticeStep2");
+    if (!backdrop) return;
+
+    // Reset to step 1
+    step1.style.display = "block";
+    step2.style.display = "none";
+    backdrop.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+
+  setupPaymentNoticeModal() {
+    const proceedBtn = document.getElementById("proceedToAccountBtn");
+    const confirmBtn = document.getElementById("confirmTransferBtn");
+    const backdrop = document.getElementById("paymentNoticeBackdrop");
+
+    if (proceedBtn) {
+      proceedBtn.addEventListener("click", () => {
+        // Populate total in step 2
+        const totalEl = document.getElementById("noticeModalTotal");
+        if (totalEl && this.currentBooking) {
+          const { room, checkin, checkout } = this.currentBooking;
+          const price = room.pricePerNight || room.price || 0;
+          const nights = Math.ceil(
+            (new Date(checkout) - new Date(checkin)) / (1000 * 60 * 60 * 24)
+          ) || 0;
+          totalEl.textContent = "\u20A6" + (price * nights).toLocaleString();
+        }
+        document.getElementById("paymentNoticeStep1").style.display = "none";
+        document.getElementById("paymentNoticeStep2").style.display = "block";
+      });
+    }
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", () => {
+        // Close modal and submit booking to API
+        if (backdrop) {
+          backdrop.style.display = "none";
+          document.body.style.overflow = "";
+        }
+        this.submitBooking();
+      });
+    }
+  }
+
+  // Step 2: Actual API submission (called after modal confirmation)
+  async submitBooking() {
+    console.log("submitBooking called");
     this.showLoading("btnPay", "Processing...");
 
     try {
@@ -333,7 +384,7 @@ class BookingIntegration {
         body: JSON.stringify(guestData),
       });
       const guestResponse = await guestRes.json();
-      const guestId = guestResponse.guest ? guestResponse.guest.id : guestResponse.id; // Handle varied response structure
+      const guestId = guestResponse.guest ? guestResponse.guest.id : guestResponse.id;
 
       // 2. Create Booking
       const bookingData = {
@@ -341,7 +392,7 @@ class BookingIntegration {
         roomId: this.currentBooking.room.id,
         startDate: this.currentBooking.checkin,
         endDate: this.currentBooking.checkout,
-        status: "pending", // Pending transfer
+        status: "pending",
       };
 
       const bookingRes = await fetch(`${this.API_URL}/bookings`, {

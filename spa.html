@@ -1,735 +1,587 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Serenity Spa - Luxury Hotel & Resort</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap");
 
-      .font-playfair {
-        font-family: "Playfair Display", serif;
-      }
-      .font-inter {
-        font-family: "Inter", sans-serif;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serenity Spa - Grand Lynks Homes &amp; Apartments</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap");
 
-      .hero-gradient {
-        background: linear-gradient(
-          135deg,
+    .font-playfair {
+      font-family: "Playfair Display", serif;
+    }
+
+    .font-inter {
+      font-family: "Inter", sans-serif;
+    }
+
+    .hero-gradient {
+      background: linear-gradient(135deg,
           rgba(139, 195, 74, 0.1) 0%,
-          rgba(76, 175, 80, 0.1) 100%
-        );
+          rgba(76, 175, 80, 0.1) 100%);
+    }
+
+    .service-card {
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .service-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .floating-animation {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
       }
 
-      .service-card {
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
+      50% {
+        transform: translateY(-10px);
       }
+    }
 
-      .service-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-      }
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeIn 0.8s ease forwards;
+    }
 
-      .floating-animation {
-        animation: float 6s ease-in-out infinite;
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
+    }
+  </style>
+</head>
 
-      @keyframes float {
-        0%,
-        100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-10px);
-        }
-      }
+<body class="bg-gradient-to-br from-green-50 to-blue-50 font-inter">
+  <!-- Navigation -->
+  <nav class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center">
+          <h1 class="text-2xl font-playfair font-bold text-green-800">
+            🏨 Grand Lynks
+          </h1>
+        </div>
+        <div class="hidden md:flex space-x-8">
+          <a href="#" class="text-gray-700 hover:text-green-600 transition-colors">Home</a>
+          <a href="#" class="text-green-600 font-medium">Spa</a>
+          <a href="#" class="text-gray-700 hover:text-green-600 transition-colors">Rooms</a>
+          <a href="#" class="text-gray-700 hover:text-green-600 transition-colors">Dining</a>
+          <a href="#" class="text-gray-700 hover:text-green-600 transition-colors">Contact</a>
+        </div>
+        <button class="bg-green-600 text-white px-6 py-2 rounded-full hover:bg-green-700 transition-colors">
+          Book Now
+        </button>
+      </div>
+    </div>
+  </nav>
 
-      .fade-in {
-        opacity: 0;
-        transform: translateY(30px);
-        animation: fadeIn 0.8s ease forwards;
-      }
-
-      @keyframes fadeIn {
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-    </style>
-  </head>
-  <body class="bg-gradient-to-br from-green-50 to-blue-50 font-inter">
-    <!-- Navigation -->
-    <nav class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <div class="flex items-center">
-            <h1 class="text-2xl font-playfair font-bold text-green-800">
-              🏨 Luxury Hotel
-            </h1>
+  <!-- Hero Section -->
+  <section class="relative hero-gradient py-20 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div class="fade-in">
+          <h1 class="text-5xl lg:text-6xl font-playfair font-bold text-gray-800 mb-6">
+            Serenity Spa
+            <span class="text-green-600">Sanctuary</span>
+          </h1>
+          <p class="text-xl text-gray-600 mb-8 leading-relaxed">
+            Escape to our tranquil spa oasis where luxury meets wellness.
+            Experience rejuvenating treatments in our serene environment
+            designed for ultimate relaxation.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <button
+              class="bg-green-600 text-white px-8 py-4 rounded-full hover:bg-green-700 transition-all transform hover:scale-105 font-medium">
+              Book Treatment
+            </button>
+            <button
+              class="border-2 border-green-600 text-green-600 px-8 py-4 rounded-full hover:bg-green-600 hover:text-white transition-all">
+              View Menu
+            </button>
           </div>
-          <div class="hidden md:flex space-x-8">
-            <a
-              href="#"
-              class="text-gray-700 hover:text-green-600 transition-colors"
-              >Home</a
-            >
-            <a href="#" class="text-green-600 font-medium">Spa</a>
-            <a
-              href="#"
-              class="text-gray-700 hover:text-green-600 transition-colors"
-              >Rooms</a
-            >
-            <a
-              href="#"
-              class="text-gray-700 hover:text-green-600 transition-colors"
-              >Dining</a
-            >
-            <a
-              href="#"
-              class="text-gray-700 hover:text-green-600 transition-colors"
-              >Contact</a
-            >
+        </div>
+        <div class="floating-animation">
+          <div class="bg-white/20 backdrop-blur-sm rounded-3xl p-8 shadow-xl">
+            <svg class="w-full h-80" viewBox="0 0 400 300" fill="none">
+              <rect width="400" height="300" rx="20" fill="url(#spa-gradient)" />
+              <circle cx="200" cy="150" r="80" fill="rgba(255,255,255,0.3)" />
+              <path d="M160 130 Q200 100 240 130 Q200 160 160 130" fill="rgba(139,195,74,0.6)" />
+              <circle cx="180" cy="140" r="8" fill="rgba(255,255,255,0.8)" />
+              <circle cx="220" cy="140" r="8" fill="rgba(255,255,255,0.8)" />
+              <text x="200" y="200" text-anchor="middle" fill="white" font-size="16" font-family="serif">
+                🧘‍♀️ Spa Sanctuary
+              </text>
+              <defs>
+                <linearGradient id="spa-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: #8bc34a; stop-opacity: 0.8" />
+                  <stop offset="100%" style="stop-color: #4caf50; stop-opacity: 0.9" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
-          <button
-            class="bg-green-600 text-white px-6 py-2 rounded-full hover:bg-green-700 transition-colors"
-          >
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
+          Signature Treatments
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Indulge in our carefully curated selection of premium spa treatments
+          designed to restore your mind, body, and spirit.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Massage Therapy -->
+        <div class="service-card bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 border border-green-100">
+          <div class="mb-6">
+            <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
+              <circle cx="40" cy="40" r="35" fill="url(#massage-gradient)" />
+              <path d="M25 35 Q40 25 55 35 Q40 45 25 35" fill="rgba(255,255,255,0.8)" />
+              <circle cx="35" cy="32" r="3" fill="rgba(139,195,74,0.8)" />
+              <circle cx="45" cy="32" r="3" fill="rgba(139,195,74,0.8)" />
+              <defs>
+                <linearGradient id="massage-gradient">
+                  <stop offset="0%" style="stop-color: #8bc34a" />
+                  <stop offset="100%" style="stop-color: #4caf50" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center">
+            Massage Therapy
+          </h3>
+          <p class="text-gray-600 mb-6 text-center">
+            Therapeutic massages using premium oils and techniques to release
+            tension and promote deep relaxation.
+          </p>
+          <div class="space-y-2 mb-6">
+            <div class="flex justify-between">
+              <span class="text-gray-700">Swedish Massage</span>
+              <span class="font-semibold text-green-600">$120</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-700">Deep Tissue</span>
+              <span class="font-semibold text-green-600">$140</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-700">Hot Stone</span>
+              <span class="font-semibold text-green-600">$160</span>
+            </div>
+          </div>
+          <button class="w-full bg-green-600 text-white py-3 rounded-full hover:bg-green-700 transition-colors">
+            Book Now
+          </button>
+        </div>
+
+        <!-- Facial Treatments -->
+        <div class="service-card bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-100">
+          <div class="mb-6">
+            <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
+              <circle cx="40" cy="40" r="35" fill="url(#facial-gradient)" />
+              <circle cx="40" cy="35" r="15" fill="rgba(255,255,255,0.9)" />
+              <circle cx="35" cy="32" r="2" fill="rgba(33,150,243,0.8)" />
+              <circle cx="45" cy="32" r="2" fill="rgba(33,150,243,0.8)" />
+              <path d="M35 42 Q40 45 45 42" stroke="rgba(33,150,243,0.8)" stroke-width="2" fill="none" />
+              <defs>
+                <linearGradient id="facial-gradient">
+                  <stop offset="0%" style="stop-color: #2196f3" />
+                  <stop offset="100%" style="stop-color: #9c27b0" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center">
+            Facial Treatments
+          </h3>
+          <p class="text-gray-600 mb-6 text-center">
+            Rejuvenating facial treatments using organic products to cleanse,
+            nourish, and revitalize your skin.
+          </p>
+          <div class="space-y-2 mb-6">
+            <div class="flex justify-between">
+              <span class="text-gray-700">Hydrating Facial</span>
+              <span class="font-semibold text-blue-600">$90</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-700">Anti-Aging</span>
+              <span class="font-semibold text-blue-600">$130</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-700">Gold Luxury</span>
+              <span class="font-semibold text-blue-600">$200</span>
+            </div>
+          </div>
+          <button class="w-full bg-blue-600 text-white py-3 rounded-full hover:bg-blue-700 transition-colors">
+            Book Now
+          </button>
+        </div>
+
+        <!-- Body Treatments -->
+        <div class="service-card bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-100">
+          <div class="mb-6">
+            <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
+              <circle cx="40" cy="40" r="35" fill="url(#body-gradient)" />
+              <ellipse cx="40" cy="35" rx="12" ry="18" fill="rgba(255,255,255,0.9)" />
+              <circle cx="40" cy="28" r="6" fill="rgba(233,30,99,0.3)" />
+              <ellipse cx="40" cy="45" rx="8" ry="12" fill="rgba(233,30,99,0.2)" />
+              <defs>
+                <linearGradient id="body-gradient">
+                  <stop offset="0%" style="stop-color: #9c27b0" />
+                  <stop offset="100%" style="stop-color: #e91e63" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center">
+            Body Treatments
+          </h3>
+          <p class="text-gray-600 mb-6 text-center">
+            Full-body treatments including wraps, scrubs, and detoxifying
+            therapies for complete wellness.
+          </p>
+          <div class="space-y-2 mb-6">
+            <div class="flex justify-between">
+              <span class="text-gray-700">Body Scrub</span>
+              <span class="font-semibold text-purple-600">$100</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-700">Mud Wrap</span>
+              <span class="font-semibold text-purple-600">$150</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-700">Detox Package</span>
+              <span class="font-semibold text-purple-600">$220</span>
+            </div>
+          </div>
+          <button class="w-full bg-purple-600 text-white py-3 rounded-full hover:bg-purple-700 transition-colors">
             Book Now
           </button>
         </div>
       </div>
-    </nav>
+    </div>
+  </section>
 
-    <!-- Hero Section -->
-    <section class="relative hero-gradient py-20 overflow-hidden">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid lg:grid-cols-2 gap-12 items-center">
-          <div class="fade-in">
-            <h1
-              class="text-5xl lg:text-6xl font-playfair font-bold text-gray-800 mb-6"
-            >
-              Serenity Spa
-              <span class="text-green-600">Sanctuary</span>
-            </h1>
-            <p class="text-xl text-gray-600 mb-8 leading-relaxed">
-              Escape to our tranquil spa oasis where luxury meets wellness.
-              Experience rejuvenating treatments in our serene environment
-              designed for ultimate relaxation.
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4">
-              <button
-                class="bg-green-600 text-white px-8 py-4 rounded-full hover:bg-green-700 transition-all transform hover:scale-105 font-medium"
-              >
-                Book Treatment
-              </button>
-              <button
-                class="border-2 border-green-600 text-green-600 px-8 py-4 rounded-full hover:bg-green-600 hover:text-white transition-all"
-              >
-                View Menu
-              </button>
-            </div>
-          </div>
-          <div class="floating-animation">
-            <div class="bg-white/20 backdrop-blur-sm rounded-3xl p-8 shadow-xl">
-              <svg class="w-full h-80" viewBox="0 0 400 300" fill="none">
-                <rect
-                  width="400"
-                  height="300"
-                  rx="20"
-                  fill="url(#spa-gradient)"
-                />
-                <circle cx="200" cy="150" r="80" fill="rgba(255,255,255,0.3)" />
-                <path
-                  d="M160 130 Q200 100 240 130 Q200 160 160 130"
-                  fill="rgba(139,195,74,0.6)"
-                />
-                <circle cx="180" cy="140" r="8" fill="rgba(255,255,255,0.8)" />
-                <circle cx="220" cy="140" r="8" fill="rgba(255,255,255,0.8)" />
-                <text
-                  x="200"
-                  y="200"
-                  text-anchor="middle"
-                  fill="white"
-                  font-size="16"
-                  font-family="serif"
-                >
-                  🧘‍♀️ Spa Sanctuary
-                </text>
-                <defs>
-                  <linearGradient
-                    id="spa-gradient"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="100%"
-                  >
-                    <stop
-                      offset="0%"
-                      style="stop-color: #8bc34a; stop-opacity: 0.8"
-                    />
-                    <stop
-                      offset="100%"
-                      style="stop-color: #4caf50; stop-opacity: 0.9"
-                    />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Services Section -->
-    <section class="py-20 bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-            Signature Treatments
-          </h2>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Indulge in our carefully curated selection of premium spa treatments
-            designed to restore your mind, body, and spirit.
-          </p>
-        </div>
-
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <!-- Massage Therapy -->
-          <div
-            class="service-card bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 border border-green-100"
-          >
-            <div class="mb-6">
-              <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
-                <circle cx="40" cy="40" r="35" fill="url(#massage-gradient)" />
-                <path
-                  d="M25 35 Q40 25 55 35 Q40 45 25 35"
-                  fill="rgba(255,255,255,0.8)"
-                />
-                <circle cx="35" cy="32" r="3" fill="rgba(139,195,74,0.8)" />
-                <circle cx="45" cy="32" r="3" fill="rgba(139,195,74,0.8)" />
-                <defs>
-                  <linearGradient id="massage-gradient">
-                    <stop offset="0%" style="stop-color: #8bc34a" />
-                    <stop offset="100%" style="stop-color: #4caf50" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <h3
-              class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center"
-            >
-              Massage Therapy
-            </h3>
-            <p class="text-gray-600 mb-6 text-center">
-              Therapeutic massages using premium oils and techniques to release
-              tension and promote deep relaxation.
-            </p>
-            <div class="space-y-2 mb-6">
-              <div class="flex justify-between">
-                <span class="text-gray-700">Swedish Massage</span>
-                <span class="font-semibold text-green-600">$120</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-700">Deep Tissue</span>
-                <span class="font-semibold text-green-600">$140</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-700">Hot Stone</span>
-                <span class="font-semibold text-green-600">$160</span>
-              </div>
-            </div>
-            <button
-              class="w-full bg-green-600 text-white py-3 rounded-full hover:bg-green-700 transition-colors"
-            >
-              Book Now
-            </button>
-          </div>
-
-          <!-- Facial Treatments -->
-          <div
-            class="service-card bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-100"
-          >
-            <div class="mb-6">
-              <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
-                <circle cx="40" cy="40" r="35" fill="url(#facial-gradient)" />
-                <circle cx="40" cy="35" r="15" fill="rgba(255,255,255,0.9)" />
-                <circle cx="35" cy="32" r="2" fill="rgba(33,150,243,0.8)" />
-                <circle cx="45" cy="32" r="2" fill="rgba(33,150,243,0.8)" />
-                <path
-                  d="M35 42 Q40 45 45 42"
-                  stroke="rgba(33,150,243,0.8)"
-                  stroke-width="2"
-                  fill="none"
-                />
-                <defs>
-                  <linearGradient id="facial-gradient">
-                    <stop offset="0%" style="stop-color: #2196f3" />
-                    <stop offset="100%" style="stop-color: #9c27b0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <h3
-              class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center"
-            >
-              Facial Treatments
-            </h3>
-            <p class="text-gray-600 mb-6 text-center">
-              Rejuvenating facial treatments using organic products to cleanse,
-              nourish, and revitalize your skin.
-            </p>
-            <div class="space-y-2 mb-6">
-              <div class="flex justify-between">
-                <span class="text-gray-700">Hydrating Facial</span>
-                <span class="font-semibold text-blue-600">$90</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-700">Anti-Aging</span>
-                <span class="font-semibold text-blue-600">$130</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-700">Gold Luxury</span>
-                <span class="font-semibold text-blue-600">$200</span>
-              </div>
-            </div>
-            <button
-              class="w-full bg-blue-600 text-white py-3 rounded-full hover:bg-blue-700 transition-colors"
-            >
-              Book Now
-            </button>
-          </div>
-
-          <!-- Body Treatments -->
-          <div
-            class="service-card bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-100"
-          >
-            <div class="mb-6">
-              <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
-                <circle cx="40" cy="40" r="35" fill="url(#body-gradient)" />
-                <ellipse
-                  cx="40"
-                  cy="35"
-                  rx="12"
-                  ry="18"
-                  fill="rgba(255,255,255,0.9)"
-                />
-                <circle cx="40" cy="28" r="6" fill="rgba(233,30,99,0.3)" />
-                <ellipse
-                  cx="40"
-                  cy="45"
-                  rx="8"
-                  ry="12"
-                  fill="rgba(233,30,99,0.2)"
-                />
-                <defs>
-                  <linearGradient id="body-gradient">
-                    <stop offset="0%" style="stop-color: #9c27b0" />
-                    <stop offset="100%" style="stop-color: #e91e63" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <h3
-              class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center"
-            >
-              Body Treatments
-            </h3>
-            <p class="text-gray-600 mb-6 text-center">
-              Full-body treatments including wraps, scrubs, and detoxifying
-              therapies for complete wellness.
-            </p>
-            <div class="space-y-2 mb-6">
-              <div class="flex justify-between">
-                <span class="text-gray-700">Body Scrub</span>
-                <span class="font-semibold text-purple-600">$100</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-700">Mud Wrap</span>
-                <span class="font-semibold text-purple-600">$150</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-700">Detox Package</span>
-                <span class="font-semibold text-purple-600">$220</span>
-              </div>
-            </div>
-            <button
-              class="w-full bg-purple-600 text-white py-3 rounded-full hover:bg-purple-700 transition-colors"
-            >
-              Book Now
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Facilities Section -->
-    <section class="py-20 bg-gradient-to-br from-green-50 to-blue-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-            Spa Facilities
-          </h2>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Enjoy our world-class facilities designed to enhance your spa
-            experience and promote total relaxation.
-          </p>
-        </div>
-
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div class="text-center group">
-            <div
-              class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4"
-            >
-              <div class="text-4xl mb-4">🏊‍♀️</div>
-              <h3
-                class="text-xl font-playfair font-semibold text-gray-800 mb-2"
-              >
-                Infinity Pool
-              </h3>
-              <p class="text-gray-600">
-                Heated infinity pool with stunning views
-              </p>
-            </div>
-          </div>
-
-          <div class="text-center group">
-            <div
-              class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4"
-            >
-              <div class="text-4xl mb-4">🧖‍♀️</div>
-              <h3
-                class="text-xl font-playfair font-semibold text-gray-800 mb-2"
-              >
-                Sauna & Steam
-              </h3>
-              <p class="text-gray-600">
-                Traditional Finnish sauna and steam rooms
-              </p>
-            </div>
-          </div>
-
-          <div class="text-center group">
-            <div
-              class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4"
-            >
-              <div class="text-4xl mb-4">🧘‍♀️</div>
-              <h3
-                class="text-xl font-playfair font-semibold text-gray-800 mb-2"
-              >
-                Meditation Garden
-              </h3>
-              <p class="text-gray-600">Peaceful outdoor meditation spaces</p>
-            </div>
-          </div>
-
-          <div class="text-center group">
-            <div
-              class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4"
-            >
-              <div class="text-4xl mb-4">💆‍♀️</div>
-              <h3
-                class="text-xl font-playfair font-semibold text-gray-800 mb-2"
-              >
-                Private Suites
-              </h3>
-              <p class="text-gray-600">Luxury treatment rooms for couples</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Testimonials -->
-    <section class="py-20 bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-            Guest Experiences
-          </h2>
-          <p class="text-xl text-gray-600">
-            What our guests say about their spa journey
-          </p>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-8">
-          <div
-            class="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 border border-green-100"
-          >
-            <div class="flex items-center mb-4">
-              <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
-            </div>
-            <p class="text-gray-700 mb-6 italic">
-              "The most relaxing spa experience I've ever had. The staff was
-              incredibly professional and the facilities are absolutely
-              stunning."
-            </p>
-            <div class="flex items-center">
-              <div
-                class="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center mr-4"
-              >
-                <span class="text-green-800 font-semibold">SJ</span>
-              </div>
-              <div>
-                <h4 class="font-semibold text-gray-800">Sarah Johnson</h4>
-                <p class="text-gray-600 text-sm">Verified Guest</p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-100"
-          >
-            <div class="flex items-center mb-4">
-              <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
-            </div>
-            <p class="text-gray-700 mb-6 italic">
-              "Perfect for a romantic getaway. The couples massage was divine
-              and the ambiance is simply magical."
-            </p>
-            <div class="flex items-center">
-              <div
-                class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center mr-4"
-              >
-                <span class="text-blue-800 font-semibold">MC</span>
-              </div>
-              <div>
-                <h4 class="font-semibold text-gray-800">Michael Chen</h4>
-                <p class="text-gray-600 text-sm">Verified Guest</p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-100"
-          >
-            <div class="flex items-center mb-4">
-              <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
-            </div>
-            <p class="text-gray-700 mb-6 italic">
-              "I left feeling completely rejuvenated. The facial treatment was
-              exceptional and the staff made me feel like royalty."
-            </p>
-            <div class="flex items-center">
-              <div
-                class="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center mr-4"
-              >
-                <span class="text-purple-800 font-semibold">ER</span>
-              </div>
-              <div>
-                <h4 class="font-semibold text-gray-800">Emma Rodriguez</h4>
-                <p class="text-gray-600 text-sm">Verified Guest</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section
-      class="py-20 bg-gradient-to-r from-green-600 to-blue-600 text-white"
-    >
-      <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-        <h2 class="text-4xl font-playfair font-bold mb-6">Ready to Unwind?</h2>
-        <p class="text-xl mb-8 opacity-90">
-          Book your spa experience today and discover the perfect balance of
-          luxury and wellness at our hotel spa.
+  <!-- Facilities Section -->
+  <section class="py-20 bg-gradient-to-br from-green-50 to-blue-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
+          Spa Facilities
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Enjoy our world-class facilities designed to enhance your spa
+          experience and promote total relaxation.
         </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            class="bg-white text-green-600 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition-all transform hover:scale-105"
-          >
-            Book Your Treatment
-          </button>
-          <button
-            class="border-2 border-white text-white px-8 py-4 rounded-full hover:bg-white hover:text-green-600 transition-all"
-          >
-            Call (555) 123-RELAX
-          </button>
-        </div>
       </div>
-    </section>
 
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-12">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid md:grid-cols-4 gap-8">
-          <div>
-            <h3 class="text-xl font-playfair font-semibold mb-4">
-              🏨 Luxury Hotel
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="text-center group">
+          <div class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4">
+            <div class="text-4xl mb-4">🏊‍♀️</div>
+            <h3 class="text-xl font-playfair font-semibold text-gray-800 mb-2">
+              Infinity Pool
             </h3>
-            <p class="text-gray-400">
-              Experience unparalleled luxury and wellness at our award-winning
-              hotel spa.
+            <p class="text-gray-600">
+              Heated infinity pool with stunning views
             </p>
           </div>
-          <div>
-            <h4 class="font-semibold mb-4">Spa Services</h4>
-            <ul class="space-y-2 text-gray-400">
-              <li>
-                <a href="#" class="hover:text-white transition-colors"
-                  >Massage Therapy</a
-                >
-              </li>
-              <li>
-                <a href="#" class="hover:text-white transition-colors"
-                  >Facial Treatments</a
-                >
-              </li>
-              <li>
-                <a href="#" class="hover:text-white transition-colors"
-                  >Body Treatments</a
-                >
-              </li>
-              <li>
-                <a href="#" class="hover:text-white transition-colors"
-                  >Wellness Packages</a
-                >
-              </li>
-            </ul>
+        </div>
+
+        <div class="text-center group">
+          <div class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4">
+            <div class="text-4xl mb-4">🧖‍♀️</div>
+            <h3 class="text-xl font-playfair font-semibold text-gray-800 mb-2">
+              Sauna & Steam
+            </h3>
+            <p class="text-gray-600">
+              Traditional Finnish sauna and steam rooms
+            </p>
           </div>
-          <div>
-            <h4 class="font-semibold mb-4">Hotel</h4>
-            <ul class="space-y-2 text-gray-400">
-              <li>
-                <a href="#" class="hover:text-white transition-colors"
-                  >Rooms & Suites</a
-                >
-              </li>
-              <li>
-                <a href="#" class="hover:text-white transition-colors"
-                  >Dining</a
-                >
-              </li>
-              <li>
-                <a href="#" class="hover:text-white transition-colors"
-                  >Events</a
-                >
-              </li>
-              <li>
-                <a href="#" class="hover:text-white transition-colors"
-                  >Amenities</a
-                >
-              </li>
-            </ul>
+        </div>
+
+        <div class="text-center group">
+          <div class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4">
+            <div class="text-4xl mb-4">🧘‍♀️</div>
+            <h3 class="text-xl font-playfair font-semibold text-gray-800 mb-2">
+              Meditation Garden
+            </h3>
+            <p class="text-gray-600">Peaceful outdoor meditation spaces</p>
           </div>
-          <div>
-            <h4 class="font-semibold mb-4">Contact</h4>
-            <div class="space-y-2 text-gray-400">
-              <p>📍 123 Luxury Avenue, Resort City</p>
-              <p>📞 (555) 123-RELAX</p>
-              <p>✉️ spa@luxuryhotel.com</p>
-              <div class="flex space-x-4 mt-4">
-                <span
-                  class="text-2xl cursor-pointer hover:text-green-400 transition-colors"
-                  >📘</span
-                >
-                <span
-                  class="text-2xl cursor-pointer hover:text-green-400 transition-colors"
-                  >📷</span
-                >
-                <span
-                  class="text-2xl cursor-pointer hover:text-green-400 transition-colors"
-                  >🐦</span
-                >
-              </div>
+        </div>
+
+        <div class="text-center group">
+          <div class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4">
+            <div class="text-4xl mb-4">💆‍♀️</div>
+            <h3 class="text-xl font-playfair font-semibold text-gray-800 mb-2">
+              Private Suites
+            </h3>
+            <p class="text-gray-600">Luxury treatment rooms for couples</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
+          Guest Experiences
+        </h2>
+        <p class="text-xl text-gray-600">
+          What our guests say about their spa journey
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 border border-green-100">
+          <div class="flex items-center mb-4">
+            <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
+          </div>
+          <p class="text-gray-700 mb-6 italic">
+            "The most relaxing spa experience I've ever had. The staff was
+            incredibly professional and the facilities are absolutely
+            stunning."
+          </p>
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center mr-4">
+              <span class="text-green-800 font-semibold">SJ</span>
+            </div>
+            <div>
+              <h4 class="font-semibold text-gray-800">Sarah Johnson</h4>
+              <p class="text-gray-600 text-sm">Verified Guest</p>
             </div>
           </div>
         </div>
-        <div
-          class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400"
-        >
-          <p>&copy; 2024 Luxury Hotel & Spa. All rights reserved.</p>
+
+        <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-100">
+          <div class="flex items-center mb-4">
+            <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
+          </div>
+          <p class="text-gray-700 mb-6 italic">
+            "Perfect for a romantic getaway. The couples massage was divine
+            and the ambiance is simply magical."
+          </p>
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center mr-4">
+              <span class="text-blue-800 font-semibold">MC</span>
+            </div>
+            <div>
+              <h4 class="font-semibold text-gray-800">Michael Chen</h4>
+              <p class="text-gray-600 text-sm">Verified Guest</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-100">
+          <div class="flex items-center mb-4">
+            <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
+          </div>
+          <p class="text-gray-700 mb-6 italic">
+            "I left feeling completely rejuvenated. The facial treatment was
+            exceptional and the staff made me feel like royalty."
+          </p>
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center mr-4">
+              <span class="text-purple-800 font-semibold">ER</span>
+            </div>
+            <div>
+              <h4 class="font-semibold text-gray-800">Emma Rodriguez</h4>
+              <p class="text-gray-600 text-sm">Verified Guest</p>
+            </div>
+          </div>
         </div>
       </div>
-    </footer>
+    </div>
+  </section>
 
-    <script>
-      // Add smooth scrolling and fade-in animations
-      document.addEventListener("DOMContentLoaded", function () {
-        // Animate elements on scroll
-        const observerOptions = {
-          threshold: 0.1,
-          rootMargin: "0px 0px -50px 0px",
-        };
+  <!-- CTA Section -->
+  <section class="py-20 bg-gradient-to-r from-green-600 to-blue-600 text-white">
+    <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-playfair font-bold mb-6">Ready to Unwind?</h2>
+      <p class="text-xl mb-8 opacity-90">
+        Book your spa experience today and discover the perfect balance of
+        luxury and wellness at our hotel spa.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <button
+          class="bg-white text-green-600 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition-all transform hover:scale-105">
+          Book Your Treatment
+        </button>
+        <button
+          class="border-2 border-white text-white px-8 py-4 rounded-full hover:bg-white hover:text-green-600 transition-all">
+          Call +234 814 223 4691
+        </button>
+      </div>
+    </div>
+  </section>
 
-        const observer = new IntersectionObserver(function (entries) {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.style.animationDelay = "0.2s";
-              entry.target.classList.add("fade-in");
-            }
-          });
-        }, observerOptions);
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-4 gap-8">
+        <div>
+          <h3 class="text-xl font-playfair font-semibold mb-4">
+            🏨 Grand Lynks Homes &amp; Apartments
+          </h3>
+          <p class="text-gray-400">
+            Your comfort, our interest. Experience luxury living in the heart of Gwarinpa, Abuja.
+          </p>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-4">Spa Services</h4>
+          <ul class="space-y-2 text-gray-400">
+            <li>
+              <a href="#" class="hover:text-white transition-colors">Massage Therapy</a>
+            </li>
+            <li>
+              <a href="#" class="hover:text-white transition-colors">Facial Treatments</a>
+            </li>
+            <li>
+              <a href="#" class="hover:text-white transition-colors">Body Treatments</a>
+            </li>
+            <li>
+              <a href="#" class="hover:text-white transition-colors">Wellness Packages</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-4">Quick Links</h4>
+          <ul class="space-y-2 text-gray-400">
+            <li>
+              <a href="index.html" class="hover:text-white transition-colors">Home</a>
+            </li>
+            <li>
+              <a href="rooms.html" class="hover:text-white transition-colors">Our Rooms</a>
+            </li>
+            <li>
+              <a href="booking.html" class="hover:text-white transition-colors">Book Now</a>
+            </li>
+            <li>
+              <a href="contact.html" class="hover:text-white transition-colors">Contact Us</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-4">Contact</h4>
+          <div class="space-y-2 text-gray-400">
+            <p>📍 80 Pa Michael Imoudu Ave, Gwarinpa, 900108, Federal Capital Territory, Nigeria</p>
+            <p>📞 +234 814 223 4691</p>
+            <p>✉️ grandlynkshomesandapartments@gmail.com</p>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+        <p>&copy; 2025 Grand Lynks Homes &amp; Apartments. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
 
-        // Observe service cards
-        document.querySelectorAll(".service-card").forEach((card) => {
-          observer.observe(card);
-        });
+  <script>
+    // Add smooth scrolling and fade-in animations
+    document.addEventListener("DOMContentLoaded", function () {
+      // Animate elements on scroll
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
+      };
 
-        // Add click handlers for booking buttons
-        document.querySelectorAll("button").forEach((button) => {
-          if (
-            button.textContent.includes("Book") ||
-            button.textContent.includes("Call")
-          ) {
-            button.addEventListener("click", function () {
-              alert(
-                "Thank you for your interest! Our booking system will be available soon. Please call (555) 123-RELAX to make a reservation."
-              );
-            });
+      const observer = new IntersectionObserver(function (entries) {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.style.animationDelay = "0.2s";
+            entry.target.classList.add("fade-in");
           }
         });
+      }, observerOptions);
 
-        // Add hover effects to facility cards
-        document.querySelectorAll(".group").forEach((group) => {
-          group.addEventListener("mouseenter", function () {
-            this.querySelector("div").style.transform = "translateY(-5px)";
-          });
+      // Observe service cards
+      document.querySelectorAll(".service-card").forEach((card) => {
+        observer.observe(card);
+      });
 
-          group.addEventListener("mouseleave", function () {
-            this.querySelector("div").style.transform = "translateY(0)";
+      // Add click handlers for booking buttons
+      document.querySelectorAll("button").forEach((button) => {
+        if (
+          button.textContent.includes("Book") ||
+          button.textContent.includes("Call")
+        ) {
+          button.addEventListener("click", function () {
+            alert(
+              "Thank you for your interest! Our booking system will be available soon. Please call (555) 123-RELAX to make a reservation."
+            );
           });
+        }
+      });
+
+      // Add hover effects to facility cards
+      document.querySelectorAll(".group").forEach((group) => {
+        group.addEventListener("mouseenter", function () {
+          this.querySelector("div").style.transform = "translateY(-5px)";
+        });
+
+        group.addEventListener("mouseleave", function () {
+          this.querySelector("div").style.transform = "translateY(0)";
         });
       });
-    </script>
-    <script>
-      (function () {
-        function c() {
-          var b = a.contentDocument || a.contentWindow.document;
-          if (b) {
-            var d = b.createElement("script");
-            d.innerHTML =
-              "window.__CF$cv$params={r:'976c6b2ea4e8dc79',t:'MTc1NjQ3NDM5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
-            b.getElementsByTagName("head")[0].appendChild(d);
-          }
+    });
+  </script>
+  <script>
+    (function () {
+      function c() {
+        var b = a.contentDocument || a.contentWindow.document;
+        if (b) {
+          var d = b.createElement("script");
+          d.innerHTML =
+            "window.__CF$cv$params={r:'976c6b2ea4e8dc79',t:'MTc1NjQ3NDM5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+          b.getElementsByTagName("head")[0].appendChild(d);
         }
-        if (document.body) {
-          var a = document.createElement("iframe");
-          a.height = 1;
-          a.width = 1;
-          a.style.position = "absolute";
-          a.style.top = 0;
-          a.style.left = 0;
-          a.style.border = "none";
-          a.style.visibility = "hidden";
-          document.body.appendChild(a);
-          if ("loading" !== document.readyState) c();
-          else if (window.addEventListener)
-            document.addEventListener("DOMContentLoaded", c);
-          else {
-            var e = document.onreadystatechange || function () {};
-            document.onreadystatechange = function (b) {
-              e(b);
-              "loading" !== document.readyState &&
-                ((document.onreadystatechange = e), c());
-            };
-          }
+      }
+      if (document.body) {
+        var a = document.createElement("iframe");
+        a.height = 1;
+        a.width = 1;
+        a.style.position = "absolute";
+        a.style.top = 0;
+        a.style.left = 0;
+        a.style.border = "none";
+        a.style.visibility = "hidden";
+        document.body.appendChild(a);
+        if ("loading" !== document.readyState) c();
+        else if (window.addEventListener)
+          document.addEventListener("DOMContentLoaded", c);
+        else {
+          var e = document.onreadystatechange || function () { };
+          document.onreadystatechange = function (b) {
+            e(b);
+            "loading" !== document.readyState &&
+              ((document.onreadystatechange = e), c());
+          };
         }
-      })();
-    </script>
-  </body>
+      }
+    })();
+  </script>
+</body>
+
 </html>

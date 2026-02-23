@@ -161,6 +161,119 @@
     </div>
   </main>
 
+  <!-- ===== PRE-PAYMENT NOTICE MODAL ===== -->
+  <div id="paymentNoticeBackdrop" style="
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75);
+    z-index:100000; align-items:center; justify-content:center; padding:16px;
+  ">
+    <!-- Step 1: Notice -->
+    <div id="paymentNoticeStep1" style="
+      background:#1a1a2e; border:1px solid #8b1d30; border-radius:12px;
+      max-width:520px; width:100%; padding:36px 32px; color:#fff;
+      box-shadow:0 20px 60px rgba(0,0,0,0.6); position:relative;
+    ">
+      <div style="text-align:center; margin-bottom:20px;">
+        <span style="font-size:2.4rem;">⚠️</span>
+      </div>
+      <h2
+        style="text-align:center; color:#e8b84b; margin:0 0 18px; font-size:1.3rem; font-family:'Playfair Display',serif;">
+        Important Notice
+      </h2>
+      <div
+        style="background:rgba(139,29,48,0.15); border:1px solid rgba(139,29,48,0.4); border-radius:8px; padding:18px 20px; line-height:1.75; font-size:0.97rem; color:#ddd;">
+        <p style="margin:0 0 12px;">
+          To guarantee your room reservation, <strong style="color:#ffffff;">payment is required in advance</strong>.
+          By paying online, we ensure that your room is held exclusively for you.
+        </p>
+        <p style="margin:0; color:#ffbaba;">
+          If payment isn't made before arrival, we <strong>can't guarantee room availability</strong>,
+          and there's a risk that your room might be given to another guest.
+        </p>
+      </div>
+      <p style="text-align:center; margin-top:16px; font-size:0.88rem; color:#aaa;">
+        Thank you for understanding.
+      </p>
+      <div style="display:flex; gap:12px; margin-top:24px; justify-content:center;">
+        <button onclick="document.getElementById('paymentNoticeBackdrop').style.display='none';" style="
+          padding:11px 24px; border-radius:6px; border:1px solid #555;
+          background:transparent; color:#ccc; cursor:pointer; font-size:0.95rem;
+        ">Cancel</button>
+        <button id="proceedToAccountBtn" style="
+          padding:11px 28px; border-radius:6px; border:none;
+          background:#8b1d30; color:#fff; cursor:pointer; font-size:0.95rem;
+          font-weight:600; letter-spacing:0.3px;
+        ">I Understand, Proceed →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Account Details -->
+    <div id="paymentNoticeStep2" style="display:none;
+      background:#1a1a2e; border:1px solid #8b1d30; border-radius:12px;
+      max-width:520px; width:100%; padding:36px 32px; color:#fff;
+      box-shadow:0 20px 60px rgba(0,0,0,0.6); position:relative;
+    ">
+      <div style="text-align:center; margin-bottom:20px;">
+        <span style="font-size:2.4rem;">🏦</span>
+      </div>
+      <h2
+        style="text-align:center; color:#e8b84b; margin:0 0 18px; font-size:1.3rem; font-family:'Playfair Display',serif;">
+        Bank Transfer Details
+      </h2>
+      <p style="text-align:center; color:#ccc; font-size:0.93rem; margin-bottom:20px;">
+        Please transfer the total amount to the account below and start your description with your name.
+      </p>
+      <div
+        style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:20px 24px;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.97rem;">
+          <tr>
+            <td style="padding:8px 0; color:#aaa; width:44%;">Bank Name</td>
+            <td style="padding:8px 0; color:#fff; font-weight:600;">Moniepoint</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#aaa;">Account Name</td>
+            <td style="padding:8px 0; color:#fff; font-weight:600;">Grand Lynks Homes and Apartments</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#aaa;">Account Number</td>
+            <td style="padding:8px 0;">
+              <span style="color:#e8b84b; font-weight:700; font-size:1.15rem; letter-spacing:2px;">5015151292</span>
+              <button
+                onclick="navigator.clipboard.writeText('5015151292').then(()=>this.textContent='✅ Copied!').catch(()=>{})"
+                style="
+                margin-left:10px; padding:3px 10px; font-size:0.78rem;
+                background:rgba(255,255,255,0.1); border:1px solid #555;
+                border-radius:4px; color:#ccc; cursor:pointer;
+              ">Copy</button>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#aaa;">Total to Pay</td>
+            <td style="padding:8px 0; color:#4caf88; font-weight:700; font-size:1.05rem;" id="noticeModalTotal">—</td>
+          </tr>
+        </table>
+      </div>
+      <p style="font-size:0.83rem; color:#888; margin-top:14px; text-align:center;">
+        After completing your transfer, click the button below to confirm your booking. A confirmation email will be
+        sent to you.
+      </p>
+      <div style="display:flex; gap:12px; margin-top:22px; justify-content:center;">
+        <button onclick="
+          document.getElementById('paymentNoticeStep2').style.display='none';
+          document.getElementById('paymentNoticeStep1').style.display='block';
+        " style="
+          padding:11px 20px; border-radius:6px; border:1px solid #555;
+          background:transparent; color:#ccc; cursor:pointer; font-size:0.92rem;
+        ">← Back</button>
+        <button id="confirmTransferBtn" style="
+          padding:11px 28px; border-radius:6px; border:none;
+          background:#2e7d32; color:#fff; cursor:pointer; font-size:0.95rem;
+          font-weight:600;
+        ">✅ I've Made the Transfer — Confirm Booking</button>
+      </div>
+    </div>
+  </div>
+  <!-- ===== END PRE-PAYMENT NOTICE MODAL ===== -->
+
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       fetch("components/navbar.html?v=" + new Date().getTime())
