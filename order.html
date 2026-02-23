@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Food - Luxury Hotel</title>
+  <title>Order Food - Grand Lynks Homes &amp; Apartments</title>
   <link rel="stylesheet" href="style.css" />
   <script src="config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -424,76 +424,110 @@
         updateCartSidebar();
       });
 
-    // Checkout
+    // Checkout - show payment modal first
     document
       .getElementById("checkoutBtn")
-      .addEventListener("click", async function () {
-        const deliveryOption =
-          document.getElementById("deliveryOption").value;
+      .addEventListener("click", function () {
+        const deliveryOption = document.getElementById("deliveryOption").value;
         const roomNumber = document.getElementById("roomNumber").value;
-        const specialInstructions = document.getElementById(
-          "specialInstructions"
-        ).value;
 
         if (deliveryOption === "room" && !roomNumber) {
           showNotification("Please enter your room number", "error");
           return;
         }
-        // Prepare payload for backend
-        const items = Object.values(cart).map((i) => ({
-          id: i.id,
-          name: i.name,
-          price: i.price,
-          quantity: i.quantity,
-        }));
-        const payload = {
-          room_id: deliveryOption === "room" ? roomNumber : null,
-          guest_name: null,
-          items: items.map((i) => `${i.name} x${i.quantity}`).join(", "),
-          total_price: items.reduce(
-            (sum, i) => sum + i.price * i.quantity,
-            0
-          ),
-          status: "pending",
-          notes: specialInstructions || "",
-        };
 
-        try {
-          const cfg = window.APP_CONFIG || {};
-          if (!cfg.USE_MOCK) {
-            await fetch(
-              (cfg.API_URL || "http://localhost:5000/api") +
-              "/room-service-orders",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-              }
-            );
-          }
-          showNotification(
-            "Order placed successfully! Estimated delivery: 30-45 minutes"
-          );
-        } catch (err) {
-          showNotification(
-            "Could not submit to backend. Please try again.",
-            "error"
-          );
+        if (cartCount === 0) {
+          showNotification("Your cart is empty", "error");
           return;
         }
 
-        // Reset cart
-        cart = {};
-        updateCartDisplay();
-
-        // Close cart
+        // Close the cart sidebar first
         document.getElementById("cartSidebar").classList.remove("open");
         document.getElementById("cartOverlay").classList.add("hidden");
 
-        // Reset form
-        document.getElementById("roomNumber").value = "";
-        document.getElementById("specialInstructions").value = "";
+        // Show the payment notice modal
+        const backdrop = document.getElementById("orderPaymentBackdrop");
+        const step1 = document.getElementById("orderPaymentStep1");
+        const step2 = document.getElementById("orderPaymentStep2");
+        step1.style.display = "block";
+        step2.style.display = "none";
+        backdrop.style.display = "flex";
+        document.body.style.overflow = "hidden";
       });
+
+    // Proceed button: step 1 → step 2 (show account details)
+    document.getElementById("orderProceedBtn").addEventListener("click", function () {
+      // Calculate and show total
+      const subtotal = cartTotal;
+      const tax = subtotal * 0.085;
+      const deliveryOption = document.getElementById("deliveryOption").value;
+      const deliveryFee = deliveryOption === "room" ? 1000 : 0;
+      const total = subtotal + tax + deliveryFee;
+      document.getElementById("orderModalTotal").textContent = "\u20A6" + total.toFixed(2);
+
+      document.getElementById("orderPaymentStep1").style.display = "none";
+      document.getElementById("orderPaymentStep2").style.display = "block";
+    });
+
+    // Cancel button
+    document.getElementById("orderCancelBtn").addEventListener("click", function () {
+      document.getElementById("orderPaymentBackdrop").style.display = "none";
+      document.body.style.overflow = "";
+    });
+
+    // Back button (step 2 → step 1)
+    document.getElementById("orderBackBtn").addEventListener("click", function () {
+      document.getElementById("orderPaymentStep2").style.display = "none";
+      document.getElementById("orderPaymentStep1").style.display = "block";
+    });
+
+    // Confirm payment and submit order
+    document.getElementById("orderConfirmBtn").addEventListener("click", async function () {
+      document.getElementById("orderPaymentBackdrop").style.display = "none";
+      document.body.style.overflow = "";
+
+      const deliveryOption = document.getElementById("deliveryOption").value;
+      const roomNumber = document.getElementById("roomNumber").value;
+      const specialInstructions = document.getElementById("specialInstructions").value;
+
+      const items = Object.values(cart).map((i) => ({
+        id: i.id,
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+      }));
+      const payload = {
+        room_id: deliveryOption === "room" ? roomNumber : null,
+        guest_name: null,
+        items: items.map((i) => `${i.name} x${i.quantity}`).join(", "),
+        total_price: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+        status: "pending",
+        notes: specialInstructions || "",
+      };
+
+      try {
+        const cfg = window.APP_CONFIG || {};
+        if (!cfg.USE_MOCK) {
+          await fetch(
+            (cfg.API_URL || "http://localhost:5000/api") + "/room-service-orders",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            }
+          );
+        }
+        showNotification("Order confirmed! Estimated delivery: 30-45 minutes");
+      } catch (err) {
+        showNotification("Could not submit to backend. Order noted locally.", "error");
+      }
+
+      // Reset
+      cart = {};
+      updateCartDisplay();
+      document.getElementById("roomNumber").value = "";
+      document.getElementById("specialInstructions").value = "";
+    });
 
     // Smooth scrolling for navigation
     document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
@@ -676,6 +710,105 @@
       loadMenu();
     });
   </script>
+
+  <!-- ===== FOOD ORDER PAYMENT MODAL ===== -->
+  <div id="orderPaymentBackdrop" style="
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8);
+    z-index:200000; align-items:center; justify-content:center; padding:16px;
+  ">
+    <!-- Step 1: Payment Notice -->
+    <div id="orderPaymentStep1" style="
+      background:#1a1a2e; border:1px solid #b45309; border-radius:12px;
+      max-width:520px; width:100%; padding:36px 32px; color:#fff;
+      box-shadow:0 20px 60px rgba(0,0,0,0.7);
+    ">
+      <div style="text-align:center; margin-bottom:16px;"><span style="font-size:2.4rem;">⚠️</span></div>
+      <h2
+        style="text-align:center; color:#fbbf24; margin:0 0 16px; font-size:1.25rem; font-family:'Playfair Display',serif;">
+        Payment Required</h2>
+      <div
+        style="background:rgba(180,83,9,0.15); border:1px solid rgba(180,83,9,0.4); border-radius:8px; padding:18px 20px; line-height:1.75; font-size:0.96rem; color:#ddd;">
+        <p style="margin:0 0 12px;">
+          To confirm your food order, <strong style="color:#fff;">advance payment is required</strong>.
+          This ensures your order goes straight to our kitchen without delay.
+        </p>
+        <p style="margin:0; color:#fecaca;">
+          Orders without prior payment may be delayed or cancelled if the kitchen is at capacity.
+        </p>
+      </div>
+      <p style="text-align:center; margin-top:14px; font-size:0.87rem; color:#aaa;">Thank you for understanding.</p>
+      <div style="display:flex; gap:12px; margin-top:22px; justify-content:center;">
+        <button id="orderCancelBtn" style="
+          padding:11px 22px; border-radius:6px; border:1px solid #555;
+          background:transparent; color:#ccc; cursor:pointer; font-size:0.93rem;
+        ">Cancel</button>
+        <button id="orderProceedBtn" style="
+          padding:11px 26px; border-radius:6px; border:none;
+          background:#b45309; color:#fff; cursor:pointer; font-size:0.93rem; font-weight:600;
+        ">I Understand, Proceed →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Kitchen & Bar Account Details -->
+    <div id="orderPaymentStep2" style="display:none;
+      background:#1a1a2e; border:1px solid #b45309; border-radius:12px;
+      max-width:520px; width:100%; padding:36px 32px; color:#fff;
+      box-shadow:0 20px 60px rgba(0,0,0,0.7);
+    ">
+      <div style="text-align:center; margin-bottom:16px;"><span style="font-size:2.4rem;">🍽️</span></div>
+      <h2
+        style="text-align:center; color:#fbbf24; margin:0 0 16px; font-size:1.25rem; font-family:'Playfair Display',serif;">
+        Kitchen &amp; Bar Payment</h2>
+      <p style="text-align:center; color:#ccc; font-size:0.91rem; margin-bottom:18px;">
+        Transfer your order total to the account below. Start your transfer description with your name and room number.
+      </p>
+      <div
+        style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:20px 24px;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.96rem;">
+          <tr>
+            <td style="padding:8px 0; color:#aaa; width:40%;">Bank</td>
+            <td style="padding:8px 0; color:#fff; font-weight:600;">Moniepoint</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#aaa;">Account Name</td>
+            <td style="padding:8px 0; color:#fff; font-weight:600;">Grand Lynks Homes &amp; Apartments LTD- Kitchen and
+              Bar</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#aaa;">Account Number</td>
+            <td style="padding:8px 0;">
+              <span style="color:#fbbf24; font-weight:700; font-size:1.12rem; letter-spacing:2px;">5025321108</span>
+              <button
+                onclick="navigator.clipboard.writeText('5025321108').then(()=>this.textContent='✅ Copied!').catch(()=>{})"
+                style="
+                margin-left:10px; padding:3px 10px; font-size:0.76rem;
+                background:rgba(255,255,255,0.1); border:1px solid #555;
+                border-radius:4px; color:#ccc; cursor:pointer;
+              ">Copy</button>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; color:#aaa;">Order Total</td>
+            <td style="padding:8px 0; color:#4ade80; font-weight:700; font-size:1.04rem;" id="orderModalTotal">—</td>
+          </tr>
+        </table>
+      </div>
+      <p style="font-size:0.82rem; color:#888; margin-top:12px; text-align:center;">
+        After paying, click confirm below. Your order will be sent to the kitchen immediately.
+      </p>
+      <div style="display:flex; gap:12px; margin-top:20px; justify-content:center;">
+        <button id="orderBackBtn" style="
+          padding:11px 18px; border-radius:6px; border:1px solid #555;
+          background:transparent; color:#ccc; cursor:pointer; font-size:0.91rem;
+        ">← Back</button>
+        <button id="orderConfirmBtn" style="
+          padding:11px 26px; border-radius:6px; border:none;
+          background:#15803d; color:#fff; cursor:pointer; font-size:0.93rem; font-weight:600;
+        ">✅ I've Paid — Confirm Order</button>
+      </div>
+    </div>
+  </div>
+  <!-- ===== END FOOD ORDER PAYMENT MODAL ===== -->
 
 </body>
 
