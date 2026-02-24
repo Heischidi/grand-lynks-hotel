@@ -406,14 +406,59 @@ class BookingIntegration {
         throw new Error(`Server Error (${bookingRes.status}): ${errText}`);
       }
 
-      // Success
-      window.location.href = "thankyou.html?payment=transfer";
+      // Success — show confirmation popup before redirect
+      this.showGuestConfirmation();
 
     } catch (error) {
       console.error(error);
       this.showError(`Booking failed: ${error.message}`);
       this.hideLoading("btnPay", "Confirm Booking");
     }
+  }
+
+  showGuestConfirmation() {
+    // Create overlay
+    const overlay = document.createElement("div");
+    overlay.id = "guestConfirmOverlay";
+    overlay.style.cssText = `
+      position:fixed; inset:0; background:rgba(0,0,0,0.8);
+      z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;
+    `;
+
+    overlay.innerHTML = `
+      <div style="
+        background:#1a1a2e; border:2px solid #2e7d32; border-radius:12px;
+        max-width:480px; width:100%; padding:36px 32px; color:#fff; text-align:center;
+        box-shadow:0 20px 60px rgba(0,0,0,0.7);
+      ">
+        <div style="font-size:3rem; margin-bottom:16px;">✅</div>
+        <h2 style="color:#4caf88; margin:0 0 20px; font-size:1.4rem; font-family:'Playfair Display',serif;">
+          Booking Confirmed!
+        </h2>
+        <div style="
+          background:rgba(46,125,50,0.12); border:1px solid rgba(46,125,50,0.4);
+          border-radius:8px; padding:20px 22px; line-height:1.8; font-size:0.97rem; color:#ddd; text-align:left;
+        ">
+          <p style="margin:0;">
+            Confirmed. Kindly state your name at the reception and you'll fill in the necessary document(s)
+            and you'll be shown to your room immediately.
+          </p>
+          <p style="margin:12px 0 0; color:#aaa; font-style:italic;">Thank you!</p>
+        </div>
+        <button id="guestConfirmOkBtn" style="
+          margin-top:24px; padding:12px 36px; border-radius:6px; border:none;
+          background:#2e7d32; color:#fff; cursor:pointer; font-size:1rem; font-weight:600;
+        ">OK — Got it!</button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = "hidden";
+
+    document.getElementById("guestConfirmOkBtn").addEventListener("click", () => {
+      overlay.remove();
+      window.location.href = "thankyou.html?payment=transfer";
+    });
   }
 
   showLoading(btnId, text) {

@@ -64,6 +64,38 @@ async function sendConfirmationEmail(booking, guest, room) {
   }
 }
 
+async function sendAdminNotificationEmail({ type, details }) {
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "grandlynkshomesandapartments@gmail.com";
+  const subject = type === "booking"
+    ? "🛎️ New Room Reservation — Payment Confirmed"
+    : "🍽️ New Food Order — Payment Confirmed";
+
+  const mailOptions = {
+    from: '"Grand Lynks System" <grandlynkshomesandapartments@gmail.com>',
+    to: ADMIN_EMAIL,
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border:1px solid #ddd; border-radius:8px; overflow:hidden">
+        <div style="background:#8b1d30; padding:20px; color:#fff;">
+          <h2 style="margin:0;">${subject}</h2>
+        </div>
+        <div style="padding:24px;">
+          <p style="font-size:1rem; color:#333;">${details}</p>
+          <hr style="border:none; border-top:1px solid #eee; margin:20px 0;">
+          <p style="color:#777; font-size:0.85rem;">This is an automated notification from the Grand Lynks booking system.</p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Admin notification sent to " + ADMIN_EMAIL);
+  } catch (error) {
+    console.error("Error sending admin notification:", error);
+  }
+}
+
 // Serve static files from the parent directory (frontend)
 app.use(express.static(path.join(__dirname, '../')));
 
@@ -1352,16 +1384,60 @@ app.post("/api/bookings", async (req, res) => {
       include: { guest: true, room: true }
     });
 
-    // Send email
+    // Send email to guest
     if (booking.guest) {
-      // Run asynchronously, don't block response
       sendConfirmationEmail(booking, booking.guest, booking.room).catch(console.error);
     }
+
+    // Notify admin
+    const guestName = booking.guest?.name || "Guest";
+    const guestEmail = booking.guest?.email || "N/A";
+    const guestPhone = booking.guest?.phone || "N/A";
+    const roomType = booking.room?.type || "N/A";
+    const checkIn = new Date(startDate).toDateString();
+    const checkOut = new Date(endDate).toDateString();
+    sendAdminNotificationEmail({
+      type: "booking",
+      details: `
+        <strong>Guest:</strong> ${guestName}<br>
+        <strong>Email:</strong> ${guestEmail}<br>
+        <strong>Phone:</strong> ${guestPhone}<br>
+        <strong>Room:</strong> ${roomType}<br>
+        <strong>Check-in:</strong> ${checkIn}<br>
+        <strong>Check-out:</strong> ${checkOut}<br>
+        <strong>Total:</strong> &#8358;${totalAmount.toLocaleString()}<br>
+        <strong>Status:</strong> Pending Transfer
+      `
+    }).catch(console.error);
 
     res.json({ message: "Booking created", booking });
   } catch (error) {
     console.error("Error creating booking:", error);
     res.status(500).json({ error: "Failed to create booking" });
+  }
+});
+
+// --- ROOM SERVICE ORDERS (used by order.html) ---
+app.post("/api/room-service-orders", async (req, res) => {
+  try {
+    const { room_id, guest_name, items, total_price, notes } = req.body;
+
+    // Notify admin immediately
+    sendAdminNotificationEmail({
+      type: "food",
+      details: `
+        <strong>Guest / Room:</strong> ${guest_name || "Walk-in"} &mdash; Room ${room_id || "Pickup"}<br>
+        <strong>Items:</strong> ${items}<br>
+        <strong>Total:</strong> &#8358;${parseFloat(total_price || 0).toLocaleString()}<br>
+        <strong>Notes:</strong> ${notes || "None"}<br>
+        <strong>Status:</strong> Pending — Payment Confirmed by Guest
+      `
+    }).catch(console.error);
+
+    res.json({ message: "Order received", status: "pending" });
+  } catch (error) {
+    console.error("Error recording room service order:", error);
+    res.status(500).json({ error: "Failed to record order" });
   }
 });
 
