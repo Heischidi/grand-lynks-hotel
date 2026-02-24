@@ -455,118 +455,134 @@
         document.body.style.overflow = "hidden";
       });
 
-    // Proceed button: step 1 → step 2 (show account details)
-    document.getElementById("orderProceedBtn").addEventListener("click", function () {
-      // Calculate and show total
-      const subtotal = cartTotal;
-      const tax = subtotal * 0.085;
-      const deliveryOption = document.getElementById("deliveryOption").value;
-      const deliveryFee = deliveryOption === "room" ? 1000 : 0;
-      const total = subtotal + tax + deliveryFee;
-      document.getElementById("orderModalTotal").textContent = "\u20A6" + total.toFixed(2);
-
-      document.getElementById("orderPaymentStep1").style.display = "none";
-      document.getElementById("orderPaymentStep2").style.display = "block";
-    });
-
-    // Cancel button
-    document.getElementById("orderCancelBtn").addEventListener("click", function () {
-      document.getElementById("orderPaymentBackdrop").style.display = "none";
-      document.body.style.overflow = "";
-    });
-
-    // Back button (step 2 → step 1)
-    document.getElementById("orderBackBtn").addEventListener("click", function () {
-      document.getElementById("orderPaymentStep2").style.display = "none";
-      document.getElementById("orderPaymentStep1").style.display = "block";
-    });
-
-    // Confirm payment and submit order
-    document.getElementById("orderConfirmBtn").addEventListener("click", async function () {
-      document.getElementById("orderPaymentBackdrop").style.display = "none";
-      document.body.style.overflow = "";
-
-      const deliveryOption = document.getElementById("deliveryOption").value;
-      const roomNumber = document.getElementById("roomNumber").value;
-      const specialInstructions = document.getElementById("specialInstructions").value;
-
-      const items = Object.values(cart).map((i) => ({
-        id: i.id,
-        name: i.name,
-        price: i.price,
-        quantity: i.quantity,
-      }));
-      const payload = {
-        room_id: deliveryOption === "room" ? roomNumber : null,
-        guest_name: null,
-        items: items.map((i) => `${i.name} x${i.quantity}`).join(", "),
-        total_price: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
-        status: "pending",
-        notes: specialInstructions || "",
-      };
-
-      try {
-        const cfg = window.APP_CONFIG || {};
-        if (!cfg.USE_MOCK) {
-          await fetch(
-            (cfg.API_URL || "http://localhost:5000/api") + "/room-service-orders",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            }
-          );
-        }
-        showNotification("Order confirmed! Estimated delivery: 30-45 minutes");
-
-        // Show guest confirmation popup
-        const overlay = document.createElement("div");
-        overlay.style.cssText = `
-          position:fixed; inset:0; background:rgba(0,0,0,0.82);
-          z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;
-        `;
-        overlay.innerHTML = `
-          <div style="
-            background:#1a1a2e; border:2px solid #15803d; border-radius:12px;
-            max-width:460px; width:100%; padding:36px 30px; color:#fff; text-align:center;
-            box-shadow:0 20px 60px rgba(0,0,0,0.7);
-          ">
-            <div style="font-size:3rem; margin-bottom:14px;">✅</div>
-            <h2 style="color:#4ade80; margin:0 0 18px; font-size:1.35rem; font-family:'Playfair Display',serif;">
-              Order Confirmed!
-            </h2>
-            <div style="
-              background:rgba(21,128,61,0.12); border:1px solid rgba(21,128,61,0.4);
-              border-radius:8px; padding:18px 20px; line-height:1.8; font-size:0.96rem; color:#ddd; text-align:left;
-            ">
-              <p style="margin:0;">
-                Confirmed. Kindly state your name at the reception and you'll fill in the necessary
-                document(s) and you'll be shown to your room immediately.
-              </p>
-              <p style="margin:10px 0 0; color:#aaa; font-style:italic;">Thank you!</p>
-            </div>
-            <p style="color:#888; font-size:0.85rem; margin:14px 0 0;">Estimated delivery: 30–45 minutes</p>
-            <button id="orderConfirmPopupOk" style="
-              margin-top:20px; padding:11px 32px; border-radius:6px; border:none;
-              background:#15803d; color:#fff; cursor:pointer; font-size:0.97rem; font-weight:600;
-            ">OK — Got it!</button>
-          </div>
-        `;
-        document.body.appendChild(overlay);
-        document.body.style.overflow = "hidden";
-        document.getElementById("orderConfirmPopupOk").addEventListener("click", () => {
-          overlay.remove();
-          document.body.style.overflow = "";
+    // Modal buttons — wrapped in DOMContentLoaded because the modal HTML
+    // is placed after this script tag and doesn't exist yet during inline execution
+    document.addEventListener("DOMContentLoaded", function () {
+      // Proceed button: step 1 → step 2 (show account details)
+      const proceedBtn = document.getElementById("orderProceedBtn");
+      if (proceedBtn) {
+        proceedBtn.addEventListener("click", function () {
+          const subtotal = cartTotal;
+          const tax = subtotal * 0.085;
+          const deliveryOption = document.getElementById("deliveryOption").value;
+          const deliveryFee = deliveryOption === "room" ? 1000 : 0;
+          const total = subtotal + tax + deliveryFee;
+          document.getElementById("orderModalTotal").textContent = "\u20A6" + total.toFixed(2);
+          document.getElementById("orderPaymentStep1").style.display = "none";
+          document.getElementById("orderPaymentStep2").style.display = "block";
         });
-      } catch (err) {
-        showNotification("Could not submit to backend. Order noted locally.", "error");
       }
 
-      // Reset
-      cart = {};
-      updateCartDisplay();
-      document.getElementById("roomNumber").value = "";
-      document.getElementById("specialInstructions").value = "";
+      // Cancel button
+      const cancelBtn = document.getElementById("orderCancelBtn");
+      if (cancelBtn) {
+        cancelBtn.addEventListener("click", function () {
+          document.getElementById("orderPaymentBackdrop").style.display = "none";
+          document.body.style.overflow = "";
+        });
+      }
+
+      // Back button (step 2 → step 1)
+      const backBtn = document.getElementById("orderBackBtn");
+      if (backBtn) {
+        backBtn.addEventListener("click", function () {
+          document.getElementById("orderPaymentStep2").style.display = "none";
+          document.getElementById("orderPaymentStep1").style.display = "block";
+        });
+      }
+    });
+
+    // Confirm payment and submit order — also in DOMContentLoaded for same reason
+    document.addEventListener("DOMContentLoaded", function () {
+      const confirmBtn = document.getElementById("orderConfirmBtn");
+      if (!confirmBtn) return;
+
+      confirmBtn.addEventListener("click", async function () {
+        document.getElementById("orderPaymentBackdrop").style.display = "none";
+        document.body.style.overflow = "";
+
+        const deliveryOption = document.getElementById("deliveryOption").value;
+        const roomNumber = document.getElementById("roomNumber").value;
+        const specialInstructions = document.getElementById("specialInstructions").value;
+
+        const items = Object.values(cart).map((i) => ({
+          id: i.id,
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+        }));
+        const payload = {
+          room_id: deliveryOption === "room" ? roomNumber : null,
+          guest_name: null,
+          items: items.map((i) => `${i.name} x${i.quantity}`).join(", "),
+          total_price: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+          status: "pending",
+          notes: specialInstructions || "",
+        };
+
+        try {
+          const cfg = window.APP_CONFIG || {};
+          if (!cfg.USE_MOCK) {
+            await fetch(
+              (cfg.API_URL || "http://localhost:5000/api") + "/room-service-orders",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              }
+            );
+          }
+          showNotification("Order confirmed! Estimated delivery: 30-45 minutes");
+
+          // Show guest confirmation popup
+          const overlay = document.createElement("div");
+          overlay.style.cssText = `
+            position:fixed; inset:0; background:rgba(0,0,0,0.82);
+            z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;
+          `;
+          overlay.innerHTML = `
+            <div style="
+              background:#1a1a2e; border:2px solid #15803d; border-radius:12px;
+              max-width:460px; width:100%; padding:36px 30px; color:#fff; text-align:center;
+              box-shadow:0 20px 60px rgba(0,0,0,0.7);
+            ">
+              <div style="font-size:3rem; margin-bottom:14px;">✅</div>
+              <h2 style="color:#4ade80; margin:0 0 18px; font-size:1.35rem; font-family:'Playfair Display',serif;">
+                Order Confirmed!
+              </h2>
+              <div style="
+                background:rgba(21,128,61,0.12); border:1px solid rgba(21,128,61,0.4);
+                border-radius:8px; padding:18px 20px; line-height:1.8; font-size:0.96rem; color:#ddd; text-align:left;
+              ">
+                <p style="margin:0;">
+                  Confirmed. Kindly state your name at the reception and you'll fill in the necessary
+                  document(s) and you'll be shown to your room immediately.
+                </p>
+                <p style="margin:10px 0 0; color:#aaa; font-style:italic;">Thank you!</p>
+              </div>
+              <p style="color:#888; font-size:0.85rem; margin:14px 0 0;">Estimated delivery: 30–45 minutes</p>
+              <button id="orderConfirmPopupOk" style="
+                margin-top:20px; padding:11px 32px; border-radius:6px; border:none;
+                background:#15803d; color:#fff; cursor:pointer; font-size:0.97rem; font-weight:600;
+              ">OK — Got it!</button>
+            </div>
+          `;
+          document.body.appendChild(overlay);
+          document.body.style.overflow = "hidden";
+          document.getElementById("orderConfirmPopupOk").addEventListener("click", () => {
+            overlay.remove();
+            document.body.style.overflow = "";
+          });
+        } catch (err) {
+          showNotification("Could not submit to backend. Order noted locally.", "error");
+        }
+
+        // Reset
+        cart = {};
+        updateCartDisplay();
+        document.getElementById("roomNumber").value = "";
+        document.getElementById("specialInstructions").value = "";
+      });
     });
 
     // Smooth scrolling for navigation
