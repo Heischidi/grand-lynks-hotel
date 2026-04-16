@@ -7,7 +7,32 @@ const bcrypt = require("bcryptjs");
 
 const app = express();
 const path = require('path');
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
+  "https://grandlynkshomesandapartments.com",
+  "https://www.grandlynkshomesandapartments.com",
+  "http://grandlynkshomesandapartments.com",
+  "http://www.grandlynkshomesandapartments.com"
+];
+
+// CORS Configuration specifically for API routes
+const corsOptions = {
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      // Return null, false instead of Error to avoid crashing or 500s
+      return callback(null, false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+};
+
+// Apply CORS only to API routes
+app.use("/api", cors(corsOptions));
+
 app.use(bodyParser.json());
 
 const nodemailer = require("nodemailer");
@@ -1470,6 +1495,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 // --- Start server ---
-app.listen(5000, () =>
-  console.log("✅ Backend running on http://localhost:5000")
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () =>
+  console.log(`✅ Backend running on port ${PORT}`)
 );
