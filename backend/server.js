@@ -121,32 +121,38 @@ async function sendAdminNotificationEmail({ type, details }) {
   }
 }
 
-// Serve static files from the parent directory (frontend)
-app.use(express.static(path.join(__dirname, '../')));
-
-// Initial route to serve index.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../index.html'));
-});
-
 const SECRET_KEY = process.env.JWT_SECRET || "your_super_secret_key_change_in_production";
 
 const multer = require("multer");
-const fs = require('fs');
+const { createClient } = require('@supabase/supabase-js');
 
-// Configure Multer for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
+// Initialize Supabase Client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+async function uploadToSupabase(file) {
+  if (!supabase) throw new Error("Supabase credentials are not configured.");
+  
+  const fileName = Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const { data, error } = await supabase.storage
+    .from('grand-lynks-images')
+    .upload(fileName, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+    
+  if (error) throw error;
+  
+  const { data: publicUrlData } = supabase.storage
+    .from('grand-lynks-images')
+    .getPublicUrl(fileName);
+    
+  return publicUrlData.publicUrl;
+}
+
+// Configure Multer for in-memory image uploads (Serverless friendly)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -290,7 +296,7 @@ app.get("/api/rooms", async (req, res) => {
 
 app.post("/api/rooms", authenticateToken, upload.single('image'), async (req, res) => {
   try {
-    const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : null;
+    const imagePath = req.file ? await uploadToSupabase(req.file) : null;
     const { number, type, pricePerNight, description } = req.body;
 
     // Validate manually since Multer parses body
@@ -334,7 +340,7 @@ app.put("/api/rooms/:id", authenticateToken, upload.single('image'), async (req,
     console.log("Body:", req.body);
     console.log("File:", req.file);
 
-    const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : null;
+    const imagePath = req.file ? await uploadToSupabase(req.file) : null;
     const { number, type, pricePerNight, description, status } = req.body;
 
     const updateData = {};
@@ -778,8 +784,8 @@ app.get("/api/menu", async (req, res) => {
 
 app.post("/api/menu", upload.single('image'), async (req, res) => {
   try {
-    // If file uploaded, use its path. Otherwise check body (for URL or fallback)
-    const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : req.body.image;
+    // If file uploaded, use Supabase. Otherwise check body (for URL or fallback)
+    const imagePath = req.file ? await uploadToSupabase(req.file) : req.body.image;
 
     const { name, category, price, description, available } = req.body;
 
@@ -808,7 +814,7 @@ app.post("/api/menu", upload.single('image'), async (req, res) => {
 
 app.put("/api/menu/:id", upload.single('image'), async (req, res) => {
   try {
-    const imagePath = req.file ? req.file.path.replace(/\\/g, '/') : req.body.image;
+    const imagePath = req.file ? await uploadToSupabase(req.file) : req.body.image;
 
     // Note: FormData sends params as strings, so we might need to parse bools/numbers if not handled automatically
     const { name, category, price, description, available } = req.body;
@@ -1495,7 +1501,11 @@ app.get("/api/health", async (req, res) => {
 });
 
 // --- Start server ---
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`✅ Backend running on port ${PORT}`)
-);
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () =>
+    console.log(`✅ Backend running on port ${PORT}`)
+  );
+}
+
+module.exports = app;
