@@ -55,8 +55,8 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_your_api_key");
 
 async function sendConfirmationEmail(booking, guest, room) {
   try {
-    await resend.emails.send({
-      from: 'Grand Lynks Hotel <onboarding@resend.dev>', // Replace with your verified domain in production
+    const { data, error } = await resend.emails.send({
+      from: 'Grand Lynks Hotel <bookings@grandlynkshomesandapartments.com>', // We will try a custom sender first
       to: guest.email,
       subject: 'Booking Received - Grand Lynks Hotel',
       html: `
@@ -90,21 +90,31 @@ async function sendConfirmationEmail(booking, guest, room) {
             </div>
 
             <p>Need help? Contact us at +234 814 223 4691.</p>
+            <p style="margin: 0;">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja</p>
             <p>Warm regards,<br>The Grand Lynks Team</p>
           </div>
         </div>
       `
     });
-    console.log("Initial confirmation email sent via Resend to " + guest.email);
+
+    if (error) {
+       console.error("Resend delivery failed for guest email:", error);
+       // Check if it's the 403 error which indicates unverified domain
+       if (error.name === 'forbidden' || error.statusCode === 403) {
+          console.warn("CRITICAL: Emails to guests are blocked because your domain is not verified in Resend.");
+       }
+    } else {
+       console.log("Initial confirmation email successfully processed via Resend ID:", data.id);
+    }
   } catch (error) {
-    console.error("Error sending initial email:", error);
+    console.error("Unexpected error in sendConfirmationEmail:", error);
   }
 }
 
 async function sendBookingFinalizedEmail(booking, guest, room) {
   try {
-    await resend.emails.send({
-      from: 'Grand Lynks Hotel <onboarding@resend.dev>',
+    const { data, error } = await resend.emails.send({
+      from: 'Grand Lynks Hotel <bookings@grandlynkshomesandapartments.com>',
       to: guest.email,
       subject: 'Booking Confirmed! - Grand Lynks Hotel',
       html: `
@@ -135,9 +145,14 @@ async function sendBookingFinalizedEmail(booking, guest, room) {
         </div>
       `
     });
-    console.log("Finalized confirmation email sent via Resend to " + guest.email);
+
+    if (error) {
+       console.error("Resend delivery failed for finalized email:", error);
+    } else {
+       console.log("Finalized email successfully processed via Resend ID:", data.id);
+    }
   } catch (error) {
-    console.error("Error sending finalized email:", error);
+    console.error("Unexpected error in sendBookingFinalizedEmail:", error);
   }
 }
 
@@ -150,8 +165,8 @@ async function sendAdminNotificationEmail({ type, details }) {
   };
 
   try {
-    await resend.emails.send({
-      from: 'Grand Lynks System <onboarding@resend.dev>',
+    const { data, error } = await resend.emails.send({
+      from: 'Grand Lynks System <noreply@grandlynkshomesandapartments.com>',
       to: ADMIN_EMAIL,
       subject: subjectMap[type] || "New Hotel Notification",
       html: `
@@ -168,9 +183,14 @@ async function sendAdminNotificationEmail({ type, details }) {
         </div>
       `
     });
-    console.log("Admin notification (" + type + ") sent to " + ADMIN_EMAIL);
+
+    if (error) {
+       console.error("Resend delivery failed for admin alert:", error);
+    } else {
+       console.log("Admin alert successfully processed via Resend ID:", data.id);
+    }
   } catch (error) {
-    console.error("Error sending admin notification:", error);
+    console.error("Unexpected error in sendAdminNotificationEmail:", error);
   }
 }
 
