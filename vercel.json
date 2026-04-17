@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npx prisma generate",
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/(.*)",
