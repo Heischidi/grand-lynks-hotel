@@ -457,7 +457,7 @@ class BookingIntegration {
 
     document.getElementById("guestConfirmOkBtn").addEventListener("click", () => {
       overlay.remove();
-      window.location.href = "thankyou.html?payment=transfer";
+      window.location.href = "thankyou.html";
     });
   }
 
