@@ -282,7 +282,7 @@ const validateOrder = (req, res, next) => {
 };
 
 // --- ROOMS ---
-app.get("/api/rooms", async (req, res) => {
+app.get("/rooms", async (req, res) => {
   try {
     const rooms = await prisma.room.findMany({
       include: {
@@ -307,7 +307,7 @@ app.get("/api/rooms", async (req, res) => {
   }
 });
 
-app.post("/api/rooms", authenticateToken, upload.single('image'), async (req, res) => {
+app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const imagePath = req.file ? await uploadToSupabase(req.file) : null;
     const { number, type, pricePerNight, description } = req.body;
@@ -346,7 +346,7 @@ app.post("/api/rooms", authenticateToken, upload.single('image'), async (req, re
   }
 });
 
-app.put("/api/rooms/:id", authenticateToken, upload.single('image'), async (req, res) => {
+app.put("/rooms/:id", authenticateToken, upload.single('image'), async (req, res) => {
   try {
     console.log("PUT /rooms/:id called");
     console.log("Headers CT:", req.headers['content-type']);
@@ -408,7 +408,7 @@ app.put("/api/rooms/:id", authenticateToken, upload.single('image'), async (req,
   }
 });
 
-app.delete("/api/rooms/:id", authenticateToken, async (req, res) => {
+app.delete("/rooms/:id", authenticateToken, async (req, res) => {
   try {
     await prisma.room.delete({
       where: { id: parseInt(req.params.id) },
@@ -425,7 +425,7 @@ app.delete("/api/rooms/:id", authenticateToken, async (req, res) => {
 });
 
 // --- GUESTS ---
-app.get("/api/guests", authenticateToken, async (req, res) => {
+app.get("/guests", authenticateToken, async (req, res) => {
   try {
     const guests = await prisma.guest.findMany({
       include: {
@@ -441,7 +441,7 @@ app.get("/api/guests", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/guests", validateGuest, async (req, res) => {
+app.post("/guests", validateGuest, async (req, res) => {
   try {
     const guest = await prisma.guest.create({
       data: req.body,
@@ -453,7 +453,7 @@ app.post("/api/guests", validateGuest, async (req, res) => {
   }
 });
 
-app.put("/api/guests/:id", authenticateToken, validateGuest, async (req, res) => {
+app.put("/guests/:id", authenticateToken, validateGuest, async (req, res) => {
   try {
     const guest = await prisma.guest.update({
       where: { id: parseInt(req.params.id) },
@@ -470,7 +470,7 @@ app.put("/api/guests/:id", authenticateToken, validateGuest, async (req, res) =>
   }
 });
 
-app.delete("/api/guests/:id", authenticateToken, async (req, res) => {
+app.delete("/guests/:id", authenticateToken, async (req, res) => {
   try {
     await prisma.guest.delete({
       where: { id: parseInt(req.params.id) },
@@ -487,7 +487,7 @@ app.delete("/api/guests/:id", authenticateToken, async (req, res) => {
 });
 
 // --- PAYMENTS ---
-app.get("/api/payments", authenticateToken, async (req, res) => {
+app.get("/payments", authenticateToken, async (req, res) => {
   try {
     const payments = await prisma.payment.findMany({
       include: {
@@ -503,7 +503,7 @@ app.get("/api/payments", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/payments", async (req, res) => {
+app.post("/payments", async (req, res) => {
   try {
     const { amount, method, reference, status, guestId, bookingId, orderId } =
       req.body;
@@ -532,7 +532,7 @@ app.post("/api/payments", async (req, res) => {
   }
 });
 
-app.put("/api/payments/:id", authenticateToken, async (req, res) => {
+app.put("/payments/:id", authenticateToken, async (req, res) => {
   try {
     const payment = await prisma.payment.update({
       where: { id: parseInt(req.params.id) },
@@ -549,7 +549,7 @@ app.put("/api/payments/:id", authenticateToken, async (req, res) => {
   }
 });
 
-app.delete("/api/payments/:id", authenticateToken, async (req, res) => {
+app.delete("/payments/:id", authenticateToken, async (req, res) => {
   try {
     await prisma.payment.delete({
       where: { id: parseInt(req.params.id) },
@@ -584,26 +584,26 @@ let users = [
 ];
 
 // --- USERS (Security) ---
-app.get("/api/users", authenticateToken, (req, res) => res.json(users));
-app.post("/api/users", authenticateToken, (req, res) => {
+app.get("/users", authenticateToken, (req, res) => res.json(users));
+app.post("/users", authenticateToken, (req, res) => {
   const user = { id: Date.now(), ...req.body };
   users.push(user);
   res.json({ message: "User added", user });
 });
-app.put("/api/users/:id", authenticateToken, (req, res) => {
+app.put("/users/:id", authenticateToken, (req, res) => {
   const idx = users.findIndex((u) => u.id == req.params.id);
   if (idx > -1) {
     users[idx] = { ...users[idx], ...req.body };
     res.json({ message: "User updated", user: users[idx] });
   } else res.status(404).json({ message: "User not found" });
 });
-app.delete("/api/users/:id", authenticateToken, (req, res) => {
+app.delete("/users/:id", authenticateToken, (req, res) => {
   users = users.filter((u) => u.id != req.params.id);
   res.json({ message: "User deleted" });
 });
 
 // --- BOOKINGS ---
-app.get("/api/bookings", authenticateToken, async (req, res) => {
+app.get("/bookings", authenticateToken, async (req, res) => {
   try {
     const bookings = await prisma.booking.findMany({
       include: {
@@ -619,7 +619,7 @@ app.get("/api/bookings", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/bookings", validateBooking, async (req, res) => {
+app.post("/bookings", validateBooking, async (req, res) => {
   try {
     const { guestId, roomId, startDate, endDate, status } = req.body;
 
@@ -699,7 +699,7 @@ app.post("/api/bookings", validateBooking, async (req, res) => {
   }
 });
 
-app.put("/api/bookings/:id", authenticateToken, validateBooking, async (req, res) => {
+app.put("/bookings/:id", authenticateToken, validateBooking, async (req, res) => {
   try {
     const booking = await prisma.booking.update({
       where: { id: parseInt(req.params.id) },
@@ -720,7 +720,7 @@ app.put("/api/bookings/:id", authenticateToken, validateBooking, async (req, res
   }
 });
 
-app.delete("/api/bookings/:id", authenticateToken, async (req, res) => {
+app.delete("/bookings/:id", authenticateToken, async (req, res) => {
   try {
     await prisma.booking.delete({
       where: { id: parseInt(req.params.id) },
@@ -736,7 +736,7 @@ app.delete("/api/bookings/:id", authenticateToken, async (req, res) => {
   }
 });
 // --- CHECK AVAILABILITY ---
-app.post("/api/check-availability", async (req, res) => {
+app.post("/check-availability", async (req, res) => {
   try {
     const { checkIn, checkOut } = req.body;
 
@@ -783,7 +783,7 @@ app.post("/api/check-availability", async (req, res) => {
 
 
 // --- MENU ---
-app.get("/api/menu", async (req, res) => {
+app.get("/menu", async (req, res) => {
   try {
     const menuItems = await prisma.menuItem.findMany({
       where: { available: true },
@@ -795,7 +795,7 @@ app.get("/api/menu", async (req, res) => {
   }
 });
 
-app.post("/api/menu", upload.single('image'), async (req, res) => {
+app.post("/menu", upload.single('image'), async (req, res) => {
   try {
     // If file uploaded, use Supabase. Otherwise check body (for URL or fallback)
     const imagePath = req.file ? await uploadToSupabase(req.file) : req.body.image;
@@ -825,7 +825,7 @@ app.post("/api/menu", upload.single('image'), async (req, res) => {
   }
 });
 
-app.put("/api/menu/:id", upload.single('image'), async (req, res) => {
+app.put("/menu/:id", upload.single('image'), async (req, res) => {
   try {
     const imagePath = req.file ? await uploadToSupabase(req.file) : req.body.image;
 
@@ -859,7 +859,7 @@ app.put("/api/menu/:id", upload.single('image'), async (req, res) => {
   }
 });
 
-app.delete("/api/menu/:id", async (req, res) => {
+app.delete("/menu/:id", async (req, res) => {
   try {
     await prisma.menuItem.delete({
       where: { id: parseInt(req.params.id) },
@@ -876,7 +876,7 @@ app.delete("/api/menu/:id", async (req, res) => {
 });
 
 // --- ORDERS ---
-app.get("/api/orders", authenticateToken, async (req, res) => {
+app.get("/orders", authenticateToken, async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       include: {
@@ -896,7 +896,7 @@ app.get("/api/orders", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/orders", validateOrder, async (req, res) => {
+app.post("/orders", validateOrder, async (req, res) => {
   try {
     const { guestId, roomId, items } = req.body;
 
@@ -960,7 +960,7 @@ app.post("/api/orders", validateOrder, async (req, res) => {
   }
 });
 
-app.put("/api/orders/:id", async (req, res) => {
+app.put("/orders/:id", async (req, res) => {
   try {
     const order = await prisma.order.update({
       where: { id: parseInt(req.params.id) },
@@ -986,7 +986,7 @@ app.put("/api/orders/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/orders/:id", async (req, res) => {
+app.delete("/orders/:id", async (req, res) => {
   try {
     await prisma.order.delete({
       where: { id: parseInt(req.params.id) },
@@ -1003,7 +1003,7 @@ app.delete("/api/orders/:id", async (req, res) => {
 });
 
 // --- REPORTS (Dummy) ---
-app.get("/api/reports", (req, res) => {
+app.get("/reports", (req, res) => {
   res.json({
     occupancy: "82%",
     revenue: 22500,
@@ -1013,26 +1013,26 @@ app.get("/api/reports", (req, res) => {
 });
 
 // --- Communication (Dummy) ---
-app.post("/api/communication/email", (req, res) => {
+app.post("/communication/email", (req, res) => {
   res.json({ message: "Bulk email sent!" });
 });
-app.post("/api/communication/sms", (req, res) => {
+app.post("/communication/sms", (req, res) => {
   res.json({ message: "SMS sent!" });
 });
-app.post("/api/communication/announcement", (req, res) => {
+app.post("/communication/announcement", (req, res) => {
   res.json({ message: "Announcement posted!" });
 });
 
 // --- Housekeeping/Maintenance (Dummy) ---
-app.post("/api/housekeeping/task", (req, res) => {
+app.post("/housekeeping/task", (req, res) => {
   res.json({ message: "Task assigned!" });
 });
-app.post("/api/maintenance/report", (req, res) => {
+app.post("/maintenance/report", (req, res) => {
   res.json({ message: "Maintenance issue reported!" });
 });
 
 // --- CONTENT MANAGEMENT ---
-app.get("/api/content", async (req, res) => {
+app.get("/content", async (req, res) => {
   try {
     const { page, section } = req.query;
     let where = {};
@@ -1052,7 +1052,7 @@ app.get("/api/content", async (req, res) => {
   }
 });
 
-app.post("/api/content", async (req, res) => {
+app.post("/content", async (req, res) => {
   try {
     const content = await prisma.contentSection.create({
       data: req.body,
@@ -1064,7 +1064,7 @@ app.post("/api/content", async (req, res) => {
   }
 });
 
-app.put("/api/content/:id", async (req, res) => {
+app.put("/content/:id", async (req, res) => {
   try {
     const content = await prisma.contentSection.update({
       where: { id: parseInt(req.params.id) },
@@ -1081,7 +1081,7 @@ app.put("/api/content/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/content/:id", async (req, res) => {
+app.delete("/content/:id", async (req, res) => {
   try {
     await prisma.contentSection.delete({
       where: { id: parseInt(req.params.id) },
@@ -1098,7 +1098,7 @@ app.delete("/api/content/:id", async (req, res) => {
 });
 
 // --- SITE SETTINGS ---
-app.get("/api/settings", async (req, res) => {
+app.get("/settings", async (req, res) => {
   try {
     const { category } = req.query;
     let where = {};
@@ -1117,7 +1117,7 @@ app.get("/api/settings", async (req, res) => {
   }
 });
 
-app.post("/api/settings", async (req, res) => {
+app.post("/settings", async (req, res) => {
   try {
     const setting = await prisma.siteSettings.create({
       data: req.body,
@@ -1129,7 +1129,7 @@ app.post("/api/settings", async (req, res) => {
   }
 });
 
-app.put("/api/settings/:key", async (req, res) => {
+app.put("/settings/:key", async (req, res) => {
   try {
     const setting = await prisma.siteSettings.update({
       where: { key: req.params.key },
@@ -1146,7 +1146,7 @@ app.put("/api/settings/:key", async (req, res) => {
   }
 });
 
-app.delete("/api/settings/:key", async (req, res) => {
+app.delete("/settings/:key", async (req, res) => {
   try {
     await prisma.siteSettings.delete({
       where: { key: req.params.key },
@@ -1164,7 +1164,7 @@ app.delete("/api/settings/:key", async (req, res) => {
 
 // --- REVIEWS ---
 // --- REVIEWS ---
-app.get("/api/reviews", async (req, res) => {
+app.get("/reviews", async (req, res) => {
   try {
     const { status, featured } = req.query;
     let where = {};
@@ -1187,7 +1187,7 @@ app.get("/api/reviews", async (req, res) => {
 });
 
 
-app.get("/api/admin/reviews", authenticateToken, async (req, res) => {
+app.get("/admin/reviews", authenticateToken, async (req, res) => {
   try {
     const reviews = await prisma.review.findMany({
       orderBy: { createdAt: "desc" },
@@ -1199,7 +1199,7 @@ app.get("/api/admin/reviews", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/api/reviews", async (req, res) => {
+app.post("/reviews", async (req, res) => {
   try {
     const review = await prisma.review.create({
       data: {
@@ -1214,7 +1214,7 @@ app.post("/api/reviews", async (req, res) => {
   }
 });
 
-app.put("/api/reviews/:id", authenticateToken, async (req, res) => {
+app.put("/reviews/:id", authenticateToken, async (req, res) => {
   try {
     const review = await prisma.review.update({
       where: { id: parseInt(req.params.id) },
@@ -1231,7 +1231,7 @@ app.put("/api/reviews/:id", authenticateToken, async (req, res) => {
   }
 });
 
-app.delete("/api/reviews/:id", authenticateToken, async (req, res) => {
+app.delete("/reviews/:id", authenticateToken, async (req, res) => {
   try {
     await prisma.review.delete({
       where: { id: parseInt(req.params.id) },
@@ -1248,7 +1248,7 @@ app.delete("/api/reviews/:id", authenticateToken, async (req, res) => {
 });
 
 // --- MAINTENANCE REQUESTS ---
-app.get("/api/maintenance", async (req, res) => {
+app.get("/maintenance", async (req, res) => {
   try {
     const requests = await prisma.maintenanceRequest.findMany({
       include: { room: true },
@@ -1261,7 +1261,7 @@ app.get("/api/maintenance", async (req, res) => {
   }
 });
 
-app.post("/api/maintenance", async (req, res) => {
+app.post("/maintenance", async (req, res) => {
   try {
     const request = await prisma.maintenanceRequest.create({
       data: {
@@ -1277,7 +1277,7 @@ app.post("/api/maintenance", async (req, res) => {
   }
 });
 
-app.put("/api/maintenance/:id", async (req, res) => {
+app.put("/maintenance/:id", async (req, res) => {
   try {
     const request = await prisma.maintenanceRequest.update({
       where: { id: parseInt(req.params.id) },
@@ -1296,7 +1296,7 @@ app.put("/api/maintenance/:id", async (req, res) => {
 });
 
 // --- HOUSEKEEPING TASKS ---
-app.get("/api/housekeeping", async (req, res) => {
+app.get("/housekeeping", async (req, res) => {
   try {
     const tasks = await prisma.housekeepingTask.findMany({
       include: { room: true },
@@ -1309,7 +1309,7 @@ app.get("/api/housekeeping", async (req, res) => {
   }
 });
 
-app.post("/api/housekeeping", async (req, res) => {
+app.post("/housekeeping", async (req, res) => {
   try {
     const task = await prisma.housekeepingTask.create({
       data: {
@@ -1325,7 +1325,7 @@ app.post("/api/housekeeping", async (req, res) => {
   }
 });
 
-app.put("/api/housekeeping/:id", async (req, res) => {
+app.put("/housekeeping/:id", async (req, res) => {
   try {
     const task = await prisma.housekeepingTask.update({
       where: { id: parseInt(req.params.id) },
@@ -1344,7 +1344,7 @@ app.put("/api/housekeeping/:id", async (req, res) => {
 });
 
 // Update existing staff endpoints to use database
-app.get("/api/staff", async (req, res) => {
+app.get("/staff", async (req, res) => {
   try {
     const staff = await prisma.staff.findMany({
       orderBy: { name: "asc" },
@@ -1356,7 +1356,7 @@ app.get("/api/staff", async (req, res) => {
   }
 });
 
-app.post("/api/staff", async (req, res) => {
+app.post("/staff", async (req, res) => {
   try {
     const member = await prisma.staff.create({
       data: req.body,
@@ -1368,7 +1368,7 @@ app.post("/api/staff", async (req, res) => {
   }
 });
 
-app.put("/api/staff/:id", async (req, res) => {
+app.put("/staff/:id", async (req, res) => {
   try {
     const member = await prisma.staff.update({
       where: { id: parseInt(req.params.id) },
@@ -1385,7 +1385,7 @@ app.put("/api/staff/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/staff/:id", async (req, res) => {
+app.delete("/staff/:id", async (req, res) => {
   try {
     await prisma.staff.delete({
       where: { id: parseInt(req.params.id) },
@@ -1402,7 +1402,7 @@ app.delete("/api/staff/:id", async (req, res) => {
 });
 
 // --- BOOKINGS ---
-app.post("/api/bookings", async (req, res) => {
+app.post("/bookings", async (req, res) => {
   try {
     const { guestId, roomId, startDate, endDate, status } = req.body;
 
@@ -1462,7 +1462,7 @@ app.post("/api/bookings", async (req, res) => {
 });
 
 // --- ROOM SERVICE ORDERS (used by order.html) ---
-app.post("/api/room-service-orders", async (req, res) => {
+app.post("/room-service-orders", async (req, res) => {
   try {
     const { room_id, guest_name, items, total_price, notes } = req.body;
 
@@ -1486,7 +1486,7 @@ app.post("/api/room-service-orders", async (req, res) => {
 });
 
 // --- Database Health Check ---
-app.get("/api/health", async (req, res) => {
+app.get("/health", async (req, res) => {
   try {
     const roomCount = await prisma.room.count();
     const guestCount = await prisma.guest.count();
