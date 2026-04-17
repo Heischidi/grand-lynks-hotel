@@ -36,6 +36,18 @@ app.use("/api", cors(corsOptions));
 
 app.use(bodyParser.json());
 
+// Middleware to handle both local development (/api/route) and Vercel (/api -> /route)
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api')) {
+    req.url = req.url.replace('/api', '');
+  }
+  // Ensure we still have a leading slash
+  if (!req.url.startsWith('/')) {
+    req.url = '/' + req.url;
+  }
+  next();
+});
+
 const nodemailer = require("nodemailer");
 
 // Email Transporter (Configure with real credentials in .env)
@@ -182,7 +194,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // --- AUTHENTICATION ---
-app.post("/api/auth/login", async (req, res) => {
+app.post("/auth/login", async (req, res) => {
   const { username, password } = req.body;
 
   try {
