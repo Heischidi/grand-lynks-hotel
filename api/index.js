@@ -13,7 +13,8 @@ const allowedOrigins = [
   "https://grandlynkshomesandapartments.com",
   "https://www.grandlynkshomesandapartments.com",
   "http://grandlynkshomesandapartments.com",
-  "http://www.grandlynkshomesandapartments.com"
+  "http://www.grandlynkshomesandapartments.com",
+  "https://grand-lynks-hotel.vercel.app"
 ];
 
 // CORS Configuration specifically for API routes
