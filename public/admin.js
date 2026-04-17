@@ -678,13 +678,48 @@ function renderOrders(items) {
                     <button onclick="updateOrderStatus(${item.id}, 'completed')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">Mark Completed</button>
                     <button onclick="updateOrderStatus(${item.id}, 'cancelled')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200 transition">Cancel</button>
                  ` : ''}
-                 ${isBooking ? '<span class="text-xs text-gray-400">Manage bookings in Rooms tab</span>' : ''}
+                 ${isBooking && item.status === 'pending' ? `
+                    <button onclick="confirmBooking(${item.id})" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">Confirm Payment</button>
+                    <button onclick="cancelBooking(${item.id})" class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200 transition">Cancel</button>
+                 ` : ''}
+                 ${isBooking && item.status !== 'pending' ? `<span class="text-xs text-gray-400 capitalize">Status: ${item.status}</span>` : ''}
                  ${!isBooking && (item.status === 'completed' || item.status === 'cancelled') ? '<span class="text-gray-400 text-sm">No actions available</span>' : ''}
             </div>
         `;
         container.appendChild(card);
     });
 }
+
+window.confirmBooking = async function (id) {
+    if (!confirm('Confirm payment for this booking? This will send the confirmation email to the guest.')) return;
+
+    const response = await authFetch(`/bookings/${id}/confirm`, {
+        method: 'PUT'
+    });
+
+    if (response && response.ok) {
+        alert('Booking confirmed and email sent!');
+        fetchOrders();
+    } else {
+        const err = await response.json().catch(() => ({}));
+        alert('Failed to confirm booking: ' + (err.error || 'Unknown error'));
+    }
+};
+
+window.cancelBooking = async function (id) {
+    if (!confirm('Are you sure you want to cancel this booking?')) return;
+
+    const response = await authFetch(`/bookings/${id}/cancel`, {
+        method: 'PUT'
+    });
+
+    if (response && response.ok) {
+        alert('Booking cancelled.');
+        fetchOrders();
+    } else {
+        alert('Failed to cancel booking.');
+    }
+};
 
 function getStatusColor(status) {
     switch (status) {

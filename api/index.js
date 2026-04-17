@@ -63,42 +63,110 @@ async function sendConfirmationEmail(booking, guest, room) {
   const mailOptions = {
     from: '"Grand Lynks Hotel" <grandlynkshomesandapartments@gmail.com>',
     to: guest.email,
-    subject: 'Booking Confirmation - Grand Lynks Hotel',
+    subject: 'Booking Received - Grand Lynks Hotel',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #8b1d30;">Booking Confirmation</h2>
-        <p>Dear ${guest.name},</p>
-        <p>Thank you for choosing Grand Lynks Homes & Apartments. Your booking has been received.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
+        <div style="background-color: #fcf8f8; padding: 20px; border-bottom: 3px solid #8b1d30;">
+          <h2 style="color: #8b1d30; margin: 0;">Booking Received</h2>
+          <p style="margin: 5px 0 0; color: #666;">Status: Pending Payment</p>
+        </div>
         
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Booking Details</h3>
-          <p><strong>Room:</strong> ${room.type}</p>
-          <p><strong>Check-in:</strong> ${new Date(booking.startDate).toDateString()}</p>
-          <p><strong>Check-out:</strong> ${new Date(booking.endDate).toDateString()}</p>
-          <p><strong>Total Amount:</strong> ₦${booking.totalAmount.toLocaleString()}</p>
-          <p><strong>Status:</strong> Pending Payment</p>
-        </div>
+        <div style="padding: 30px;">
+          <p>Dear ${guest.name},</p>
+          <p>Thank you for choosing Grand Lynks Homes & Apartments. Your reservation request has been received.</p>
+          
+          <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #333;">Reservation Details</h3>
+            <p><strong>Room:</strong> ${room.type}</p>
+            <p><strong>Check-in:</strong> ${new Date(booking.startDate).toDateString()}</p>
+            <p><strong>Check-out:</strong> ${new Date(booking.endDate).toDateString()}</p>
+            <p><strong>Total Amount:</strong> ₦${booking.totalAmount.toLocaleString()}</p>
+          </div>
 
-        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="color: #8b1d30; margin-top: 0;">Payment Instructions</h3>
-          <p>Please transfer the total amount to the account below to confirm your reservation:</p>
-          <p><strong>Bank Name:</strong> Moniepoint</p>
-          <p><strong>Account Name:</strong> Grand lynks Homes and Apartments</p>
-          <p><strong>Account Number:</strong> 5015151292</p>
-          <p>Please start the transfer description with your name.</p>
-        </div>
+          <div style="border: 2px solid #8b1d30; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h3 style="color: #8b1d30; margin-top: 0;">Payment Instructions</h3>
+            <p>To confirm your reservation, please transfer the total amount to the account below:</p>
+            <div style="background: #fdfdfd; padding: 15px; border-radius: 5px;">
+              <p style="margin: 5px 0;"><strong>Bank Name:</strong> Moniepoint</p>
+              <p style="margin: 5px 0;"><strong>Account Name:</strong> Grand lynks Homes and Apartments</p>
+              <p style="margin: 5px 0;"><strong>Account Number:</strong> 5015151292</p>
+            </div>
+            <p style="margin-top: 15px; font-size: 0.9em; color: #555;"><em>Please use your name as the transfer description. Once payment is verified, you will receive a final confirmation email.</em></p>
+          </div>
 
-        <p>Need help? Contact us at +234 814 223 4691.</p>
-        <p>Warm regards,<br>The Grand Lynks Team</p>
+          <p>Need help? Contact us at +234 814 223 4691.</p>
+          <p>Warm regards,<br>The Grand Lynks Team</p>
+        </div>
       </div>
     `
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Confirmation email sent to " + guest.email);
+    console.log("Initial confirmation email sent to " + guest.email);
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Error sending initial email:", error);
+  }
+}
+
+async function sendBookingFinalizedEmail(booking, guest, room) {
+  const mailOptions = {
+    from: '"Grand Lynks Hotel" <grandlynkshomesandapartments@gmail.com>',
+    to: guest.email,
+    subject: 'Booking Confirmed! - Grand Lynks Hotel',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <div style="background-color: #8b1d30; padding: 30px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-family: 'Playfair Display', serif;">Payment Confirmed</h1>
+        </div>
+        
+        <div style="padding: 30px; color: #333;">
+          <h2 style="color: #8b1d30; margin-top: 0;">Your Stay is Finalized!</h2>
+          <p>Dear ${guest.name},</p>
+          <p>We are delighted to inform you that we have successfully received your payment. Your booking at <strong>Grand Lynks Homes & Apartments</strong> is now officially confirmed.</p>
+          
+          <div style="background-color: #fcf8f8; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px dashed #8b1d30;">
+            <h3 style="margin-top: 0; color: #8b1d30;">Confirmed Reservation Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #777;">Booking Ref:</td>
+                <td style="padding: 8px 0; font-weight: bold;">#GL-${booking.id}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #777;">Room Type:</td>
+                <td style="padding: 8px 0; font-weight: bold;">${room.type}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #777;">Check-in:</td>
+                <td style="padding: 8px 0; font-weight: bold;">${new Date(booking.startDate).toDateString()}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #777;">Check-in:</td>
+                <td style="padding: 8px 0; font-weight: bold;">${new Date(booking.endDate).toDateString()}</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="line-height: 1.6;"><strong>Check-in Instructions:</strong> Please present a valid ID at the reception upon arrival. You can check in from 2:00 PM onwards. If you expect to arrive late, please let us know.</p>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="https://www.grandlynkshomesandapartments.com" style="background-color: #8b1d30; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visit Our Website</a>
+          </div>
+        </div>
+
+        <div style="background-color: #f4f4f4; padding: 20px; text-align: center; color: #777; font-size: 12px;">
+          <p style="margin: 0;">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja</p>
+          <p style="margin: 5px 0 0;">Questions? Call us at +234 814 223 4691</p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Finalized confirmation email sent to " + guest.email);
+  } catch (error) {
+    console.error("Error sending finalized email:", error);
   }
 }
 
@@ -733,6 +801,47 @@ app.delete("/bookings/:id", authenticateToken, async (req, res) => {
     } else {
       res.status(500).json({ error: "Failed to delete booking" });
     }
+  }
+});
+
+// --- BOOKING CONFIRMATION & CANCELLATION ---
+app.put("/bookings/:id/confirm", authenticateToken, async (req, res) => {
+  try {
+    const bookingId = parseInt(req.params.id);
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { guest: true, room: true }
+    });
+
+    if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: "confirmed" },
+      include: { guest: true, room: true }
+    });
+
+    // Send the finalized email
+    await sendBookingFinalizedEmail(updatedBooking, updatedBooking.guest, updatedBooking.room);
+
+    res.json({ message: "Booking confirmed and email sent", booking: updatedBooking });
+  } catch (error) {
+    console.error("Error confirming booking:", error);
+    res.status(500).json({ error: "Failed to confirm booking" });
+  }
+});
+
+app.put("/bookings/:id/cancel", authenticateToken, async (req, res) => {
+  try {
+    const bookingId = parseInt(req.params.id);
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: "cancelled" }
+    });
+    res.json({ message: "Booking cancelled", booking: updatedBooking });
+  } catch (error) {
+    console.error("Error cancelling booking:", error);
+    res.status(500).json({ error: "Failed to cancel booking" });
   }
 });
 // --- CHECK AVAILABILITY ---
