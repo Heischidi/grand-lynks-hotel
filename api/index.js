@@ -112,7 +112,13 @@ async function sendConfirmationEmail(booking, guest, room) {
 }
 
 async function sendBookingFinalizedEmail(booking, guest, room) {
+  console.log(`Attempting to send finalized email to ${guest?.email} for booking #${booking?.id}`);
   try {
+    if (!guest?.email) {
+      console.error("Cannot send finalized email: Guest email is missing");
+      return;
+    }
+
     const { data, error } = await resend.emails.send({
       from: 'Grand Lynks Hotel <bookings@grandlynkshomesandapartments.com>',
       to: guest.email,
@@ -804,27 +810,34 @@ app.delete("/bookings/:id", authenticateToken, async (req, res) => {
 
 // --- BOOKING CONFIRMATION & CANCELLATION ---
 app.put("/bookings/:id/confirm", authenticateToken, async (req, res) => {
+  const bookingId = parseInt(req.params.id);
+  console.log(`Admin requested confirmation for booking #${bookingId}`);
+  
   try {
-    const bookingId = parseInt(req.params.id);
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: { guest: true, room: true }
     });
-
-    if (!booking) return res.status(404).json({ error: "Booking not found" });
-
+ 
+    if (!booking) {
+      console.warn(`Confirmation failed: Booking #${bookingId} not found`);
+      return res.status(404).json({ error: "Booking not found" });
+    }
+ 
+    console.log(`Found booking for ${booking.guest?.name}. Updating status to confirmed...`);
     const updatedBooking = await prisma.booking.update({
       where: { id: bookingId },
       data: { status: "confirmed" },
       include: { guest: true, room: true }
     });
-
+ 
     // Send the finalized email
+    console.log("Triggering sendBookingFinalizedEmail...");
     await sendBookingFinalizedEmail(updatedBooking, updatedBooking.guest, updatedBooking.room);
-
+ 
     res.json({ message: "Booking confirmed and email sent", booking: updatedBooking });
   } catch (error) {
-    console.error("Error confirming booking:", error);
+    console.error(`Error confirming booking #${bookingId}:`, error);
     res.status(500).json({ error: "Failed to confirm booking" });
   }
 });
