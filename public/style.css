@@ -5,6 +5,24 @@
   box-sizing: border-box;
 }
 
+/* --- Prevent horizontal overflow on mobile --- */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Long text like emails and phone numbers should wrap on mobile */
+a[href^="mailto"],
+a[href^="tel"],
+.contact-info p,
+.contact-info span,
+.footer-section p,
+.footer-section a {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
 /* --- Luxury Theme Additions --- */
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Poppins:wght@300;400;600&display=swap");
 
