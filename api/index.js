@@ -56,9 +56,16 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_your_api_key");
 async function sendConfirmationEmail(booking, guest, room) {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Grand Lynks Hotel <bookings@grandlynkshomesandapartments.com>', // We will try a custom sender first
+      from: 'Grand Lynks Hotel <bookings@grandlynkshomesandapartments.com>',
+      replyTo: 'reservations@grandlynkshomesandapartments.com',
       to: guest.email,
-      subject: 'Booking Received - Grand Lynks Hotel',
+      subject: `Your Reservation at Grand Lynks Hotel - Ref #GL-${booking.id}`,
+      headers: {
+        'List-Unsubscribe': '<mailto:unsubscribe@grandlynkshomesandapartments.com>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        'X-Mailer': 'Grand Lynks Reservations System',
+      },
+      text: `Dear ${guest.name},\n\nThank you for choosing Grand Lynks Homes & Apartments. Your reservation request has been received.\n\nRoom: ${room.type}\nCheck-in: ${new Date(booking.startDate).toDateString()}\nCheck-out: ${new Date(booking.endDate).toDateString()}\nTotal Amount: NGN ${booking.totalAmount?.toLocaleString()}\n\nTo confirm your reservation, please transfer the total amount to:\nBank: Moniepoint\nAccount Name: Grand Lynks Homes and Apartments\nAccount Number: 5015151292\n\nPlease use your name as the transfer description.\n\nNeed help? Call us at +234 814 223 4691\n80 Pa Michael Imoudu Ave, Gwarinpa, Abuja\n\nWarm regards,\nThe Grand Lynks Team`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
           <div style="background-color: #fcf8f8; padding: 20px; border-bottom: 3px solid #8b1d30;">
@@ -124,8 +131,15 @@ async function sendBookingFinalizedEmail(booking, guest, room) {
 
     const { data, error } = await resend.emails.send({
       from: 'Grand Lynks Hotel <bookings@grandlynkshomesandapartments.com>',
+      replyTo: 'reservations@grandlynkshomesandapartments.com',
       to: guest.email,
-      subject: 'Booking Confirmed! - Grand Lynks Hotel',
+      subject: `Your Stay at Grand Lynks Hotel is Confirmed - Ref #GL-${booking.id}`,
+      headers: {
+        'List-Unsubscribe': '<mailto:unsubscribe@grandlynkshomesandapartments.com>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        'X-Mailer': 'Grand Lynks Reservations System',
+      },
+      text: `Dear ${guest.name},\n\nGreat news! We have received your payment and your booking at Grand Lynks Homes & Apartments is now officially confirmed.\n\nBooking Ref: #GL-${booking.id}\nRoom: ${room.type}\nCheck-in: ${new Date(booking.startDate).toDateString()}\nCheck-out: ${new Date(booking.endDate).toDateString()}\n\nPlease present a valid ID at reception upon arrival. Check-in is from 2:00 PM.\n\nWe look forward to welcoming you soon!\n\nKind regards,\nThe Grand Lynks Team\nhttps://grandlynkshomesandapartments.com`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
           <div style="background-color: #8b1d30; padding: 30px; text-align: center;">
