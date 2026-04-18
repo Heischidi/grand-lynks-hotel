@@ -138,6 +138,8 @@ async function sendBookingFinalizedEmail(booking, guest, room) {
 
             <p>Please present a valid ID at the reception upon arrival. You can check in from 2:00 PM onwards.</p>
             
+            <p style="margin-top: 20px; font-weight: 500;">We look forward to seeing you soon!</p>
+
             <div style="text-align: center; margin-top: 30px;">
               <a href="https://grandlynkshomesandapartments.com" style="background-color: #8b1d30; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visit Our Website</a>
             </div>
