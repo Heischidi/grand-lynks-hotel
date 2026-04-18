@@ -92,6 +92,9 @@ async function sendConfirmationEmail(booking, guest, room) {
             <p>Need help? Contact us at +234 814 223 4691.</p>
             <p style="margin: 0;">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja</p>
             <p>Warm regards,<br>The Grand Lynks Team</p>
+            <p style="margin-top: 30px; font-size: 0.8em; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
+              Don't see our emails? Please check your <strong>Spam folder</strong> and mark them as "Not Spam."
+            </p>
           </div>
         </div>
       `
@@ -149,6 +152,9 @@ async function sendBookingFinalizedEmail(booking, guest, room) {
             <div style="text-align: center; margin-top: 30px;">
               <a href="https://grandlynkshomesandapartments.com" style="background-color: #8b1d30; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visit Our Website</a>
             </div>
+            <p style="margin-top: 40px; font-size: 0.8em; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
+              Don't see our emails? Please check your <strong>Spam folder</strong> and mark them as "Not Spam."
+            </p>
           </div>
         </div>
       `
