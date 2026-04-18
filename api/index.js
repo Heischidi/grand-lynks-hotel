@@ -799,11 +799,19 @@ app.put("/bookings/:id", authenticateToken, validateBooking, async (req, res) =>
 });
 
 app.delete("/bookings/:id", authenticateToken, async (req, res) => {
+  const bookingId = parseInt(req.params.id);
   try {
-    await prisma.booking.delete({
-      where: { id: parseInt(req.params.id) },
+    // 1. Delete associated payments first
+    await prisma.payment.deleteMany({
+      where: { bookingId: bookingId }
     });
-    res.json({ message: "Booking deleted" });
+
+    // 2. Delete the booking
+    await prisma.booking.delete({
+      where: { id: bookingId },
+    });
+    
+    res.json({ message: "Booking and associated payments deleted" });
   } catch (error) {
     console.error("Error deleting booking:", error);
     if (error.code === "P2025") {
@@ -811,6 +819,81 @@ app.delete("/bookings/:id", authenticateToken, async (req, res) => {
     } else {
       res.status(500).json({ error: "Failed to delete booking" });
     }
+  }
+});
+
+app.delete("/orders/:id", authenticateToken, async (req, res) => {
+  const orderId = parseInt(req.params.id);
+  try {
+    // 1. Delete associated order items
+    await prisma.orderItem.deleteMany({
+      where: { orderId: orderId }
+    });
+
+    // 2. Delete associated payments
+    await prisma.payment.deleteMany({
+      where: { orderId: orderId }
+    });
+
+    // 3. Delete the order itself
+    await prisma.order.delete({
+      where: { id: orderId }
+    });
+
+    res.json({ message: "Order and associated items/payments deleted" });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    if (error.code === "P2025") {
+      res.status(404).json({ error: "Order not found" });
+    } else {
+      res.status(500).json({ error: "Failed to delete order" });
+    }
+  }
+});
+
+// General update endpoint for bookings
+app.put("/bookings/:id", authenticateToken, async (req, res) => {
+  const bookingId = parseInt(req.params.id);
+  const { startDate, endDate, status, roomId, totalAmount } = req.body;
+  
+  try {
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        status,
+        roomId,
+        totalAmount: totalAmount ? parseFloat(totalAmount) : undefined
+      },
+      include: { guest: true, room: true }
+    });
+    res.json({ message: "Booking updated", booking: updated });
+  } catch (error) {
+    console.error("Error updating booking:", error);
+    res.status(500).json({ error: "Failed to update booking" });
+  }
+});
+
+// General update endpoint for orders (already exists in some form but ensuring it handles totalAmount)
+app.put("/orders/:id", authenticateToken, async (req, res) => {
+  const orderId = parseInt(req.params.id);
+  const { status, totalAmount, notes } = req.body;
+  
+  try {
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status,
+        totalAmount: totalAmount ? parseFloat(totalAmount) : undefined,
+        notes
+      },
+      include: { orderItems: { include: { menuItem: true } }, guest: true }
+    });
+    res.json({ message: "Order updated", order: updated });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({ error: "Failed to update order" });
   }
 });
 
