@@ -126,6 +126,7 @@ const sections = {
     menu: document.getElementById('section-menu'),
     orders: document.getElementById('section-orders'),
     walkin: document.getElementById('section-walkin'),
+    guests: document.getElementById('section-guests'),
     reviews: document.getElementById('section-reviews')
 };
 
@@ -255,6 +256,7 @@ function switchTab(tabName) {
         if (tabName === 'menu') fetchMenu();
         if (tabName === 'orders') fetchOrders();
         if (tabName === 'walkin') fetchAvailableRoomsForWalkIn();
+        if (tabName === 'guests') fetchGuests();
         if (tabName === 'reviews') fetchAdminReviews();
     }
 }
@@ -802,12 +804,14 @@ async function handleWalkInSubmit(e) {
         const guestId = guestResult.guest.id;
 
         // 2. Create Booking
+        const paymentStatus = formData.get('paymentStatus'); // 'paid' or 'pending'
+        
         const bookingData = {
             guestId: guestId,
             roomId: formData.get('roomId'),
             startDate: formData.get('startDate'),
             endDate: formData.get('endDate'),
-            status: 'checked-in' // Walk-ins are usually immediate
+            status: paymentStatus === 'paid' ? 'confirmed' : 'pending'
         };
 
         // Note: Using authFetch for bookings if required, but server.js POST /bookings is confusingly open or closed.
@@ -822,9 +826,16 @@ async function handleWalkInSubmit(e) {
         });
 
         if (bookingResponse && bookingResponse.ok) {
-            alert('Guest successfully registered and checked in!');
+            const successMsg = paymentStatus === 'paid' 
+                ? 'Guest successfully registered and payment confirmed!' 
+                : 'Guest registered! Booking is PENDING payment verification.';
+            alert(successMsg);
             e.target.reset();
-            switchTab('rooms'); // Go to rooms to see the status change
+            if (paymentStatus === 'paid') {
+                switchTab('rooms'); 
+            } else {
+                switchTab('orders'); // Admin can confirm it here
+            }
         } else {
             const err = await bookingResponse.json();
             throw new Error(err.error || 'Failed to create booking');
@@ -839,6 +850,58 @@ async function handleWalkInSubmit(e) {
     }
 }
 
+ 
+// --- GUEST MANAGEMENT ---
+ 
+async function fetchGuests() {
+    const tbody = document.getElementById('guestsTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center">Loading guests...</td></tr>';
+ 
+    const response = await authFetch('/guests');
+    if (response && response.ok) {
+        const guests = await response.json();
+        renderGuests(guests);
+    } else {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Failed to load guests</td></tr>';
+    }
+}
+ 
+function renderGuests(guests) {
+    const tbody = document.getElementById('guestsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+ 
+    if (guests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center">No guests found.</td></tr>';
+        return;
+    }
+ 
+    guests.forEach(guest => {
+        const tr = document.createElement('tr');
+        const bookingCount = guest.bookings ? guest.bookings.length : 0;
+        
+        tr.innerHTML = `
+            <td data-label="Guest" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
+                <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Guest:</span>
+                <div class="font-medium text-gray-900">${guest.name}</div>
+            </td>
+            <td data-label="Contact" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
+                <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Contact:</span>
+                <div class="text-sm text-gray-900">${guest.email}</div>
+                <div class="text-sm text-gray-500">${guest.phone}</div>
+            </td>
+            <td data-label="History" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left text-sm text-gray-500">
+                <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Stays:</span>
+                ${bookingCount} Booking(s)
+            </td>
+            <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-sm font-medium block md:table-cell">
+                <button onclick="alert('Viewing history for ${guest.name.replace(/'/g, "\\'")}')" class="text-blue-600 hover:text-blue-900">View History</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+ 
 // --- REVIEW MANAGEMENT ---
 
 async function fetchAdminReviews() {
