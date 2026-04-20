@@ -42,7 +42,7 @@ model Guest {
   id        Int       @id @default(autoincrement())
   name      String
   phone     String
-  email     String
+  email     String    @unique
   idNumber  String?
   address   String?
   bookings  Booking[]

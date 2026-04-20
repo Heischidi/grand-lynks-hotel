@@ -569,12 +569,32 @@ app.get("/guests/:id", authenticateToken, async (req, res) => {
 
 app.post("/guests", validateGuest, async (req, res) => {
   try {
-    const guest = await prisma.guest.create({
-      data: req.body,
+    const { name, phone, email, idNumber, address } = req.body;
+
+    // Upsert by email — if guest exists, update their info and return them.
+    // If they're new, create a fresh record.
+    const guest = await prisma.guest.upsert({
+      where: { email },
+      update: {
+        // Keep the record fresh: update name/phone in case they changed
+        name,
+        phone,
+        ...(idNumber !== undefined && { idNumber }),
+        ...(address   !== undefined && { address }),
+      },
+      create: {
+        name,
+        phone,
+        email,
+        ...(idNumber !== undefined && { idNumber }),
+        ...(address  !== undefined && { address }),
+      },
     });
-    res.json({ message: "Guest added", guest });
+
+    const isNew = new Date() - new Date(guest.createdAt) < 5000; // rough check
+    res.json({ message: isNew ? "Guest created" : "Guest record found and updated", guest });
   } catch (error) {
-    console.error("Error creating guest:", error);
+    console.error("Error creating/upserting guest:", error);
     res.status(500).json({ error: "Failed to create guest" });
   }
 });
