@@ -529,6 +529,44 @@ app.get("/guests", authenticateToken, async (req, res) => {
   }
 });
 
+// Full guest history with room, order items, and payments
+app.get("/guests/:id", authenticateToken, async (req, res) => {
+  try {
+    const guest = await prisma.guest.findUnique({
+      where: { id: parseInt(req.params.id) },
+      include: {
+        bookings: {
+          include: {
+            room: true,
+            payments: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        orders: {
+          include: {
+            orderItems: {
+              include: { menuItem: true },
+            },
+            room: true,
+            payments: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        payments: true,
+      },
+    });
+
+    if (!guest) {
+      return res.status(404).json({ error: "Guest not found" });
+    }
+
+    res.json(guest);
+  } catch (error) {
+    console.error("Error fetching guest history:", error);
+    res.status(500).json({ error: "Failed to fetch guest history" });
+  }
+});
+
 app.post("/guests", validateGuest, async (req, res) => {
   try {
     const guest = await prisma.guest.create({

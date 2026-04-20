@@ -603,7 +603,19 @@ async function fetchOrders() {
         // Sort by date desc
         allTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+        // Store globally for search filtering
+        window.allTransactions = allTransactions;
+
         renderOrders(allTransactions);
+        // Reset search UI
+        const searchInput = document.getElementById('bookingSearchInput');
+        if (searchInput) searchInput.value = '';
+        const typeFilter = document.getElementById('bookingTypeFilter');
+        if (typeFilter) typeFilter.value = 'all';
+        const statusFilter = document.getElementById('bookingStatusFilter');
+        if (statusFilter) statusFilter.value = 'all';
+        const countEl = document.getElementById('searchResultCount');
+        if (countEl) countEl.textContent = `Showing ${allTransactions.length} transaction(s)`;
 
     } catch (error) {
         console.error("Error fetching transactions:", error);
@@ -726,6 +738,49 @@ window.cancelBooking = async function (id) {
         fetchOrders();
     } else {
         alert('Failed to cancel booking.');
+    }
+};
+
+// --- TRANSACTION SEARCH / FILTER ---
+window.filterTransactions = function () {
+    if (!window.allTransactions) return;
+
+    const query = (document.getElementById('bookingSearchInput')?.value || '').toLowerCase().trim();
+    const typeVal = document.getElementById('bookingTypeFilter')?.value || 'all';
+    const statusVal = document.getElementById('bookingStatusFilter')?.value || 'all';
+
+    const filtered = window.allTransactions.filter(item => {
+        // Type filter
+        if (typeVal !== 'all' && item.type !== typeVal) return false;
+        // Status filter
+        if (statusVal !== 'all' && item.status !== statusVal) return false;
+        // Text search
+        if (query) {
+            const guestName = (item.guest?.name || '').toLowerCase();
+            const guestEmail = (item.guest?.email || '').toLowerCase();
+            const bookingId = String(item.id);
+            const roomNum = String(item.room?.number || item.room?.roomNumber || '');
+            const roomType = (item.room?.type || '').toLowerCase();
+            if (
+                !guestName.includes(query) &&
+                !guestEmail.includes(query) &&
+                !bookingId.includes(query) &&
+                !roomNum.includes(query) &&
+                !roomType.includes(query)
+            ) return false;
+        }
+        return true;
+    });
+
+    renderOrders(filtered);
+
+    const countEl = document.getElementById('searchResultCount');
+    if (countEl) {
+        if (query || typeVal !== 'all' || statusVal !== 'all') {
+            countEl.textContent = `${filtered.length} result(s) found`;
+        } else {
+            countEl.textContent = `Showing ${filtered.length} transaction(s)`;
+        }
     }
 };
 
@@ -901,7 +956,7 @@ function renderGuests(guests) {
                 ${bookingCount} Booking(s)
             </td>
             <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-sm font-medium block md:table-cell">
-                <button onclick="alert('Viewing history for ${guest.name.replace(/'/g, "\\'")}')" class="text-blue-600 hover:text-blue-900">View History</button>
+                <button onclick="viewGuestHistory(${guest.id})" class="text-blue-600 hover:text-blue-900 font-medium">View History</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -1046,6 +1101,144 @@ window.deleteReview = async function (id) {
     const response = await authFetch(`/reviews/${id}`, { method: 'DELETE' });
     if (response && response.ok) fetchAdminReviews();
     else alert('Failed to delete review');
+};
+
+// --- GUEST HISTORY MODAL ---
+
+window.handleHistoryModalClick = function (e) {
+    // Close modal if backdrop clicked
+    if (e.target.id === 'guestHistoryModal') {
+        closeModal('guestHistoryModal');
+    }
+};
+
+window.viewGuestHistory = async function (guestId) {
+    // Show the modal in loading state
+    document.getElementById('historyGuestName').textContent = 'Loading…';
+    document.getElementById('historyGuestContact').textContent = '';
+    document.getElementById('historyStats').innerHTML = '';
+    document.getElementById('historyBookingList').innerHTML = '<p class="text-center text-gray-400 py-6">Loading history…</p>';
+    openModal('guestHistoryModal');
+
+    // Fetch full guest detail via dedicated endpoint
+    const res = await authFetch(`/guests/${guestId}`);
+    if (!res || !res.ok) {
+        document.getElementById('historyBookingList').innerHTML = '<p class="text-center text-red-500 py-6">Failed to load guest data.</p>';
+        return;
+    }
+
+    const guest = await res.json();
+
+    // Populate header
+    document.getElementById('historyGuestName').textContent = guest.name;
+    document.getElementById('historyGuestContact').textContent = `${guest.email}  •  ${guest.phone || 'No phone recorded'}`;
+
+    const bookings = guest.bookings || [];
+    const orders = guest.orders || [];
+
+    // Calculate stats
+    const totalSpent = [
+        ...bookings.map(b => b.totalAmount || 0),
+        ...orders.map(o => o.totalAmount || 0)
+    ].reduce((a, c) => a + c, 0);
+
+    const confirmedBookings = bookings.filter(b => ['confirmed', 'checked-in', 'completed'].includes(b.status)).length;
+
+    document.getElementById('historyStats').innerHTML = `
+        <div class="text-center">
+            <p class="text-2xl font-bold text-blue-600">${bookings.length}</p>
+            <p class="text-xs text-gray-500 mt-1">Room Bookings</p>
+        </div>
+        <div class="text-center border-x border-gray-200">
+            <p class="text-2xl font-bold text-green-600">${confirmedBookings}</p>
+            <p class="text-xs text-gray-500 mt-1">Confirmed Stays</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-purple-600">₦${totalSpent.toLocaleString()}</p>
+            <p class="text-xs text-gray-500 mt-1">Total Spent</p>
+        </div>
+    `;
+
+    const listEl = document.getElementById('historyBookingList');
+
+    if (bookings.length === 0 && orders.length === 0) {
+        listEl.innerHTML = '<p class="text-center text-gray-400 py-6">No transactions on record for this guest.</p>';
+        return;
+    }
+
+    // Combine & sort
+    const combined = [
+        ...bookings.map(b => ({ ...b, _type: 'booking' })),
+        ...orders.map(o => ({ ...o, _type: 'order' }))
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    listEl.innerHTML = combined.map(item => {
+        const isBooking = item._type === 'booking';
+        const date = new Date(item.createdAt).toLocaleString();
+
+        const statusColors = {
+            pending: 'bg-yellow-100 text-yellow-700',
+            confirmed: 'bg-blue-100 text-blue-700',
+            'checked-in': 'bg-indigo-100 text-indigo-700',
+            completed: 'bg-green-100 text-green-700',
+            cancelled: 'bg-red-100 text-red-700',
+        };
+        const badgeClass = statusColors[item.status] || 'bg-gray-100 text-gray-700';
+
+        if (isBooking) {
+            const nights = item.startDate && item.endDate
+                ? Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / (1000 * 60 * 60 * 24))
+                : '?';
+            return `
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-base font-semibold text-gray-800">📅 Room Booking #${item.id}</span>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClass} uppercase">${item.status}</span>
+                            </div>
+                            <p class="text-xs text-gray-500">${date}</p>
+                        </div>
+                        <p class="text-lg font-bold text-blue-700">₦${(item.totalAmount || 0).toLocaleString()}</p>
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-700">
+                        <div><span class="font-medium text-gray-500">Room:</span> ${item.room ? (item.room.number || item.room.roomNumber) + ' – ' + item.room.type : 'N/A'}</div>
+                        <div><span class="font-medium text-gray-500">Duration:</span> ${nights} night(s)</div>
+                        <div><span class="font-medium text-gray-500">Check-in:</span> ${item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A'}</div>
+                        <div><span class="font-medium text-gray-500">Check-out:</span> ${item.endDate ? new Date(item.endDate).toLocaleDateString() : 'N/A'}</div>
+                    </div>
+                    ${item.payments && item.payments.length > 0 ? `
+                    <div class="mt-3 pt-3 border-t border-blue-200 text-xs text-gray-500">
+                        <span class="font-medium">Payments:</span>
+                        ${item.payments.map(p => `${p.method} – ₦${p.amount?.toLocaleString()} (${p.status})`).join(' &nbsp;|&nbsp; ')}
+                    </div>` : ''}
+                </div>
+            `;
+        } else {
+            // Food order
+            const itemsList = (item.orderItems || []).map(i =>
+                `${i.quantity}× ${i.menuItem?.name || 'Item'}`
+            ).join(', ') || 'No item details';
+
+            return `
+                <div class="bg-orange-50 border border-orange-100 rounded-xl p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-base font-semibold text-gray-800">🍽️ Food Order #${item.id}</span>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClass} uppercase">${item.status}</span>
+                            </div>
+                            <p class="text-xs text-gray-500">${date}</p>
+                        </div>
+                        <p class="text-lg font-bold text-orange-600">₦${(item.totalAmount || 0).toLocaleString()}</p>
+                    </div>
+                    <div class="mt-2 text-sm text-gray-700">
+                        <span class="font-medium text-gray-500">Items:</span> ${itemsList}
+                    </div>
+                </div>
+            `;
+        }
+    }).join('');
 };
 
 // --- EVENT LISTENERS ---

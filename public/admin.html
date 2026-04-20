@@ -354,11 +354,43 @@
 
             <!-- ORDERS SECTION -->
             <section id="section-orders" class="hidden fade-in">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">Order Management</h2>
                     <button onclick="fetchOrders()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                         ↻ Refresh
                     </button>
+                </div>
+
+                <!-- SEARCH BAR -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-5">
+                    <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                        <div class="relative flex-1 w-full">
+                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                            </svg>
+                            <input id="bookingSearchInput" type="text" placeholder="Search by guest name, email, booking ID or room…"
+                                class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                                oninput="filterTransactions()">
+                        </div>
+                        <div class="flex gap-2 flex-shrink-0">
+                            <select id="bookingTypeFilter" onchange="filterTransactions()"
+                                class="border border-gray-300 rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="all">All Types</option>
+                                <option value="booking">Room Bookings</option>
+                                <option value="order">Food Orders</option>
+                            </select>
+                            <select id="bookingStatusFilter" onchange="filterTransactions()"
+                                class="border border-gray-300 rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="all">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="checked-in">Checked-in</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p id="searchResultCount" class="text-xs text-gray-400 mt-2"></p>
                 </div>
 
                 <div class="space-y-4" id="ordersContainer">
@@ -697,6 +729,42 @@
             script.src = `admin.js?v=${new Date().getTime()}`;
             document.body.appendChild(script);
         </script>
+
+    <!-- GUEST HISTORY MODAL -->
+    <div id="guestHistoryModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4"
+        onclick="handleHistoryModalClick(event)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900" id="historyGuestName">Guest History</h3>
+                    <p class="text-sm text-gray-500 mt-0.5" id="historyGuestContact"></p>
+                </div>
+                <button onclick="closeModal('guestHistoryModal')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-3 gap-4 px-6 py-4 bg-gray-50 border-b border-gray-100" id="historyStats">
+                <!-- JS populates -->
+            </div>
+
+            <!-- Booking List -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-3" id="historyBookingList">
+                <!-- JS populates -->
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 text-right">
+                <button onclick="closeModal('guestHistoryModal')" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition">Close</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>
