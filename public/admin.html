@@ -282,13 +282,26 @@
 
             <!-- GUEST DIRECTORY SECTION -->
             <section id="section-guests" class="hidden fade-in">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">Guest Directory</h2>
                     <button onclick="fetchGuests()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                         ↻ Refresh
                     </button>
                 </div>
- 
+
+                <!-- GUEST SEARCH BAR -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-5">
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                        </svg>
+                        <input id="guestSearchInput" type="text" placeholder="Search by name, email or phone…"
+                            class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                            oninput="filterGuests()">
+                    </div>
+                    <p id="guestResultCount" class="text-xs text-gray-400 mt-2"></p>
+                </div>
+
                 <div class="bg-white rounded-lg shadow overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">

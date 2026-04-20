@@ -921,7 +921,13 @@ async function fetchGuests() {
     const response = await authFetch('/guests');
     if (response && response.ok) {
         const guests = await response.json();
+        window.allGuests = guests;
         renderGuests(guests);
+        // Reset search
+        const searchInput = document.getElementById('guestSearchInput');
+        if (searchInput) searchInput.value = '';
+        const countEl = document.getElementById('guestResultCount');
+        if (countEl) countEl.textContent = `Showing ${guests.length} guest(s)`;
     } else {
         if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Failed to load guests</td></tr>';
     }
@@ -962,6 +968,29 @@ function renderGuests(guests) {
         tbody.appendChild(tr);
     });
 }
+ 
+// --- GUEST SEARCH FILTER ---
+window.filterGuests = function () {
+    if (!window.allGuests) return;
+    const query = (document.getElementById('guestSearchInput')?.value || '').toLowerCase().trim();
+
+    const filtered = query
+        ? window.allGuests.filter(g =>
+            (g.name || '').toLowerCase().includes(query) ||
+            (g.email || '').toLowerCase().includes(query) ||
+            (g.phone || '').toLowerCase().includes(query)
+          )
+        : window.allGuests;
+
+    renderGuests(filtered);
+
+    const countEl = document.getElementById('guestResultCount');
+    if (countEl) {
+        countEl.textContent = query
+            ? `${filtered.length} result(s) found`
+            : `Showing ${filtered.length} guest(s)`;
+    }
+};
  
 // --- REVIEW MANAGEMENT ---
 
