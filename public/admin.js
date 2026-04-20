@@ -748,27 +748,50 @@ window.filterTransactions = function () {
     const query = (document.getElementById('bookingSearchInput')?.value || '').toLowerCase().trim();
     const typeVal = document.getElementById('bookingTypeFilter')?.value || 'all';
     const statusVal = document.getElementById('bookingStatusFilter')?.value || 'all';
+    const dateFrom = document.getElementById('dateFrom')?.value || '';  // 'YYYY-MM-DD'
+    const dateTo = document.getElementById('dateTo')?.value || '';
+
+    // Build date boundaries (start of day / end of day)
+    const fromDate = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
+    const toDate   = dateTo   ? new Date(dateTo   + 'T23:59:59') : null;
 
     const filtered = window.allTransactions.filter(item => {
         // Type filter
         if (typeVal !== 'all' && item.type !== typeVal) return false;
+
         // Status filter
         if (statusVal !== 'all' && item.status !== statusVal) return false;
+
+        // Date range filter
+        // For bookings: match createdAt OR startDate (check-in)
+        // For orders: match createdAt
+        if (fromDate || toDate) {
+            const created  = item.createdAt  ? new Date(item.createdAt)  : null;
+            const checkIn  = item.startDate  ? new Date(item.startDate)  : null;
+
+            // A transaction passes if ANY relevant date falls in range
+            const inRange = (d) => d && (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
+
+            if (!inRange(created) && !inRange(checkIn)) return false;
+        }
+
         // Text search
         if (query) {
-            const guestName = (item.guest?.name || '').toLowerCase();
+            const guestName  = (item.guest?.name  || '').toLowerCase();
             const guestEmail = (item.guest?.email || '').toLowerCase();
-            const bookingId = String(item.id);
-            const roomNum = String(item.room?.number || item.room?.roomNumber || '');
-            const roomType = (item.room?.type || '').toLowerCase();
+            const bookingId  = String(item.id);
+            const roomNum    = String(item.room?.number || item.room?.roomNumber || '');
+            const roomType   = (item.room?.type || '').toLowerCase();
+
             if (
-                !guestName.includes(query) &&
+                !guestName.includes(query)  &&
                 !guestEmail.includes(query) &&
-                !bookingId.includes(query) &&
-                !roomNum.includes(query) &&
+                !bookingId.includes(query)  &&
+                !roomNum.includes(query)    &&
                 !roomType.includes(query)
             ) return false;
         }
+
         return true;
     });
 
@@ -776,11 +799,29 @@ window.filterTransactions = function () {
 
     const countEl = document.getElementById('searchResultCount');
     if (countEl) {
-        if (query || typeVal !== 'all' || statusVal !== 'all') {
-            countEl.textContent = `${filtered.length} result(s) found`;
-        } else {
-            countEl.textContent = `Showing ${filtered.length} transaction(s)`;
-        }
+        const isFiltered = query || typeVal !== 'all' || statusVal !== 'all' || dateFrom || dateTo;
+        countEl.textContent = isFiltered
+            ? `${filtered.length} result(s) found`
+            : `Showing ${filtered.length} transaction(s)`;
+    }
+};
+
+window.clearTransactionFilters = function () {
+    const searchInput = document.getElementById('bookingSearchInput');
+    if (searchInput) searchInput.value = '';
+    const typeFilter = document.getElementById('bookingTypeFilter');
+    if (typeFilter) typeFilter.value = 'all';
+    const statusFilter = document.getElementById('bookingStatusFilter');
+    if (statusFilter) statusFilter.value = 'all';
+    const dateFrom = document.getElementById('dateFrom');
+    if (dateFrom) dateFrom.value = '';
+    const dateTo = document.getElementById('dateTo');
+    if (dateTo) dateTo.value = '';
+
+    if (window.allTransactions) {
+        renderOrders(window.allTransactions);
+        const countEl = document.getElementById('searchResultCount');
+        if (countEl) countEl.textContent = `Showing ${window.allTransactions.length} transaction(s)`;
     }
 };
 
