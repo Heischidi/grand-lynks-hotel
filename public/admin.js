@@ -987,11 +987,14 @@ function renderGuests(guests) {
     guests.forEach(guest => {
         const tr = document.createElement('tr');
         const bookingCount = guest.bookings ? guest.bookings.length : 0;
+        const blacklistBadge = guest.isBlacklisted 
+            ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Blacklisted</span>' 
+            : '';
         
         tr.innerHTML = `
             <td data-label="Guest" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
                 <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Guest:</span>
-                <div class="font-medium text-gray-900">${guest.name}</div>
+                <div class="font-medium text-gray-900">${guest.name} ${blacklistBadge}</div>
             </td>
             <td data-label="Contact" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
                 <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Contact:</span>
@@ -1199,9 +1202,25 @@ window.viewGuestHistory = async function (guestId) {
 
     const guest = await res.json();
 
+    // Store globally for blacklist toggle action
+    window.currentHistoryGuest = guest;
+
     // Populate header
     document.getElementById('historyGuestName').textContent = guest.name;
+    if (guest.isBlacklisted) {
+        document.getElementById('historyGuestName').innerHTML += ' <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Blacklisted</span>';
+    }
     document.getElementById('historyGuestContact').textContent = `${guest.email}  •  ${guest.phone || 'No phone recorded'}`;
+
+    // Configure Blacklist Button
+    const blacklistBtn = document.getElementById('toggleBlacklistBtn');
+    if (guest.isBlacklisted) {
+        blacklistBtn.textContent = 'Remove from Blacklist';
+        blacklistBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg transition bg-gray-100 text-gray-700 hover:bg-gray-200';
+    } else {
+        blacklistBtn.textContent = 'Blacklist Guest';
+        blacklistBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg transition bg-red-50 text-red-600 hover:bg-red-100';
+    }
 
     const bookings = guest.bookings || [];
     const orders = guest.orders || [];
@@ -1309,6 +1328,45 @@ window.viewGuestHistory = async function (guestId) {
             `;
         }
     }).join('');
+};
+
+window.toggleGuestBlacklist = async function() {
+    const guest = window.currentHistoryGuest;
+    if (!guest) return;
+
+    const action = guest.isBlacklisted ? 'remove from blacklist' : 'blacklist';
+    if (!confirm(`Are you sure you want to ${action} ${guest.name}?`)) return;
+
+    const newStatus = !guest.isBlacklisted;
+    
+    // Disable button while processing
+    const btn = document.getElementById('toggleBlacklistBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Processing...';
+    btn.disabled = true;
+
+    try {
+        const response = await authFetch(`/guests/${guest.id}/blacklist`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isBlacklisted: newStatus })
+        });
+
+        if (response && response.ok) {
+            alert(`Guest successfully ${newStatus ? 'blacklisted' : 'removed from blacklist'}.`);
+            // Refresh data
+            fetchGuests(); 
+            viewGuestHistory(guest.id); 
+        } else {
+            const err = await response.json();
+            alert(err.error || 'Failed to update guest status');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('An error occurred.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 };
 
 // --- EVENT LISTENERS ---

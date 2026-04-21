@@ -39,13 +39,14 @@ model Room {
 }
 
 model Guest {
-  id        Int       @id @default(autoincrement())
-  name      String
-  phone     String
-  email     String    @unique
-  idNumber  String?
-  address   String?
-  bookings  Booking[]
+  id            Int       @id @default(autoincrement())
+  name          String
+  phone         String
+  email         String    @unique
+  idNumber      String?
+  address       String?
+  isBlacklisted Boolean   @default(false)
+  bookings      Booking[]
   orders    Order[]
   payments  Payment[]
   createdAt DateTime  @default(now())

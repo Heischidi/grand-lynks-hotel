@@ -571,6 +571,12 @@ app.post("/guests", validateGuest, async (req, res) => {
   try {
     const { name, phone, email, idNumber, address } = req.body;
 
+    // Check if blacklisted first
+    const existingGuest = await prisma.guest.findUnique({ where: { email } });
+    if (existingGuest && existingGuest.isBlacklisted) {
+      return res.status(403).json({ error: "Booking rejected. This guest has been blacklisted." });
+    }
+
     // Upsert by email — if guest exists, update their info and return them.
     // If they're new, create a fresh record.
     const guest = await prisma.guest.upsert({
@@ -612,6 +618,24 @@ app.put("/guests/:id", authenticateToken, validateGuest, async (req, res) => {
       res.status(404).json({ error: "Guest not found" });
     } else {
       res.status(500).json({ error: "Failed to update guest" });
+    }
+  }
+});
+
+app.patch("/guests/:id/blacklist", authenticateToken, async (req, res) => {
+  try {
+    const { isBlacklisted } = req.body;
+    const guest = await prisma.guest.update({
+      where: { id: parseInt(req.params.id) },
+      data: { isBlacklisted },
+    });
+    res.json({ message: `Guest ${isBlacklisted ? 'blacklisted' : 'removed from blacklist'}`, guest });
+  } catch (error) {
+    console.error("Error toggling blacklist:", error);
+    if (error.code === "P2025") {
+      res.status(404).json({ error: "Guest not found" });
+    } else {
+      res.status(500).json({ error: "Failed to update blacklist status" });
     }
   }
 });

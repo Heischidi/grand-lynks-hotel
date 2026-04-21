@@ -384,6 +384,11 @@ class BookingIntegration {
         body: JSON.stringify(guestData),
       });
       const guestResponse = await guestRes.json();
+      
+      if (!guestRes.ok) {
+        throw new Error(guestResponse.error || "Failed to process guest information.");
+      }
+
       const guestId = guestResponse.guest ? guestResponse.guest.id : guestResponse.id;
 
       // 2. Create Booking
