@@ -640,13 +640,19 @@ function renderOrders(items) {
         return;
     }
 
+    // Show/hide the bulk toolbar based on whether there are items
+    const toolbar = document.getElementById('bulkToolbar');
+    if (toolbar) toolbar.classList.toggle('hidden', items.length === 0);
+    window._bulkAllSelected = false;
+
     items.forEach(item => {
         const isBooking = item.type === 'booking';
 
         const card = document.createElement('div');
-        // Blue border for bookings, Status color for orders
         const borderColor = isBooking ? 'border-blue-500' : getStatusColor(item.status);
-        card.className = `bg-white rounded-lg shadow p-6 border-l-4 ${borderColor}`;
+        card.className = `bg-white rounded-lg shadow p-6 border-l-4 ${borderColor} relative`;
+        card.dataset.id   = item.id;
+        card.dataset.type = item.type;
 
         const date = new Date(item.createdAt || Date.now()).toLocaleString();
 
@@ -673,7 +679,15 @@ function renderOrders(items) {
         }
 
         card.innerHTML = `
-            <div class="flex justify-between items-start mb-4">
+            <!-- Bulk select checkbox -->
+            <label class="absolute top-4 right-4 flex items-center gap-1.5 cursor-pointer select-none z-10">
+                <input type="checkbox" class="bulk-checkbox w-4 h-4 accent-red-600 rounded"
+                    data-id="${item.id}" data-type="${item.type}"
+                    onchange="updateBulkCount()">
+                <span class="text-xs text-gray-400">Select</span>
+            </label>
+
+            <div class="flex justify-between items-start mb-4 pr-20">
                 <div>
                     <h3 class="text-lg font-bold flex items-center">
                         ${isBooking ? '<span class="mr-2">📅</span>' : '<span class="mr-2">🍽️</span>'}
@@ -717,6 +731,71 @@ function renderOrders(items) {
         container.appendChild(card);
     });
 }
+
+// --- BULK SELECTION HELPERS ---
+window.updateBulkCount = function () {
+    const checked = document.querySelectorAll('.bulk-checkbox:checked');
+    const all     = document.querySelectorAll('.bulk-checkbox');
+    const countEl = document.getElementById('bulkCount');
+    const btn     = document.getElementById('bulkSelectAllBtn');
+    if (countEl) countEl.textContent = `${checked.length} selected`;
+    if (btn) btn.textContent = checked.length === all.length ? '✓ Deselect All' : '✓ Select All';
+};
+
+window.bulkSelectAll = function () {
+    const all     = document.querySelectorAll('.bulk-checkbox');
+    const checked = document.querySelectorAll('.bulk-checkbox:checked');
+    const shouldCheck = checked.length < all.length;
+    all.forEach(cb => cb.checked = shouldCheck);
+    updateBulkCount();
+};
+
+window.bulkClearSelection = function () {
+    document.querySelectorAll('.bulk-checkbox').forEach(cb => cb.checked = false);
+    updateBulkCount();
+};
+
+// --- BULK DELETE ---
+window.bulkDeleteTransactions = async function () {
+    const checked = Array.from(document.querySelectorAll('.bulk-checkbox:checked'));
+    if (checked.length === 0) { alert('No items selected.'); return; }
+
+    const bookings = checked.filter(cb => cb.dataset.type === 'booking');
+    const orders   = checked.filter(cb => cb.dataset.type === 'order');
+
+    const confirmMsg = [
+        `You are about to permanently delete ${checked.length} record(s):`,
+        bookings.length ? `  • ${bookings.length} Room Booking(s)` : '',
+        orders.length   ? `  • ${orders.length} Food Order(s)` : '',
+        '',
+        'This also removes associated payment records. Continue?'
+    ].filter(Boolean).join('\n');
+
+    if (!confirm(confirmMsg)) return;
+
+    const btn = document.getElementById('bulkDeleteBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Deleting…'; }
+
+    const results = await Promise.allSettled(
+        checked.map(cb => {
+            const endpoint = cb.dataset.type === 'booking' ? `/bookings/${cb.dataset.id}` : `/orders/${cb.dataset.id}`;
+            return authFetch(endpoint, { method: 'DELETE' });
+        })
+    );
+
+    const succeeded = results.filter(r => r.status === 'fulfilled' && r.value?.ok).length;
+    const failed    = results.length - succeeded;
+
+    if (btn) { btn.disabled = false; btn.textContent = '🗑 Delete Selected'; }
+
+    if (failed === 0) {
+        alert(`✅ ${succeeded} record(s) deleted successfully.`);
+    } else {
+        alert(`⚠️ ${succeeded} deleted, ${failed} failed (they may have linked data).`);
+    }
+
+    fetchOrders();
+};
 
 window.confirmBooking = async function (id) {
     if (!confirm('Confirm payment for this booking? This will send the confirmation email to the guest.')) return;
