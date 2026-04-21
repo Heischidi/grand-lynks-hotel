@@ -19,7 +19,7 @@ a[href^="tel"],
 .contact-info span,
 .footer-section p,
 .footer-section a {
-  word-break: break-all;
+  word-break: normal;
   overflow-wrap: anywhere;
 }
 
