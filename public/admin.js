@@ -361,7 +361,12 @@ window.deleteRoom = async function (id) {
     if (response && response.ok) {
         fetchRooms();
     } else {
-        alert('Failed to delete room');
+        try {
+            const errData = await response.json();
+            alert(errData.error || 'Failed to delete room');
+        } catch {
+            alert('Failed to delete room');
+        }
     }
 };
 
