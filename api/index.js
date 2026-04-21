@@ -546,6 +546,8 @@ app.delete("/rooms/:id", authenticateToken, async (req, res) => {
     console.error("Error deleting room:", error);
     if (error.code === "P2025") {
       res.status(404).json({ error: "Room not found" });
+    } else if (error.code === "P2003") {
+      res.status(409).json({ error: "Cannot delete room: It has existing bookings, orders, or maintenance requests. Please delete associated records first." });
     } else {
       res.status(500).json({ error: "Failed to delete room" });
     }
