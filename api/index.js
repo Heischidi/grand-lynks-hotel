@@ -457,7 +457,7 @@ app.get("/rooms", async (req, res) => {
 app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const imagePath = req.file ? await uploadToSupabase(req.file) : null;
-    const { number, type, pricePerNight, description } = req.body;
+    const { number, type, pricePerNight, description, amenities } = req.body;
 
     // Validate manually since Multer parses body
     if (!number || !type || !pricePerNight) {
@@ -471,6 +471,15 @@ app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) =
       description,
       status: "available"
     };
+
+    if (amenities) {
+      try {
+        const parsedAmenities = amenities.split(',').map(a => a.trim()).filter(a => a.length > 0);
+        roomData.amenities = JSON.stringify(parsedAmenities);
+      } catch (e) {
+        console.error("Failed to parse amenities string:", e);
+      }
+    }
 
     if (imagePath) {
       // Store as JSON string array as per schema comment, or just flat string if cleaner?
@@ -501,9 +510,18 @@ app.put("/rooms/:id", authenticateToken, upload.single('image'), async (req, res
     console.log("File:", req.file);
 
     const imagePath = req.file ? await uploadToSupabase(req.file) : null;
-    const { number, type, pricePerNight, description, status } = req.body;
+    const { number, type, pricePerNight, description, status, amenities } = req.body;
 
     const updateData = {};
+
+    if (amenities !== undefined) {
+      try {
+        const parsedAmenities = amenities.split(',').map(a => a.trim()).filter(a => a.length > 0);
+        updateData.amenities = JSON.stringify(parsedAmenities);
+      } catch (e) {
+        console.error("Failed to parse amenities string:", e);
+      }
+    }
 
     // Improved validation and parsing
     if (number) {

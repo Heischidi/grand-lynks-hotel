@@ -207,13 +207,26 @@
             imgSrc = "images/grandroom101.jpeg";
         }
 
+        let amenitiesHTML = "";
+        let rawAmenitiesData = "[]"; 
+        if (room.amenities) {
+          try {
+            rawAmenitiesData = room.amenities;
+            const arr = JSON.parse(room.amenities);
+            if (Array.isArray(arr) && arr.length > 0) {
+              amenitiesHTML = '<ul class="room-amenities-list">' + arr.map(a => `<li>${a}</li>`).join('') + '</ul>';
+            }
+          } catch(e) {}
+        }
+
         // Pass formatted price or 0 to modal
         container.innerHTML += `
-            <div class="room-card" onclick="showRoomPreview('${roomType}', '${imgSrc}', ${priceValue}, '${room.description || "Comfortable and elegant."}', ${room.id})">
+            <div class="room-card" onclick="showRoomPreview('${roomType}', '${imgSrc}', ${priceValue}, '${room.description || "Comfortable and elegant."}', ${room.id}, this)" data-amenities='${rawAmenitiesData.replace(/'/g, "&apos;")}'>
               <img loading="lazy" src="${imgSrc}" alt="${roomType}">
               <div class="room-info">
                 <h3>${roomType}</h3>
                 <p>${room.description || "Comfortable and elegant."}</p>
+                ${amenitiesHTML}
                 <p class="room-price"><strong>₦${priceValue ? priceValue.toLocaleString() : "Contact for Price"}</strong> per night</p>
                 <p class="room-availability ${isAvailable ? "available" : "booked"}">
                   ${isAvailable ? "Available" : "Booked"}
@@ -269,7 +282,18 @@
       });
 
     // Room preview modal functionality
-    function showRoomPreview(roomType, imgSrc, price, description, roomId) {
+    function showRoomPreview(roomType, imgSrc, price, description, roomId, cardElement) {
+      let amenitiesHTML = "";
+      if (cardElement) {
+         try {
+             const rawData = cardElement.getAttribute('data-amenities');
+             const arr = JSON.parse(rawData);
+             if (Array.isArray(arr) && arr.length > 0) {
+                 amenitiesHTML = '<ul class="preview-amenities-list">' + arr.map(a => `<li>${a}</li>`).join('') + '</ul>';
+             }
+         } catch(e){}
+      }
+
       const modal = document.createElement("div");
       modal.className = "room-preview-modal";
       modal.innerHTML = `
@@ -280,6 +304,7 @@
               <div class="preview-info">
                 <h2>${roomType}</h2>
                 <p class="preview-description">${description}</p>
+                ${amenitiesHTML}
                 <p class="preview-price">₦${price ? price.toLocaleString() : "Contact for Price"} per night</p>
                 <div class="preview-actions">
                   <!-- Check availability button removed -->

@@ -380,6 +380,21 @@ window.openEditRoomModal = function (roomId) {
     document.getElementById('editRoomPrice').value = room.pricePerNight || room.price || 0;
     document.getElementById('editRoomDescription').value = room.description || '';
 
+    // Parse existing JSON string of amenities into a comma-separated string for the textarea
+    let amenitiesStr = '';
+    if (room.amenities) {
+        try {
+            const arr = JSON.parse(room.amenities);
+            if (Array.isArray(arr)) amenitiesStr = arr.join(', ');
+            else amenitiesStr = room.amenities;
+        } catch(e) {
+            amenitiesStr = room.amenities;
+        }
+    }
+    const editAmenitiesInput = document.getElementById('editRoomAmenities');
+    if (editAmenitiesInput) {
+        editAmenitiesInput.value = amenitiesStr;
+    }
     const statusSelect = document.getElementById('editRoomStatus');
     if (statusSelect) {
         // Backend stores 'status' string, but UI often uses 'available' boolean derived status.
