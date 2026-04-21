@@ -127,7 +127,8 @@ const sections = {
     orders: document.getElementById('section-orders'),
     walkin: document.getElementById('section-walkin'),
     guests: document.getElementById('section-guests'),
-    reviews: document.getElementById('section-reviews')
+    reviews: document.getElementById('section-reviews'),
+    settings: document.getElementById('section-settings')
 };
 
 // --- AUTHENTICATION ---
@@ -138,7 +139,9 @@ function init() {
     sections.menu = document.getElementById('section-menu');
     sections.orders = document.getElementById('section-orders');
     sections.walkin = document.getElementById('section-walkin');
+    sections.guests = document.getElementById('section-guests');
     sections.reviews = document.getElementById('section-reviews');
+    sections.settings = document.getElementById('section-settings');
 
     const token = localStorage.getItem('adminToken');
     const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
@@ -251,13 +254,13 @@ function switchTab(tabName) {
             navBtn.classList.remove('text-gray-700');
         }
 
-        // Load data
+        // Load data        // Fetch data based on tab
         if (tabName === 'rooms') fetchRooms();
-        if (tabName === 'menu') fetchMenu();
+        if (tabName === 'menu') fetchMenuItems();
         if (tabName === 'orders') fetchOrders();
-        if (tabName === 'walkin') fetchAvailableRoomsForWalkIn();
-        if (tabName === 'guests') fetchGuests();
+        if (tabName === 'guests' && (!window.allGuests || window.allGuests.length === 0)) fetchGuests();
         if (tabName === 'reviews') fetchAdminReviews();
+        if (tabName === 'settings') fetchSettings();
     }
 }
 
@@ -1036,6 +1039,22 @@ window.filterGuests = function () {
     }
 };
  
+// --- SETTINGS MANAGEMENT ---
+
+async function fetchSettings() {
+    try {
+        const response = await authFetch('/settings');
+        if (response && response.ok) {
+            const data = await response.json();
+            document.getElementById('settingTaxRate').value = data.taxRate || 8.5;
+            document.getElementById('settingRoomServiceFee').value = data.roomServiceFee || 1000;
+            document.getElementById('saveSettingsBtn').classList.remove('hidden');
+        }
+    } catch (e) {
+        console.error("Failed to fetch settings:", e);
+    }
+}
+
 // --- REVIEW MANAGEMENT ---
 
 async function fetchAdminReviews() {
@@ -1383,6 +1402,41 @@ if (editMenuForm) {
     editMenuForm.addEventListener('submit', handleEditMenu);
 }
 document.getElementById('walkInForm').addEventListener('submit', handleWalkInSubmit);
+
+// Save Settings
+const settingsForm = document.getElementById('settingsForm');
+if (settingsForm) {
+    settingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('saveSettingsBtn');
+        btn.textContent = 'Saving...';
+        btn.disabled = true;
+
+        const payload = {
+            taxRate: document.getElementById('settingTaxRate').value,
+            roomServiceFee: document.getElementById('settingRoomServiceFee').value
+        };
+
+        try {
+            const response = await authFetch('/settings', {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+            
+            if (response && response.ok) {
+                alert('Settings saved successfully!');
+            } else {
+                alert('Failed to save settings.');
+            }
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            alert('An error occurred.');
+        } finally {
+            btn.textContent = 'Save Settings';
+            btn.disabled = false;
+        }
+    });
+}
 
 console.log('All functions successfully defined and attached to window.');
 

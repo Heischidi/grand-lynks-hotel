@@ -207,6 +207,12 @@
                             <span class="mr-3">⭐</span> Reviews
                         </button>
                     </li>
+                    <li>
+                        <button onclick="switchTab('settings'); closeSidebarOnMobile()" id="nav-settings"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">⚙️</span> Settings
+                        </button>
+                    </li>
                     <li class="border-t border-gray-100 my-2 pt-2">
                         <a href="index.html" target="_blank"
                             class="w-full block px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">
@@ -519,6 +525,51 @@
 
                 <div class="space-y-4" id="reviewsContainer">
                     <div class="text-center text-gray-500 py-10">Loading reviews...</div>
+                </div>
+            </section>
+
+            <!-- SETTINGS SECTION -->
+            <section id="section-settings" class="fade-in hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Dynamic Settings</h2>
+                    <p class="text-gray-500 text-sm mt-1">Configure global application variables for public orders.</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow max-w-2xl">
+                    <form id="settingsForm" class="p-6 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
+                                <div class="relative">
+                                    <input type="number" id="settingTaxRate" name="taxRate" step="0.01" min="0" required
+                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Applied automatically to food order subtotal.</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Room Service Fee</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 text-sm">₦</span>
+                                    </div>
+                                    <input type="number" id="settingRoomServiceFee" name="roomServiceFee" step="1" min="0" required
+                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 pl-8 pr-3 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Flat fee added to delivery orders.</p>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100 flex justify-end">
+                            <button type="submit" id="saveSettingsBtn"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors shadow-sm hidden">
+                                Save Settings
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </section>
 

@@ -369,6 +369,46 @@ const validateOrder = (req, res, next) => {
   next();
 };
 
+// --- ROUTES ---
+
+// === SETTINGS API ===
+app.get("/settings", async (req, res) => {
+  try {
+    const settings = await prisma.siteSettings.findMany();
+    // Default fallback values if not set
+    const defaultSettings = { taxRate: "8.5", roomServiceFee: "1000" };
+    
+    const configData = { ...defaultSettings };
+    settings.forEach(s => { configData[s.key] = s.value; });
+    
+    res.json(configData);
+  } catch (error) {
+    console.error("Error fetching settings:", error);
+    res.status(500).json({ error: "Failed to fetch settings" });
+  }
+});
+
+app.put("/settings", authenticateToken, async (req, res) => {
+  try {
+    const updates = req.body; // e.g. { taxRate: "7.5", roomServiceFee: "1500" }
+    
+    // Process upserts in a transaction
+    const updatePromises = Object.entries(updates).map(([key, value]) => {
+      return prisma.siteSettings.upsert({
+        where: { key: key },
+        update: { value: String(value) },
+        create: { key: key, value: String(value), category: "booking" }
+      });
+    });
+    
+    await prisma.$transaction(updatePromises);
+    res.json({ message: "Settings updated successfully" });
+  } catch (error) {
+    console.error("Error updating settings:", error);
+    res.status(500).json({ error: "Failed to update settings" });
+  }
+});
+
 // --- ROOMS ---
 app.get("/rooms", async (req, res) => {
   try {

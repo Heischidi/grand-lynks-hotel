@@ -183,7 +183,7 @@
           <span id="cartSubtotal">₦0.00</span>
         </div>
         <div class="flex justify-between text-base font-medium text-gray-800 mt-2">
-          <span>Tax (8.5%):</span>
+          <span id="taxLabel">Tax (8.5%):</span>
           <span id="cartTax">₦0.00</span>
         </div>
         <div class="flex justify-between text-base font-medium text-gray-800 mt-1">
@@ -203,7 +203,7 @@
           <label class="block text-sm font-bold text-gray-900 mb-2">Delivery Option</label>
           <select id="deliveryOption"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium">
-            <option value="room">Room Service (+₦1,000)</option>
+            <option id="roomServiceOption" value="room">Room Service (+₦1,000)</option>
             <option value="pickup">Restaurant Pickup (Free)</option>
           </select>
         </div>
@@ -235,6 +235,35 @@
     let cart = {};
     let cartCount = 0;
     let cartTotal = 0;
+    
+    // Dynamic settings overrides
+    let APP_TAX_RATE = 8.5; 
+    let APP_ROOM_SERVICE_FEE = 1000; 
+
+    // Fetch dynamic settings
+    async function fetchDynamicSettings() {
+      try {
+        const API_URL = window.APP_CONFIG?.API_URL || "http://localhost:5000/api";
+        const res = await fetch(`${API_URL}/settings`);
+        if (res.ok) {
+          const data = await res.json();
+          APP_TAX_RATE = parseFloat(data.taxRate) || APP_TAX_RATE;
+          APP_ROOM_SERVICE_FEE = parseFloat(data.roomServiceFee) || APP_ROOM_SERVICE_FEE;
+          
+          // Update UI labels
+          const taxLabel = document.getElementById('taxLabel');
+          if (taxLabel) taxLabel.textContent = `Tax (${APP_TAX_RATE}%):`;
+          
+          const roomOption = document.getElementById('roomServiceOption');
+          if (roomOption) roomOption.textContent = `Room Service (+₦${APP_ROOM_SERVICE_FEE.toLocaleString()})`;
+          
+          updateCartDisplay();
+        }
+      } catch(e) { console.error("Could not load dynamic settings", e); }
+    }
+    
+    // Call it immediately
+    fetchDynamicSettings();
 
     // Show notification
     function showNotification(message, type = "success") {
@@ -355,9 +384,9 @@
 
       // Update totals
       const subtotal = cartTotal;
-      const tax = subtotal * 0.085;
+      const tax = subtotal * (APP_TAX_RATE / 100);
       const deliveryOption = document.getElementById("deliveryOption").value;
-      const deliveryFee = deliveryOption === "room" ? 1000 : 0;
+      const deliveryFee = deliveryOption === "room" ? APP_ROOM_SERVICE_FEE : 0;
       const total = subtotal + tax + deliveryFee;
 
       document.getElementById(
@@ -464,9 +493,9 @@
       if (proceedBtn) {
         proceedBtn.addEventListener("click", function () {
           const subtotal = cartTotal;
-          const tax = subtotal * 0.085;
+          const tax = subtotal * (APP_TAX_RATE / 100);
           const deliveryOption = document.getElementById("deliveryOption").value;
-          const deliveryFee = deliveryOption === "room" ? 1000 : 0;
+          const deliveryFee = deliveryOption === "room" ? APP_ROOM_SERVICE_FEE : 0;
           const total = subtotal + tax + deliveryFee;
           document.getElementById("orderModalTotal").textContent = "\u20A6" + total.toFixed(2);
           document.getElementById("orderPaymentStep1").style.display = "none";
