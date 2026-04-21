@@ -481,6 +481,7 @@ select:focus {
   font-weight: 600;
   position: relative;
   display: inline-block;
+  letter-spacing: normal;
 }
 
 .footer-section h4::after {
@@ -497,6 +498,9 @@ select:focus {
   line-height: 1.8;
   font-size: 0.95rem;
   margin-bottom: 20px;
+  text-align: left;
+  letter-spacing: normal;
+  word-spacing: normal;
 }
 
 .footer-section ul {
@@ -514,6 +518,8 @@ select:focus {
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
+  letter-spacing: normal;
+  word-spacing: normal;
 }
 
 .footer-section ul li a:hover {
