@@ -123,7 +123,7 @@ class BookingIntegration {
     const price = params.get('price');
     const roomId = params.get('roomId');
 
-    const filterPanel = document.getElementById("filterPanel");
+    const selectRoomSection = document.getElementById("selectRoomSection");
 
     if (roomType) {
       console.log("Found URL params:", { roomType, price, roomId });
@@ -137,8 +137,8 @@ class BookingIntegration {
       };
 
       // Hide the "Select a Room" dropdown step if coming straight from a room link
-      if (filterPanel) {
-        filterPanel.style.display = "none";
+      if (selectRoomSection) {
+        selectRoomSection.style.display = "none";
       }
 
       this.prefillDates();
@@ -148,8 +148,8 @@ class BookingIntegration {
     } else {
       // No URL params -> Direct navigation. Show room selector.
       console.log("No URL params - Direct navigation mode");
-      if (filterPanel) {
-        filterPanel.style.display = "block";
+      if (selectRoomSection) {
+        selectRoomSection.style.display = "block";
       }
       this.resetView(); // Ensure details are hidden
       await this.loadRoomsForSelection();
