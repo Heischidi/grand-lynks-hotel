@@ -1,11 +1,27 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const { prisma } = require("./database.js");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
 const app = express();
+app.use(helmet());
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // limit each IP to 1000 requests per 15 mins
+  message: { error: "Too many API requests, please try again later." }
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Strict brute-force protection
+  message: { error: "Too many login attempts. Please try again after 15 minutes." }
+});
+
 const path = require('path');
 const allowedOrigins = [
   "http://localhost:8080",
@@ -33,6 +49,9 @@ const corsOptions = {
 
 // Apply CORS only to API routes
 app.use("/api", cors(corsOptions));
+
+// Apply global rate limit to API routes
+app.use("/api", globalLimiter);
 
 app.use(bodyParser.json());
 
@@ -282,7 +301,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // --- AUTHENTICATION ---
-app.post("/auth/login", async (req, res) => {
+app.post("/auth/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   try {
