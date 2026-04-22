@@ -168,10 +168,7 @@
 
     <div class="form-section">
       <div class="contact-form" data-aos="fade-right">
-        <form action="https://formsubmit.co/grandlynkshomesandapartments@gmail.com" method="POST" class="contact-form">
-          <input type="hidden" name="_next" value="thankyou.html" />
-          <input type="hidden" name="_captcha" value="false" />
-
+        <form id="contactForm" class="contact-form">
           <label for="name">Full Name</label>
           <input type="text" id="name" name="name" required />
 
@@ -184,18 +181,22 @@
           <label for="message">Message</label>
           <textarea id="message" name="message" rows="5" required></textarea>
 
-          <button type="submit">Send Message</button>
+          <button type="submit" id="submitBtn">Send Message</button>
         </form>
+        <div id="successMessage" style="display:none; background:#d4edda; color:#155724; padding:20px; border-radius:8px; text-align:center; margin-top:20px; border:1px solid #c3e6cb;">
+          <h3 style="margin-top:0;">Thank you for contacting us!</h3>
+          <p>We have received your message and will get back to you shortly.</p>
+        </div>
       </div>
 
       <div class="contact-details" data-aos="fade-left">
         <p>
           <strong>Phone:</strong>
-          <a href="tel:+2348123456789">+234 812 345 6789</a>
+          <a href="tel:+2348142234691">+2348142234691</a>
         </p>
         <p>
           <strong>Email:</strong>
-          <a href="mailto:grandlynks@gmail.com">grandlynks@gmail.com</a>
+          <a href="mailto:grandlynkshomesandapartments@gmail.com">grandlynkshomesandapartments@gmail.com</a>
         </p>
         <p>
           <strong>Instagram:</strong>
@@ -249,6 +250,42 @@
           });
         }
       });
+
+    // Handle Form Submission
+    document.getElementById('contactForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const btn = document.getElementById('submitBtn');
+      const success = document.getElementById('successMessage');
+      
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((value, key) => data[key] = value);
+
+      fetch('https://formsubmit.co/ajax/grandlynkshomesandapartments@gmail.com', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(data => {
+        form.style.display = 'none';
+        success.style.display = 'block';
+        success.scrollIntoView({ behavior: 'smooth' });
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+        alert('Oops! There was a problem submitting your form. Please try again.');
+      });
+    });
   </script>
 </body>
 
