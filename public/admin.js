@@ -256,8 +256,9 @@ function switchTab(tabName) {
 
         // Load data        // Fetch data based on tab
         if (tabName === 'rooms') fetchRooms();
-        if (tabName === 'menu') fetchMenuItems();
+        if (tabName === 'menu') fetchMenu();
         if (tabName === 'orders') fetchOrders();
+        if (tabName === 'walkin') fetchAvailableRoomsForWalkIn();
         if (tabName === 'guests' && (!window.allGuests || window.allGuests.length === 0)) fetchGuests();
         if (tabName === 'reviews') fetchAdminReviews();
         if (tabName === 'settings') fetchSettings();
@@ -960,23 +961,33 @@ window.updateOrderStatus = async function (id, status) {
 
 async function fetchAvailableRoomsForWalkIn() {
     const select = document.getElementById('walkInRoomSelect');
-    select.innerHTML = '<option value="">Loading...</option>';
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Loading available rooms...</option>';
 
-    const response = await fetch(`${API_URL}/rooms`);
-    if (response && response.ok) {
-        const rooms = await response.json();
-        const availableRooms = rooms.filter(r => r.available);
+    try {
+        const response = await fetch(`${API_URL}/rooms`);
+        if (response && response.ok) {
+            const rooms = await response.json();
+            const availableRooms = rooms.filter(r => r.available);
 
-        if (availableRooms.length === 0) {
-            select.innerHTML = '<option value="">No rooms available</option>';
-            return;
+            if (availableRooms.length === 0) {
+                select.innerHTML = '<option value="">No rooms currently available</option>';
+                return;
+            }
+
+            let optionsHtml = '<option value="">-- Select a Room --</option>';
+            optionsHtml += availableRooms.map(r =>
+                `<option value="${r.id}">${r.roomNumber || r.number} - ${r.type} (₦${(r.pricePerNight || r.price).toLocaleString()})</option>`
+            ).join('');
+            
+            select.innerHTML = optionsHtml;
+        } else {
+            select.innerHTML = '<option value="">Failed to load rooms. Try refreshing.</option>';
         }
-
-        select.innerHTML = availableRooms.map(r =>
-            `<option value="${r.id}">${r.roomNumber || r.number} - ${r.type} (₦${r.pricePerNight || r.price})</option>`
-        ).join('');
-    } else {
-        select.innerHTML = '<option value="">Failed to load rooms</option>';
+    } catch (error) {
+        console.error("Error fetching rooms for walk-in:", error);
+        select.innerHTML = '<option value="">Error loading rooms</option>';
     }
 }
 
