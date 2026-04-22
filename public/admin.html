@@ -101,7 +101,7 @@
     </style>
 </head>
 
-<body class="text-gray-800 h-screen overflow-hidden flex flex-col">
+<body class="text-gray-800 h-screen h-[100dvh] overflow-hidden flex flex-col">
 
     <!-- LOGIN SECTION -->
     <section id="login-section"
@@ -135,7 +135,7 @@
     </section>
 
     <!-- DASHBOARD CONTENT (Hidden by default) -->
-    <div id="dashboard-container" class="flex h-full hidden relative overflow-hidden">
+    <div id="dashboard-container" class="flex flex-1 relative overflow-hidden">
 
         <!-- MOBILE HEADER (Visible only on mobile) -->
         <div
@@ -240,14 +240,14 @@
         </aside>
 
         <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 overflow-y-auto bg-gray-50 p-8 relative pt-20 md:pt-8">
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8 relative pt-24 md:pt-8 overscroll-contain">
 
             <!-- ROOMS SECTION -->
             <section id="section-rooms" class="fade-in">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Room Management</h2>
+                <div class="sticky top-0 z-30 bg-gray-50/95 backdrop-blur-sm -mx-6 px-6 py-4 mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 sm:border-none sm:relative sm:top-auto sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:mx-0 sm:px-0 sm:py-0 sm:mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Room Management</h2>
                     <button onclick="openModal('roomModal')"
-                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+                        class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95 w-full sm:w-auto">
                         + Add Room
                     </button>
                 </div>
@@ -329,10 +329,10 @@
  
             <!-- MENU SECTION -->
             <section id="section-menu" class="hidden fade-in">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Menu Management</h2>
+                <div class="sticky top-0 z-30 bg-gray-50/95 backdrop-blur-sm -mx-6 px-6 py-4 mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 sm:border-none sm:relative sm:top-auto sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:mx-0 sm:px-0 sm:py-0 sm:mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Food & Beverages</h2>
                     <button onclick="openModal('menuModal')"
-                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95 w-full sm:w-auto">
                         + Add Item
                     </button>
                 </div>
@@ -373,11 +373,13 @@
 
             <!-- ORDERS SECTION -->
             <section id="section-orders" class="hidden fade-in">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Order Management</h2>
-                    <button onclick="fetchOrders()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        ↻ Refresh
-                    </button>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Order Management</h2>
+                    <div class="flex space-x-2 w-full sm:w-auto">
+                        <button onclick="fetchOrders()" class="flex-1 sm:flex-none bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            ↻ Refresh
+                        </button>
+                    </div>
                 </div>
 
                 <!-- BULK DELETE TOOLBAR -->
