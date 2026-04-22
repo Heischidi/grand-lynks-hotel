@@ -158,7 +158,7 @@ async function sendBookingFinalizedEmail(booking, guest, room) {
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         'X-Mailer': 'Grand Lynks Reservations System',
       },
-      text: `Dear ${guest.name},\n\nGreat news! We have received your payment and your booking at Grand Lynks Homes & Apartments is now officially confirmed.\n\nBooking Ref: #GL-${booking.id}\nRoom: ${room.type}\nCheck-in: ${new Date(booking.startDate).toDateString()}\nCheck-out: ${new Date(booking.endDate).toDateString()}\n\nPlease present a valid ID at reception upon arrival. Check-in is from 2:00 PM.\n\nWe look forward to welcoming you soon!\n\nKind regards,\nThe Grand Lynks Team\nhttps://grandlynkshomesandapartments.com`,
+      text: `Dear ${guest.name},\n\nGreat news! We have received your payment and your booking at Grand Lynks Homes & Apartments is now officially confirmed.\n\nBooking Ref: #GL-${booking.id}\nRoom: ${room.type}\nCheck-in: ${new Date(booking.startDate).toDateString()}\nCheck-out: ${new Date(booking.endDate).toDateString()}\n\nPlease present a valid ID at reception upon arrival. Check-in is from 12:00 PM and Check-out is by 12:00 PM.\n\nWe look forward to welcoming you soon!\n\nKind regards,\nThe Grand Lynks Team\nhttps://grandlynkshomesandapartments.com`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
           <div style="background-color: #8b1d30; padding: 30px; text-align: center;">
@@ -178,7 +178,7 @@ async function sendBookingFinalizedEmail(booking, guest, room) {
               <p><strong>Check-out:</strong> ${new Date(booking.endDate).toDateString()}</p>
             </div>
 
-            <p>Please present a valid ID at the reception upon arrival. You can check in from 2:00 PM onwards.</p>
+            <p>Please present a valid ID at the reception upon arrival. You can check in from 12:00 PM onwards. Check-out is by 12:00 PM.</p>
             
             <p style="margin-top: 20px; font-weight: 500;">We look forward to seeing you soon!</p>
 
@@ -497,7 +497,7 @@ app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) =
     if (error.code === "P2002") {
       res.status(400).json({ error: "Room number already exists" });
     } else {
-      res.status(500).json({ error: "Failed to create room" });
+      res.status(500).json({ error: "Failed to create room: " + error.message });
     }
   }
 });
