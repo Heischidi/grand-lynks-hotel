@@ -215,9 +215,9 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
+          <label class="block text-sm font-bold text-gray-900 mb-2">Special Instructions</label>
           <textarea id="specialInstructions" placeholder="Any special requests..."
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 h-20 resize-none"></textarea>
+            class="w-full border-2 border-gray-400 rounded-lg px-4 py-2 h-24 text-gray-900 font-bold focus:border-[#8b1d30] focus:ring-2 focus:ring-[#8b1d30]/20 outline-none transition-all placeholder:text-gray-400 resize-none"></textarea>
         </div>
 
         <button id="checkoutBtn"
@@ -370,10 +370,10 @@
                             <p class="text-sm text-gray-600">₦${item.price} each</p>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <button class="bg-gray-200 hover:bg-gray-300 w-6 h-6 rounded-full flex items-center justify-center text-sm" onclick="updateCartItem('${itemId}', -1)">-</button>
-                            <span class="w-8 text-center">${item.quantity}</span>
-                            <button class="bg-gray-200 hover:bg-gray-300 w-6 h-6 rounded-full flex items-center justify-center text-sm" onclick="updateCartItem('${itemId}', 1)">+</button>
-                            <button class="text-red-500 hover:text-red-700 ml-2" onclick="removeFromCart('${itemId}')">🗑️</button>
+                            <button class="bg-gray-800 hover:bg-black text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold" onclick="updateCartItem('${itemId}', -1)">-</button>
+                            <span class="w-8 text-center font-bold text-gray-900">${item.quantity}</span>
+                            <button class="bg-gray-800 hover:bg-black text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold" onclick="updateCartItem('${itemId}', 1)">+</button>
+                            <button class="text-red-600 hover:text-red-800 ml-2" onclick="removeFromCart('${itemId}')">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -680,9 +680,9 @@
                             <span class="text-2xl font-bold text-[#8b1d30]">₦${item.price
           }</span>
                             <div class="flex items-center space-x-2">
-                                <button class="quantity-btn bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full flex items-center justify-center" onclick="changeQuantity('${itemId}', -1)">-</button>
-                                <span id="${itemId}-qty" class="w-8 text-center">0</span>
-                                <button class="quantity-btn bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full flex items-center justify-center" onclick="changeQuantity('${itemId}', 1)">+</button>
+                                <button class="quantity-btn bg-gray-800 hover:bg-black text-white w-9 h-9 rounded-full flex items-center justify-center font-bold" onclick="changeQuantity('${itemId}', -1)">-</button>
+                                <span id="${itemId}-qty" class="w-8 text-center font-bold text-gray-900">0</span>
+                                <button class="quantity-btn bg-gray-800 hover:bg-black text-white w-9 h-9 rounded-full flex items-center justify-center font-bold" onclick="changeQuantity('${itemId}', 1)">+</button>
                             </div>
                         </div>
                         <button class="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors" onclick="addToCart('${itemId}', '${item.name}', ${item.price})">
@@ -856,18 +856,19 @@
           </tr>
           <tr>
             <td style="padding:8px 0; color:#aaa;">Account Name</td>
+            <td style="padding:8px 0; color:#888;">Account Name</td>
             <td style="padding:8px 0; color:#fff; font-weight:600;">Grand Lynks Homes &amp; Apartments LTD- Kitchen and
               Bar</td>
           </tr>
           <tr>
-            <td style="padding:8px 0; color:#aaa;">Account Number</td>
+            <td style="padding:8px 0; color:#888;">Account Number</td>
             <td style="padding:8px 0;">
               <span style="color:#fbbf24; font-weight:700; font-size:1.12rem; letter-spacing:2px;">5025321108</span>
               <button
                 onclick="navigator.clipboard.writeText('5025321108').then(()=>this.textContent='✅ Copied!').catch(()=>{})"
                 style="
                 margin-left:10px; padding:3px 10px; font-size:0.76rem;
-                background:rgba(255,255,255,0.1); border:1px solid #555;
+                background:#1a1a2e; border:1px solid #444;
                 border-radius:4px; color:#ccc; cursor:pointer;
               ">Copy</button>
             </td>
