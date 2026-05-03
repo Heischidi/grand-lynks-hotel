@@ -1551,4 +1551,83 @@ if (settingsForm) {
 console.log('All functions successfully defined and attached to window.');
 
 // Init
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    initPullToRefresh();
+});
+
+// --- PULL-TO-REFRESH ---
+function initPullToRefresh() {
+    const mainEl = document.getElementById('admin-main');
+    if (!mainEl) return;
+
+    // Only activate on touch devices
+    if (!('ontouchstart' in window)) return;
+
+    const THRESHOLD = 80; // px to pull before triggering reload
+    let startY = 0;
+    let pulling = false;
+    let triggered = false;
+
+    // Create the visual indicator
+    const indicator = document.createElement('div');
+    indicator.id = 'ptr-indicator';
+    Object.assign(indicator.style, {
+        position: 'fixed',
+        top: '72px',
+        left: '50%',
+        transform: 'translateX(-50%) translateY(-80px)',
+        background: '#1a1a2e',
+        color: '#fff',
+        borderRadius: '50%',
+        width: '40px',
+        height: '40px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '20px',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+        transition: 'transform 0.15s ease',
+        zIndex: '200',
+        pointerEvents: 'none',
+        willChange: 'transform',
+    });
+    indicator.innerHTML = '↓';
+    document.body.appendChild(indicator);
+
+    mainEl.addEventListener('touchstart', (e) => {
+        if (mainEl.scrollTop === 0) {
+            startY = e.touches[0].clientY;
+            pulling = true;
+            triggered = false;
+        }
+    }, { passive: true });
+
+    mainEl.addEventListener('touchmove', (e) => {
+        if (!pulling || mainEl.scrollTop > 0) return;
+        const delta = e.touches[0].clientY - startY;
+        if (delta <= 0) return;
+
+        const progress = Math.min(delta / THRESHOLD, 1);
+        // Slide indicator down as user pulls
+        const translateY = -80 + (progress * 96);
+        indicator.style.transform = `translateX(-50%) translateY(${translateY}px)`;
+        indicator.innerHTML = progress >= 1 ? '↺' : '↓';
+        if (progress >= 1 && !triggered) triggered = true;
+    }, { passive: true });
+
+    mainEl.addEventListener('touchend', (e) => {
+        if (!pulling) return;
+        pulling = false;
+
+        if (triggered) {
+            // Show spinning state then reload
+            indicator.innerHTML = '↺';
+            indicator.style.transform = 'translateX(-50%) translateY(16px)';
+            setTimeout(() => location.reload(), 400);
+        } else {
+            // Snap back
+            indicator.style.transform = 'translateX(-50%) translateY(-80px)';
+        }
+    }, { passive: true });
+}
