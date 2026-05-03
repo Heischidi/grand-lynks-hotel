@@ -97,7 +97,13 @@
             td:last-child {
                 border-bottom: none;
             }
+
+            /* Push main content below the fixed mobile header */
+            #admin-main {
+                padding-top: 5.5rem !important; /* 88px — clears the ~68px fixed mobile header */
+            }
         }
+
     </style>
 </head>
 
@@ -240,7 +246,7 @@
         </aside>
 
         <!-- MAIN CONTENT AREA -->
-        <main id="admin-main" class="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8 relative pt-52 md:pt-8">
+        <main id="admin-main" class="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8 relative">
 
             <!-- ROOMS SECTION -->
             <section id="section-rooms" class="fade-in">
