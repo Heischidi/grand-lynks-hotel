@@ -180,31 +180,18 @@
             : typeof room.status === "string"
               ? room.status.toLowerCase() === "available"
               : false;
-        let imgSrc = "";
-        switch (roomType) {
-          case "VIP Room":
-            imgSrc = "images/grandVIP201.jpeg";
-            break;
-          case "Executive Room":
-            imgSrc = "images/grandexecutive206.jpeg"; // Updated image
-            break;
-          case "Royal Room":
-            imgSrc = "images/grandroom103.jpeg";
-            break;
-          case "Deluxe Room":
-            imgSrc = "images/deluxe102bettershot.jpeg";
-            break;
-          case "Standard Room":
-            imgSrc = "images/standard20fullshot202.jpeg";
-            break;
-          case "Grand Royal":
-            imgSrc = "images/grandroom205.jpeg"; // Updated image
-            break;
-          case "Grand Studio":
-            imgSrc = "images/studiomirrorangleshot.jpeg";
-            break;
-          default:
-            imgSrc = "images/grandroom101.jpeg";
+        let imgSrc = "images/grandroom101.jpeg";
+        if (room.images) {
+          try {
+            if (room.images.startsWith('[')) {
+              const parsed = JSON.parse(room.images);
+              if (parsed.length > 0) imgSrc = parsed[0];
+            } else {
+              imgSrc = room.images;
+            }
+          } catch (e) {
+            console.warn('Failed to parse room images', e);
+          }
         }
 
         let amenitiesHTML = "";
