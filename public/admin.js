@@ -1631,3 +1631,24 @@ function initPullToRefresh() {
         }
     }, { passive: true });
 }
+
+// Mobile Safari Scroll Restoration Fix
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Reset window scroll
+    window.scrollTo(0, 0);
+    
+    // Reset admin-main scroll immediately and after a short delay for Safari
+    const resetScroll = () => {
+        const mainEl = document.getElementById('admin-main');
+        if (mainEl) {
+            mainEl.scrollTop = 0;
+        }
+    };
+    
+    resetScroll();
+    setTimeout(resetScroll, 50); // Double-check for iOS Safari painting delays
+});
