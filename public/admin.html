@@ -104,11 +104,11 @@
     </style>
 </head>
 
-<body class="text-gray-800 h-screen h-[100dvh] overflow-hidden flex flex-col">
+<body class="text-gray-800 min-h-screen flex flex-col bg-gray-50">
 
     <!-- LOGIN SECTION -->
     <section id="login-section"
-        class="flex items-center justify-center h-full w-full absolute top-0 left-0 bg-gray-900 bg-opacity-50 z-50 backdrop-blur-sm">
+        class="flex items-center justify-center fixed inset-0 bg-gray-900 bg-opacity-50 z-50 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md transform transition-all scale-100">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">Sign In</h1>
@@ -138,7 +138,7 @@
     </section>
 
     <!-- DASHBOARD CONTENT (Hidden by default) -->
-    <div id="dashboard-container" class="hidden flex flex-1 relative overflow-hidden">
+    <div id="dashboard-container" class="hidden flex flex-1 relative w-full">
 
         <!-- MOBILE HEADER (Visible only on mobile) -->
         <div class="md:hidden fixed top-4 right-4 z-[60]">
@@ -157,7 +157,7 @@
 
         <!-- SIDEBAR -->
         <aside id="sidebar"
-            class="fixed inset-y-0 left-0 z-[80] w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out md:relative md:translate-x-0">
+            class="fixed inset-y-0 left-0 z-[80] w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out md:fixed md:translate-x-0">
             <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
                 <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Grand Lynks</h2>
                 <!-- Close button for mobile -->
@@ -240,7 +240,7 @@
         </aside>
 
         <!-- MAIN CONTENT AREA -->
-        <main id="admin-main" class="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 md:p-8 relative">
+        <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 md:p-8 relative w-full md:ml-72">
 
             <!-- ROOMS SECTION -->
             <section id="section-rooms" class="fade-in">

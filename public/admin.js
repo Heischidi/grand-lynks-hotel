@@ -1595,16 +1595,16 @@ function initPullToRefresh() {
     indicator.innerHTML = '↓';
     document.body.appendChild(indicator);
 
-    mainEl.addEventListener('touchstart', (e) => {
-        if (mainEl.scrollTop === 0) {
+    window.addEventListener('touchstart', (e) => {
+        if (window.scrollY === 0) {
             startY = e.touches[0].clientY;
             pulling = true;
             triggered = false;
         }
     }, { passive: true });
 
-    mainEl.addEventListener('touchmove', (e) => {
-        if (!pulling || mainEl.scrollTop > 0) return;
+    window.addEventListener('touchmove', (e) => {
+        if (!pulling || window.scrollY > 0) return;
         const delta = e.touches[0].clientY - startY;
         if (delta <= 0) return;
 
@@ -1616,7 +1616,7 @@ function initPullToRefresh() {
         if (progress >= 1 && !triggered) triggered = true;
     }, { passive: true });
 
-    mainEl.addEventListener('touchend', (e) => {
+    window.addEventListener('touchend', (e) => {
         if (!pulling) return;
         pulling = false;
 
@@ -1632,23 +1632,26 @@ function initPullToRefresh() {
     }, { passive: true });
 }
 
-// Mobile Safari Scroll Restoration Fix
+// Mobile Safari Scroll Restoration Fix (Aggressive)
 if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Reset window scroll
+const forceTop = () => {
     window.scrollTo(0, 0);
-    
-    // Reset admin-main scroll immediately and after a short delay for Safari
-    const resetScroll = () => {
-        const mainEl = document.getElementById('admin-main');
-        if (mainEl) {
-            mainEl.scrollTop = 0;
-        }
-    };
-    
-    resetScroll();
-    setTimeout(resetScroll, 50); // Double-check for iOS Safari painting delays
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+
+    const main = document.getElementById('admin-main');
+    if (main) {
+        main.scrollTop = 0;
+    }
+};
+
+window.addEventListener('load', () => {
+    forceTop();
+    requestAnimationFrame(forceTop);
+    setTimeout(forceTop, 100);
+    setTimeout(forceTop, 300);
+    setTimeout(forceTop, 600);
 });
