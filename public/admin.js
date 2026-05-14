@@ -726,9 +726,13 @@ function renderOrders(items) {
                 </ul>
             </div>
             <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
-                <div class="space-x-2">
+                <div class="flex items-center gap-3">
                     <button onclick="editTransaction(${item.id}, '${item.type}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Edit</button>
                     <button onclick="deleteTransaction(${item.id}, '${item.type}')" class="text-red-500 hover:text-red-700 text-sm font-medium">Delete</button>
+                    <button onclick="printReceipt(${item.id}, '${item.type}')" class="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm font-medium border border-gray-200 rounded px-2 py-1 hover:bg-gray-50 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Receipt
+                    </button>
                 </div>
                 <div class="flex space-x-2">
                      ${!isBooking && item.status !== 'completed' && item.status !== 'cancelled' ? `
@@ -1002,10 +1006,16 @@ async function handleWalkInSubmit(e) {
 
     try {
         // 1. Create Guest
+        const idType   = formData.get('idType')   || '';
+        const idNumber = formData.get('idNumber')  || '';
+        const address  = formData.get('guestAddress') || '';
+
         const guestData = {
-            name: formData.get('guestName'),
+            name:  formData.get('guestName'),
             phone: formData.get('guestPhone'),
-            email: formData.get('guestEmail')
+            email: formData.get('guestEmail'),
+            ...(address  && { address }),
+            ...(idNumber && { idNumber: idType ? `${idType}: ${idNumber}` : idNumber })
         };
 
         const guestResponse = await fetch(`${API_URL}/guests`, {
@@ -1318,6 +1328,8 @@ window.viewGuestHistory = async function (guestId) {
     // Show the modal in loading state
     document.getElementById('historyGuestName').textContent = 'Loading…';
     document.getElementById('historyGuestContact').textContent = '';
+    const metaEl = document.getElementById('historyGuestMeta');
+    if (metaEl) metaEl.innerHTML = '';
     document.getElementById('historyStats').innerHTML = '';
     document.getElementById('historyBookingList').innerHTML = '<p class="text-center text-gray-400 py-6">Loading history…</p>';
     openModal('guestHistoryModal');
@@ -1341,6 +1353,16 @@ window.viewGuestHistory = async function (guestId) {
     }
     document.getElementById('historyGuestContact').textContent = `${guest.email}  •  ${guest.phone || 'No phone recorded'}`;
 
+    // Meta pills (member since, ID, address)
+    if (metaEl) {
+        const since = guest.createdAt ? new Date(guest.createdAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : null;
+        let pills = '';
+        if (since) pills += `<span class="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">📅 Member since ${since}</span>`;
+        if (guest.idNumber) pills += `<span class="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">🪪 ID: ${guest.idNumber}</span>`;
+        if (guest.address)  pills += `<span class="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">📍 ${guest.address}</span>`;
+        metaEl.innerHTML = pills;
+    }
+
     // Configure Blacklist Button
     const blacklistBtn = document.getElementById('toggleBlacklistBtn');
     if (guest.isBlacklisted) {
@@ -1363,101 +1385,176 @@ window.viewGuestHistory = async function (guestId) {
     const confirmedBookings = bookings.filter(b => ['confirmed', 'checked-in', 'completed'].includes(b.status)).length;
 
     document.getElementById('historyStats').innerHTML = `
-        <div class="text-center">
+        <div class="text-center px-2 py-4 bg-gray-50">
             <p class="text-2xl font-bold text-blue-600">${bookings.length}</p>
             <p class="text-xs text-gray-500 mt-1">Room Bookings</p>
         </div>
-        <div class="text-center border-x border-gray-200">
+        <div class="text-center px-2 py-4 bg-gray-50">
             <p class="text-2xl font-bold text-green-600">${confirmedBookings}</p>
             <p class="text-xs text-gray-500 mt-1">Confirmed Stays</p>
         </div>
-        <div class="text-center">
-            <p class="text-2xl font-bold text-purple-600">₦${totalSpent.toLocaleString()}</p>
+        <div class="text-center px-2 py-4 bg-gray-50">
+            <p class="text-2xl font-bold text-orange-500">${orders.length}</p>
+            <p class="text-xs text-gray-500 mt-1">Food Orders</p>
+        </div>
+        <div class="text-center px-2 py-4 bg-gray-50">
+            <p class="text-xl font-bold text-purple-600">₦${totalSpent.toLocaleString()}</p>
             <p class="text-xs text-gray-500 mt-1">Total Spent</p>
         </div>
     `;
 
-    const listEl = document.getElementById('historyBookingList');
-
     if (bookings.length === 0 && orders.length === 0) {
-        listEl.innerHTML = '<p class="text-center text-gray-400 py-6">No transactions on record for this guest.</p>';
+        document.getElementById('historyBookingList').innerHTML = '<p class="text-center text-gray-400 py-6">No transactions on record for this guest.</p>';
         return;
     }
 
-    // Combine & sort
-    const combined = [
+    // Combine & sort descending
+    window._historyItems = [
         ...bookings.map(b => ({ ...b, _type: 'booking' })),
         ...orders.map(o => ({ ...o, _type: 'order' }))
     ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    listEl.innerHTML = combined.map(item => {
-        const isBooking = item._type === 'booking';
-        const date = new Date(item.createdAt).toLocaleString();
+    // Render via tab filter (defaults to "All")
+    filterHistoryTab('all', true);
+};
 
-        const statusColors = {
-            pending: 'bg-yellow-100 text-yellow-700',
-            confirmed: 'bg-blue-100 text-blue-700',
-            'checked-in': 'bg-indigo-100 text-indigo-700',
-            completed: 'bg-green-100 text-green-700',
-            cancelled: 'bg-red-100 text-red-700',
-        };
+// --- HISTORY TAB FILTER ---
+window.filterHistoryTab = function (tab, silent) {
+    // Update tab styles
+    const tabs = { all: 'historyTabAll', booking: 'historyTabBooking', order: 'historyTabOrder' };
+    Object.entries(tabs).forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (key === tab) {
+            el.className = 'px-4 py-2.5 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 transition mr-1';
+        } else {
+            el.className = 'px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition mr-1';
+        }
+    });
+
+    const items = window._historyItems || [];
+    const filtered = tab === 'all' ? items : items.filter(i => i._type === tab);
+    renderHistoryItems(filtered);
+};
+
+function renderHistoryItems(items) {
+    const listEl = document.getElementById('historyBookingList');
+    if (!listEl) return;
+
+    if (items.length === 0) {
+        listEl.innerHTML = '<p class="text-center text-gray-400 py-8">No records in this category.</p>';
+        return;
+    }
+
+    const statusColors = {
+        pending:      'bg-yellow-100 text-yellow-700',
+        confirmed:    'bg-blue-100 text-blue-700',
+        'checked-in': 'bg-indigo-100 text-indigo-700',
+        completed:    'bg-green-100 text-green-700',
+        cancelled:    'bg-red-100 text-red-700',
+    };
+
+    listEl.innerHTML = items.map(item => {
+        const isBooking = item._type === 'booking';
+        const date = new Date(item.createdAt).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
         const badgeClass = statusColors[item.status] || 'bg-gray-100 text-gray-700';
 
         if (isBooking) {
             const nights = item.startDate && item.endDate
-                ? Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / (1000 * 60 * 60 * 24))
+                ? Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / 86400000)
                 : '?';
-            return `
-                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-base font-semibold text-gray-800">📅 Room Booking #${item.id}</span>
-                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClass} uppercase">${item.status}</span>
-                            </div>
-                            <p class="text-xs text-gray-500">${date}</p>
+            const checkIn  = item.startDate ? new Date(item.startDate).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : 'N/A';
+            const checkOut = item.endDate   ? new Date(item.endDate).toLocaleDateString('en-GB',   { day:'numeric', month:'short', year:'numeric' }) : 'N/A';
+            const roomLabel = item.room ? `${item.room.number || item.room.roomNumber} – ${item.room.type}` : 'N/A';
+            const pricePerNight = item.room?.pricePerNight ? `₦${Number(item.room.pricePerNight).toLocaleString()}/night` : '';
+
+            // Payment rows
+            let paymentHtml = '';
+            if (item.payments && item.payments.length > 0) {
+                paymentHtml = `
+                <div class="mt-3 pt-3 border-t border-blue-200">
+                    <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Payments</p>
+                    <div class="space-y-1">
+                    ${item.payments.map(p => `
+                        <div class="flex justify-between text-xs text-gray-700">
+                            <span>${p.method || 'N/A'}${p.reference ? ' · Ref: ' + p.reference : ''}</span>
+                            <span class="font-medium">₦${Number(p.amount || 0).toLocaleString()} <span class="text-gray-400">(${p.status})</span></span>
                         </div>
-                        <p class="text-lg font-bold text-blue-700">₦${(item.totalAmount || 0).toLocaleString()}</p>
+                    `).join('')}
                     </div>
-                    <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-700">
-                        <div><span class="font-medium text-gray-500">Room:</span> ${item.room ? (item.room.number || item.room.roomNumber) + ' – ' + item.room.type : 'N/A'}</div>
-                        <div><span class="font-medium text-gray-500">Duration:</span> ${nights} night(s)</div>
-                        <div><span class="font-medium text-gray-500">Check-in:</span> ${item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A'}</div>
-                        <div><span class="font-medium text-gray-500">Check-out:</span> ${item.endDate ? new Date(item.endDate).toLocaleDateString() : 'N/A'}</div>
-                    </div>
-                    ${item.payments && item.payments.length > 0 ? `
-                    <div class="mt-3 pt-3 border-t border-blue-200 text-xs text-gray-500">
-                        <span class="font-medium">Payments:</span>
-                        ${item.payments.map(p => `${p.method} – ₦${p.amount?.toLocaleString()} (${p.status})`).join(' &nbsp;|&nbsp; ')}
-                    </div>` : ''}
-                </div>
-            `;
-        } else {
-            // Food order
-            const itemsList = (item.orderItems || []).map(i =>
-                `${i.quantity}× ${i.menuItem?.name || 'Item'}`
-            ).join(', ') || 'No item details';
+                </div>`;
+            }
 
             return `
-                <div class="bg-orange-50 border border-orange-100 rounded-xl p-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-base font-semibold text-gray-800">🍽️ Food Order #${item.id}</span>
-                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClass} uppercase">${item.status}</span>
-                            </div>
-                            <p class="text-xs text-gray-500">${date}</p>
+            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-sm font-bold text-gray-800">📅 Booking #GL-${item.id}</span>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClass} uppercase">${item.status}</span>
                         </div>
-                        <p class="text-lg font-bold text-orange-600">₦${(item.totalAmount || 0).toLocaleString()}</p>
+                        <p class="text-xs text-gray-400">${date}</p>
                     </div>
-                    <div class="mt-2 text-sm text-gray-700">
-                        <span class="font-medium text-gray-500">Items:</span> ${itemsList}
-                    </div>
+                    <p class="text-base font-bold text-blue-700">₦${Number(item.totalAmount || 0).toLocaleString()}</p>
                 </div>
-            `;
+                <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-700">
+                    <div><span class="font-semibold text-gray-500">Room:</span> ${roomLabel}</div>
+                    <div><span class="font-semibold text-gray-500">Rate:</span> ${pricePerNight}</div>
+                    <div><span class="font-semibold text-gray-500">Check-in:</span> ${checkIn}</div>
+                    <div><span class="font-semibold text-gray-500">Check-out:</span> ${checkOut}</div>
+                    <div><span class="font-semibold text-gray-500">Duration:</span> ${nights} night(s)</div>
+                </div>
+                ${paymentHtml}
+            </div>`;
+
+        } else {
+            // Food order
+            const roomLabel = item.room ? `Room ${item.room.number || item.room.roomNumber}` : 'N/A';
+            const itemRows = (item.orderItems || []).map(i => {
+                const subtotal = Number(i.unitPrice || 0) * Number(i.quantity || 1);
+                return `<div class="flex justify-between text-xs text-gray-700">
+                    <span>${i.quantity}× ${i.menuItem?.name || 'Item'}</span>
+                    <span>₦${Number(i.unitPrice || 0).toLocaleString()} × ${i.quantity} = <span class="font-medium">₦${subtotal.toLocaleString()}</span></span>
+                </div>`;
+            }).join('') || '<div class="text-xs text-gray-400">No item details</div>';
+
+            let paymentHtml = '';
+            if (item.payments && item.payments.length > 0) {
+                paymentHtml = `
+                <div class="mt-3 pt-3 border-t border-orange-200">
+                    <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Payments</p>
+                    <div class="space-y-1">
+                    ${item.payments.map(p => `
+                        <div class="flex justify-between text-xs text-gray-700">
+                            <span>${p.method || 'N/A'}${p.reference ? ' · Ref: ' + p.reference : ''}</span>
+                            <span class="font-medium">₦${Number(p.amount || 0).toLocaleString()} <span class="text-gray-400">(${p.status})</span></span>
+                        </div>
+                    `).join('')}
+                    </div>
+                </div>`;
+            }
+
+            return `
+            <div class="bg-orange-50 border border-orange-100 rounded-xl p-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-sm font-bold text-gray-800">🍽️ Order #${item.id}</span>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badgeClass} uppercase">${item.status}</span>
+                        </div>
+                        <p class="text-xs text-gray-400">${date}</p>
+                    </div>
+                    <p class="text-base font-bold text-orange-600">₦${Number(item.totalAmount || 0).toLocaleString()}</p>
+                </div>
+                <div class="mt-2 text-xs text-gray-500 mb-2"><span class="font-semibold">Delivery:</span> ${roomLabel}</div>
+                <div class="space-y-1 border-t border-orange-200 pt-2">
+                    ${itemRows}
+                </div>
+                ${paymentHtml}
+            </div>`;
         }
     }).join('');
-};
+}
 
 window.toggleGuestBlacklist = async function() {
     const guest = window.currentHistoryGuest;
@@ -1496,6 +1593,225 @@ window.toggleGuestBlacklist = async function() {
         btn.disabled = false;
         btn.textContent = originalText;
     }
+};
+
+// --- PRINT & PDF HELPERS ---
+
+function openPrintWindow(html) {
+    const w = window.open('', '_blank', 'width=800,height=900');
+    if (!w) { alert('Please allow popups for this site to print/download.'); return; }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); }, 400);
+}
+
+function printStyles() {
+    return `
+        <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 32px; font-size: 13px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #8b1d30; padding-bottom: 16px; margin-bottom: 20px; }
+            .hotel-name { font-size: 22px; font-weight: 800; color: #8b1d30; letter-spacing: -0.5px; }
+            .hotel-sub  { font-size: 11px; color: #666; margin-top: 2px; }
+            .doc-title  { font-size: 16px; font-weight: 700; color: #1a1a2e; text-align: right; }
+            .doc-date   { font-size: 11px; color: #888; text-align: right; margin-top: 2px; }
+            .guest-info { background: #f8f8f8; border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; }
+            .guest-info h2 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+            .guest-info p  { font-size: 12px; color: #555; margin-top: 2px; }
+            .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+            .stat { background: #f4f6fb; border-radius: 8px; padding: 10px; text-align: center; }
+            .stat-num { font-size: 20px; font-weight: 800; }
+            .stat-lbl { font-size: 10px; color: #888; margin-top: 2px; }
+            .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #666; margin: 16px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+            .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-bottom: 10px; page-break-inside: avoid; }
+            .card.booking { border-left: 4px solid #3b82f6; }
+            .card.order   { border-left: 4px solid #f97316; }
+            .card-header  { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+            .card-title   { font-size: 13px; font-weight: 700; }
+            .card-date    { font-size: 10px; color: #888; margin-top: 2px; }
+            .card-amount  { font-size: 14px; font-weight: 800; }
+            .badge        { display: inline-block; padding: 2px 6px; border-radius: 20px; font-size: 9px; font-weight: 700; text-transform: uppercase; margin-left: 6px; }
+            .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-top: 8px; }
+            .grid2 span.lbl { font-weight: 600; color: #888; }
+            .item-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px dotted #eee; }
+            .pay-row  { display: flex; justify-content: space-between; font-size: 11px; color: #555; padding: 2px 0; }
+            .footer   { margin-top: 32px; border-top: 1px solid #eee; padding-top: 12px; font-size: 10px; color: #aaa; text-align: center; }
+            @media print {
+                body { padding: 16px; }
+                .no-print { display: none !important; }
+                a { text-decoration: none; color: inherit; }
+            }
+        </style>`;
+}
+
+function hotelHeader(docTitle) {
+    const now = new Date().toLocaleString('en-GB', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    return `
+    <div class="header">
+        <div>
+            <div class="hotel-name">Grand Lynks Hotel</div>
+            <div class="hotel-sub">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja &bull; +234 814 223 4691</div>
+            <div class="hotel-sub">grandlynkshomesandapartments.com</div>
+        </div>
+        <div>
+            <div class="doc-title">${docTitle}</div>
+            <div class="doc-date">Generated: ${now}</div>
+        </div>
+    </div>`;
+}
+
+function statusBadgeHtml(status) {
+    const colors = { pending:'background:#fef3c7;color:#92400e', confirmed:'background:#dbeafe;color:#1e40af',
+        'checked-in':'background:#e0e7ff;color:#3730a3', completed:'background:#d1fae5;color:#065f46',
+        cancelled:'background:#fee2e2;color:#991b1b' };
+    const style = colors[status] || 'background:#f3f4f6;color:#374151';
+    return `<span class="badge" style="${style}">${status}</span>`;
+}
+
+// --- PRINT GUEST HISTORY ---
+window.printGuestHistory = function(autoDownload) {
+    const guest = window.currentHistoryGuest;
+    const items = window._historyItems || [];
+    if (!guest) { alert('No guest data loaded.'); return; }
+
+    const bookings = items.filter(i => i._type === 'booking');
+    const orders   = items.filter(i => i._type === 'order');
+    const totalSpent = items.reduce((a, i) => a + (i.totalAmount || 0), 0);
+    const confirmed  = bookings.filter(b => ['confirmed','checked-in','completed'].includes(b.status)).length;
+
+    const bookingCards = bookings.map(b => {
+        const nights = b.startDate && b.endDate ? Math.ceil((new Date(b.endDate) - new Date(b.startDate)) / 86400000) : '?';
+        const payRows = (b.payments||[]).map(p => `<div class="pay-row"><span>${p.method||'N/A'}${p.reference ? ' · ' + p.reference : ''}</span><span>₦${Number(p.amount||0).toLocaleString()} (${p.status})</span></div>`).join('');
+        return `<div class="card booking">
+            <div class="card-header">
+                <div><div class="card-title">📅 Booking #GL-${b.id}${statusBadgeHtml(b.status)}</div><div class="card-date">${new Date(b.createdAt).toLocaleString('en-GB')}</div></div>
+                <div class="card-amount" style="color:#1d4ed8">₦${Number(b.totalAmount||0).toLocaleString()}</div>
+            </div>
+            <div class="grid2">
+                <div><span class="lbl">Room:</span> ${b.room ? (b.room.number||b.room.roomNumber)+' – '+b.room.type : 'N/A'}</div>
+                <div><span class="lbl">Rate:</span> ${b.room?.pricePerNight ? '₦'+Number(b.room.pricePerNight).toLocaleString()+'/night' : 'N/A'}</div>
+                <div><span class="lbl">Check-in:</span> ${b.startDate ? new Date(b.startDate).toLocaleDateString('en-GB') : 'N/A'}</div>
+                <div><span class="lbl">Check-out:</span> ${b.endDate ? new Date(b.endDate).toLocaleDateString('en-GB') : 'N/A'}</div>
+                <div><span class="lbl">Duration:</span> ${nights} night(s)</div>
+            </div>
+            ${payRows ? `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd">${payRows}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    const orderCards = orders.map(o => {
+        const roomLabel = o.room ? `Room ${o.room.number||o.room.roomNumber}` : 'N/A';
+        const itemRows  = (o.orderItems||[]).map(i => {
+            const sub = Number(i.unitPrice||0) * Number(i.quantity||1);
+            return `<div class="item-row"><span>${i.quantity}× ${i.menuItem?.name||'Item'}</span><span>₦${Number(i.unitPrice||0).toLocaleString()} × ${i.quantity} = ₦${sub.toLocaleString()}</span></div>`;
+        }).join('');
+        const payRows = (o.payments||[]).map(p => `<div class="pay-row"><span>${p.method||'N/A'}${p.reference ? ' · '+p.reference : ''}</span><span>₦${Number(p.amount||0).toLocaleString()} (${p.status})</span></div>`).join('');
+        return `<div class="card order">
+            <div class="card-header">
+                <div><div class="card-title">🍽️ Order #${o.id}${statusBadgeHtml(o.status)}</div><div class="card-date">${new Date(o.createdAt).toLocaleString('en-GB')} &bull; ${roomLabel}</div></div>
+                <div class="card-amount" style="color:#c2410c">₦${Number(o.totalAmount||0).toLocaleString()}</div>
+            </div>
+            <div style="margin-top:6px">${itemRows || '<div style="color:#aaa;font-size:11px">No item details</div>'}</div>
+            ${payRows ? `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd">${payRows}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Guest History – ${guest.name}</title>${printStyles()}</head><body>
+        ${hotelHeader('Guest History Report')}
+        <div class="guest-info">
+            <h2>${guest.name}${guest.isBlacklisted ? ' <span style="background:#fee2e2;color:#991b1b;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700">BLACKLISTED</span>' : ''}</h2>
+            <p>${guest.email} &bull; ${guest.phone||'No phone'}</p>
+            ${guest.idNumber ? `<p>ID: ${guest.idNumber}</p>` : ''}
+            ${guest.address  ? `<p>Address: ${guest.address}</p>` : ''}
+            ${guest.createdAt ? `<p>Member since: ${new Date(guest.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</p>` : ''}
+        </div>
+        <div class="stats">
+            <div class="stat"><div class="stat-num" style="color:#2563eb">${bookings.length}</div><div class="stat-lbl">Room Bookings</div></div>
+            <div class="stat"><div class="stat-num" style="color:#16a34a">${confirmed}</div><div class="stat-lbl">Confirmed Stays</div></div>
+            <div class="stat"><div class="stat-num" style="color:#ea580c">${orders.length}</div><div class="stat-lbl">Food Orders</div></div>
+            <div class="stat"><div class="stat-num" style="color:#7c3aed">₦${totalSpent.toLocaleString()}</div><div class="stat-lbl">Total Spent</div></div>
+        </div>
+        ${bookings.length > 0 ? `<div class="section-title">Room Bookings (${bookings.length})</div>${bookingCards}` : ''}
+        ${orders.length > 0   ? `<div class="section-title">Food Orders (${orders.length})</div>${orderCards}` : ''}
+        ${items.length === 0  ? '<p style="color:#aaa;text-align:center;padding:24px">No transaction history on record.</p>' : ''}
+        <div class="footer">Grand Lynks Homes &amp; Apartments &bull; This document is computer-generated and requires no signature.</div>
+    </body></html>`;
+
+    openPrintWindow(html);
+};
+
+window.downloadGuestHistoryPDF = function() {
+    window.printGuestHistory(true);
+};
+
+// --- PRINT RECEIPT (Orders section) ---
+window.printReceipt = function(id, type) {
+    const allTx = window.allTransactions || [];
+    const item = allTx.find(t => t.id == id && t.type === type);
+    if (!item) { alert('Transaction data not found. Try refreshing the page.'); return; }
+
+    const isBooking = type === 'booking';
+    const guestName = item.guest?.name || 'Unknown Guest';
+    const guestEmail = item.guest?.email || '';
+    const guestPhone = item.guest?.phone || '';
+
+    let bodyHtml = '';
+    if (isBooking) {
+        const nights = item.startDate && item.endDate ? Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / 86400000) : '?';
+        const payRows = (item.payments||[]).map(p => `<div class="pay-row"><span>${p.method||'N/A'}${p.reference ? ' · Ref: '+p.reference : ''}</span><span>₦${Number(p.amount||0).toLocaleString()} <span style="color:#bbb">(${p.status})</span></span></div>`).join('');
+        bodyHtml = `
+        <div class="card booking" style="margin-bottom:0">
+            <div class="grid2">
+                <div><span class="lbl">Booking Ref:</span> #GL-${item.id}</div>
+                <div><span class="lbl">Status:</span> ${statusBadgeHtml(item.status)}</div>
+                <div><span class="lbl">Room:</span> ${item.room ? (item.room.number||item.room.roomNumber)+' – '+item.room.type : 'N/A'}</div>
+                <div><span class="lbl">Rate:</span> ${item.room?.pricePerNight ? '₦'+Number(item.room.pricePerNight).toLocaleString()+'/night' : 'N/A'}</div>
+                <div><span class="lbl">Check-in:</span> ${item.startDate ? new Date(item.startDate).toLocaleDateString('en-GB') : 'N/A'}</div>
+                <div><span class="lbl">Check-out:</span> ${item.endDate ? new Date(item.endDate).toLocaleDateString('en-GB') : 'N/A'}</div>
+                <div><span class="lbl">Duration:</span> ${nights} night(s)</div>
+            </div>
+            ${payRows ? `<div class="section-title" style="margin-top:14px">Payment Details</div>${payRows}` : ''}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 14px;background:#f0f4ff;border-radius:8px;border:1px solid #c7d2fe">
+            <span style="font-weight:700;font-size:14px">Total Amount</span>
+            <span style="font-size:18px;font-weight:800;color:#1d4ed8">₦${Number(item.totalAmount||0).toLocaleString()}</span>
+        </div>`;
+    } else {
+        const roomLabel = item.room ? `Room ${item.room.number||item.room.roomNumber}` : 'N/A';
+        const itemRows  = (item.orderItems||[]).map(i => {
+            const sub = Number(i.unitPrice||0) * Number(i.quantity||1);
+            return `<div class="item-row"><span>${i.quantity}× ${i.menuItem?.name||'Item'}</span><span>₦${Number(i.unitPrice||0).toLocaleString()} × ${i.quantity} = <strong>₦${sub.toLocaleString()}</strong></span></div>`;
+        }).join('') || '<div style="color:#aaa;font-size:11px;padding:6px 0">No item details</div>';
+        const payRows = (item.payments||[]).map(p => `<div class="pay-row"><span>${p.method||'N/A'}${p.reference ? ' · Ref: '+p.reference : ''}</span><span>₦${Number(p.amount||0).toLocaleString()} <span style="color:#bbb">(${p.status})</span></span></div>`).join('');
+        bodyHtml = `
+        <div class="card order" style="margin-bottom:0">
+            <div class="grid2" style="margin-bottom:10px">
+                <div><span class="lbl">Order #:</span> ${item.id}</div>
+                <div><span class="lbl">Status:</span> ${statusBadgeHtml(item.status)}</div>
+                <div><span class="lbl">Delivery:</span> ${roomLabel}</div>
+            </div>
+            <div class="section-title">Items Ordered</div>
+            ${itemRows}
+            ${payRows ? `<div class="section-title" style="margin-top:14px">Payment Details</div>${payRows}` : ''}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 14px;background:#fff7ed;border-radius:8px;border:1px solid #fed7aa">
+            <span style="font-weight:700;font-size:14px">Total Amount</span>
+            <span style="font-size:18px;font-weight:800;color:#c2410c">₦${Number(item.totalAmount||0).toLocaleString()}</span>
+        </div>`;
+    }
+
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${isBooking ? 'Booking Receipt' : 'Order Receipt'} – #${item.id}</title>${printStyles()}</head><body>
+        ${hotelHeader(isBooking ? 'Booking Receipt' : 'Food Order Receipt')}
+        <div class="guest-info">
+            <h2>${guestName}</h2>
+            ${guestEmail ? `<p>${guestEmail}</p>` : ''}
+            ${guestPhone ? `<p>${guestPhone}</p>` : ''}
+        </div>
+        ${bodyHtml}
+        <div class="footer">Grand Lynks Homes &amp; Apartments &bull; Thank you for choosing us! &bull; +234 814 223 4691</div>
+    </body></html>`;
+
+    openPrintWindow(html);
 };
 
 // --- EVENT LISTENERS ---
