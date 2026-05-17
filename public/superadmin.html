@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - Grand Lynks</title>
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <!-- Tailwind CSS (via CDN for simplicity in this specific file, matching order.html approach) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f6f8;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* CustomScrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Mobile Card View Transition */
+        @media (max-width: 768px) {
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tr {
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+                margin-bottom: 1rem;
+                background-color: white;
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            }
+
+            td {
+                border: none;
+                border-bottom: 1px solid #f3f4f6;
+                position: relative;
+                padding-left: 50%;
+            }
+
+            td:last-child {
+                border-bottom: none;
+            }
+
+            /* Removed hardcoded #admin-main padding, using Tailwind pt-28 instead */
+        }
+
+    </style>
+</head>
+
+<body class="text-gray-800 min-h-screen flex flex-col bg-gray-50">
+
+    <!-- LOGIN SECTION -->
+    <section id="login-section"
+        class="flex items-center justify-center fixed inset-0 bg-gray-900 bg-opacity-50 z-50 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md transform transition-all scale-100">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Sign In</h1>
+                <p class="text-gray-500 text-sm">Grand Lynks Super Administration</p>
+            </div>
+
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="username"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors"
+                        placeholder="Enter username" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="password"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors"
+                        placeholder="••••••••" required>
+                </div>
+                <div id="loginError" class="text-red-500 text-sm text-center hidden">Invalid credentials</div>
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors font-medium">
+                    Access Dashboard
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- DASHBOARD CONTENT (Hidden by default) -->
+    <div id="dashboard-container" class="hidden flex flex-1 relative w-full">
+
+        <!-- MOBILE HEADER (Visible only on mobile) -->
+        <div class="md:hidden fixed top-4 right-4 z-[60]">
+            <button onclick="toggleSidebar()" class="bg-[#1a1a2e] shadow-lg text-gray-200 focus:outline-none flex items-center justify-center p-2 rounded-lg border border-gray-700">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- SIDEBAR OVERLAY (Mobile only) -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()"
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden md:hidden transition-opacity duration-300 opacity-0">
+        </div>
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar"
+            class="fixed inset-y-0 left-0 z-[80] w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out md:fixed md:translate-x-0">
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
+                <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Grand Lynks</h2>
+                <!-- Close button for mobile -->
+                <button onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto py-4">
+                <ul class="space-y-1 px-3">
+                    <li>
+                        <button onclick="switchTab('rooms'); closeSidebarOnMobile()" id="nav-rooms"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">🛏️</span> Rooms
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('menu'); closeSidebarOnMobile()" id="nav-menu"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">🍽️</span> Food Menu
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('orders'); closeSidebarOnMobile()" id="nav-orders"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">📦</span> Orders
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('walkin'); closeSidebarOnMobile()" id="nav-walkin"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">🏨</span> Walk-in Booking
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('guests'); closeSidebarOnMobile()" id="nav-guests"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">👤</span> Guest Directory
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('reviews'); closeSidebarOnMobile()" id="nav-reviews"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">⭐</span> Reviews
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('settings'); closeSidebarOnMobile()" id="nav-settings"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">⚙️</span> Settings
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('vault'); closeSidebarOnMobile()" id="nav-vault"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-red-50 text-red-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">🔐</span> Vault / Deleted
+                            <span id="vaultBadge" class="ml-auto bg-red-600 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
+                        </button>
+                    </li>
+                    <li class="border-t border-gray-100 my-2 pt-2">
+                        <a href="index.html" target="_blank"
+                            class="w-full block px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">
+                            ↗ Visit Website
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center mb-3">
+                    <div
+                        class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs mr-3">
+                        A</div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900" id="adminUsernameDisplay">Admin</p>
+                        <p class="text-xs text-gray-500">Super Administrator</p>
+                    </div>
+                </div>
+                <button onclick="handleLogout()"
+                    class="w-full text-center px-4 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 text-sm transition-colors">
+                    Log Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 md:p-8 relative w-full md:ml-72">
+
+            <!-- ROOMS SECTION -->
+            <section id="section-rooms" class="fade-in">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:sticky md:top-0 md:z-30 md:bg-gray-50/95 md:backdrop-blur-sm md:-mx-6 md:px-6 md:py-4 md:mb-2 md:border-b md:border-gray-200">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Room Management</h2>
+                    <button onclick="openModal('roomModal')"
+                        class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95 w-full sm:w-auto">
+                        + Add Room
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Image</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Number</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Type</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Price/Night</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roomsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- JS will populate -->
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading rooms...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- GUEST DIRECTORY SECTION -->
+            <section id="section-guests" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Guest Directory</h2>
+                    <button onclick="fetchGuests()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        ↻ Refresh
+                    </button>
+                </div>
+
+                <!-- GUEST SEARCH BAR -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-5">
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                        </svg>
+                        <input id="guestSearchInput" type="text" placeholder="Search by name, email or phone…"
+                            class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                            oninput="filterGuests()">
+                    </div>
+                    <p id="guestResultCount" class="text-xs text-gray-400 mt-2"></p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guest Name</th>
+                                <th class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Details</th>
+                                <th class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Stays</th>
+                                <th class="px-3 py-2 md:px-6 md:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guestsTableBody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">Loading guests...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+ 
+            <!-- MENU SECTION -->
+            <section id="section-menu" class="hidden fade-in">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:sticky md:top-0 md:z-30 md:bg-gray-50/95 md:backdrop-blur-sm md:-mx-6 md:px-6 md:py-4 md:mb-2 md:border-b md:border-gray-200">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Food & Beverages</h2>
+                    <button onclick="openModal('menuModal')"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95 w-full sm:w-auto">
+                        + Add Item
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Image</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Name</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Category</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Price</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Available</th>
+                                <th
+                                    class="px-3 py-2 md:px-6 md:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menuTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- JS will populate -->
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading menu...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ORDERS SECTION -->
+            <section id="section-orders" class="hidden fade-in">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Order Management</h2>
+                    <div class="flex space-x-2 w-full sm:w-auto">
+                        <button onclick="fetchOrders()" class="flex-1 sm:flex-none bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            ↻ Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BULK DELETE TOOLBAR -->
+                <div id="bulkToolbar" class="flex flex-wrap items-center gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4 hidden">
+                    <button onclick="bulkSelectAll()" id="bulkSelectAllBtn"
+                        class="text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 rounded px-3 py-1.5 bg-white hover:bg-gray-50 transition">
+                        ✓ Select All
+                    </button>
+                    <span id="bulkCount" class="text-sm text-gray-600 font-medium">0 selected</span>
+                    <div class="ml-auto flex items-center gap-2">
+                        <button onclick="bulkDeleteTransactions()" id="bulkDeleteBtn"
+                            class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-1.5 rounded transition">
+                            🗑 Delete Selected
+                        </button>
+                        <button onclick="bulkClearSelection()" class="text-xs text-gray-400 hover:text-gray-600 px-2">
+                            ✕ Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SEARCH BAR -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-5">
+                    <!-- Row 1: Text search + type + status -->
+                    <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                        <div class="relative flex-1 w-full">
+                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                            </svg>
+                            <input id="bookingSearchInput" type="text" placeholder="Search by guest name, email, booking ID or room…"
+                                class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                                oninput="filterTransactions()">
+                        </div>
+                        <div class="flex gap-2 flex-shrink-0 flex-wrap">
+                            <select id="bookingTypeFilter" onchange="filterTransactions()"
+                                class="border border-gray-300 rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="all">All Types</option>
+                                <option value="booking">Room Bookings</option>
+                                <option value="order">Food Orders</option>
+                            </select>
+                            <select id="bookingStatusFilter" onchange="filterTransactions()"
+                                class="border border-gray-300 rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="all">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="checked-in">Checked-in</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Date range -->
+                    <div class="flex flex-col sm:flex-row gap-3 mt-3 items-start sm:items-center">
+                        <div class="flex items-center gap-2 flex-1 flex-wrap">
+                            <label class="text-xs font-medium text-gray-500 whitespace-nowrap">📅 Date range:</label>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-gray-400">From</span>
+                                    <input id="dateFrom" type="date"
+                                        class="border border-gray-300 rounded-md text-sm px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        onchange="filterTransactions()">
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-gray-400">To</span>
+                                    <input id="dateTo" type="date"
+                                        class="border border-gray-300 rounded-md text-sm px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        onchange="filterTransactions()">
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="clearTransactionFilters()"
+                            class="text-xs text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-md transition flex-shrink-0">
+                            ✕ Clear Filters
+                        </button>
+                    </div>
+
+                    <p id="searchResultCount" class="text-xs text-gray-400 mt-2"></p>
+                </div>
+
+                <div class="space-y-4" id="ordersContainer">
+                    <!-- JS will populate -->
+                    <div class="text-center text-gray-500 py-10">Loading orders...</div>
+                </div>
+            </section>
+
+            <!-- WALK-IN SECTION -->
+            <section id="section-walkin" class="hidden fade-in">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Walk-in Registration</h2>
+                <div class="bg-white rounded-lg shadow-lg p-6 max-w-2xl">
+                    <form id="walkInForm" class="space-y-6">
+                        <!-- Guest Details -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Guest Information</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Full Name <span class="text-red-500">*</span></label>
+                                    <input type="text" name="guestName" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Phone Number <span class="text-red-500">*</span></label>
+                                    <input type="tel" name="guestPhone" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700">Email Address <span class="text-red-500">*</span></label>
+                                    <input type="email" name="guestEmail" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700">Home Address</label>
+                                    <textarea name="guestAddress" rows="2" placeholder="Street, City, State"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-300 focus:outline-none resize-none"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">ID Type</label>
+                                    <select name="idType"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-300 focus:outline-none bg-white">
+                                        <option value="">-- Select ID Type --</option>
+                                        <option value="National ID (NIN)">National ID (NIN)</option>
+                                        <option value="International Passport">International Passport</option>
+                                        <option value="Driver's Licence">Driver's Licence</option>
+                                        <option value="Voter's Card">Voter's Card</option>
+                                        <option value="Staff ID">Staff ID</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">ID Number</label>
+                                    <input type="text" name="idNumber" placeholder="e.g. AB1234567"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Booking Details -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Booking Details</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700">Select Room</label>
+                                    <select name="roomId" id="walkInRoomSelect" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                        <option value="">Loading rooms...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Check-in Date</label>
+                                    <input type="date" name="startDate" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Check-out Date</label>
+                                    <input type="date" name="endDate" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700">Payment Status</label>
+                                    <select name="paymentStatus" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-yellow-50 border-yellow-200">
+                                        <option value="pending">Pending Payment (Verify Later)</option>
+                                        <option value="paid">Paid (Immediate Confirmation)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-4">
+                            <button type="submit"
+                                class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm">
+                                Complete Registration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- REVIEWS SECTION -->
+            <section id="section-reviews" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Review Management</h2>
+                    <button onclick="fetchAdminReviews()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        ↻ Refresh
+                    </button>
+                </div>
+
+                <div class="space-y-4" id="reviewsContainer">
+                    <div class="text-center text-gray-500 py-10">Loading reviews...</div>
+                </div>
+            </section>
+
+            <!-- SETTINGS SECTION -->
+            <section id="section-settings" class="fade-in hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Dynamic Settings</h2>
+                    <p class="text-gray-500 text-sm mt-1">Configure global application variables for public orders.</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow max-w-2xl">
+                    <form id="settingsForm" class="p-6 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
+                                <div class="relative">
+                                    <input type="number" id="settingTaxRate" name="taxRate" step="0.01" min="0" required
+                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Applied automatically to food order subtotal.</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Room Service Fee</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 text-sm">₦</span>
+                                    </div>
+                                    <input type="number" id="settingRoomServiceFee" name="roomServiceFee" step="1" min="0" required
+                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 pl-8 pr-3 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Flat fee added to delivery orders.</p>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100 flex justify-end">
+                            <button type="submit" id="saveSettingsBtn"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors shadow-sm hidden">
+                                Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- VAULT SECTION -->
+            <section id="section-vault" class="hidden fade-in">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Deleted Records Vault</h2>
+                    <div class="flex space-x-2">
+                        <button onclick="fetchVaultRecords()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            ↻ Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deleted By</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vaultTableBody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading vault records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Add Room Modal -->
+    <div id="roomModal"
+        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Add New Room</h3>
+                <button onclick="closeModal('roomModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form id="addRoomForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Room Number</label>
+                    <input type="text" name="number" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Type</label>
+                    <input type="text" name="type" required placeholder="e.g. Deluxe Room, VIP Suite…"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price (₦)</label>
+                    <input type="number" name="pricePerNight" required min="0"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" rows="2"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Amenities (comma-separated)</label>
+                    <textarea name="amenities" rows="2" placeholder="e.g. 24/7 Electricity, Free High-Speed WiFi, Luxury Restaurant"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Room Image</label>
+                    <input type="file" name="image" accept="image/*"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="button" onclick="closeModal('roomModal')"
+                        class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save
+                        Room</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Room Modal -->
+    <div id="editRoomModal"
+        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Edit Room</h3>
+                <button onclick="closeModal('editRoomModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <form id="editRoomForm" class="space-y-4">
+                <input type="hidden" name="id" id="editRoomId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Room Number</label>
+                    <input type="text" name="number" id="editRoomNumber" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Type</label>
+                    <input type="text" name="type" id="editRoomType" required placeholder="e.g. Deluxe Room, VIP Suite…"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price (₦)</label>
+                    <input type="number" name="pricePerNight" id="editRoomPrice" required min="0"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" id="editRoomDescription" rows="2"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Amenities (comma-separated)</label>
+                    <textarea name="amenities" id="editRoomAmenities" rows="2" placeholder="e.g. 24/7 Electricity, Free High-Speed WiFi, Luxury Restaurant"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Status</label>
+                    <select name="status" id="editRoomStatus"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                        <option value="available">Available</option>
+                        <option value="booked">Booked</option>
+                        <option value="checked-in">Checked In</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Room Image</label>
+                    <input type="file" name="image" accept="image/*"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="button" onclick="closeModal('editRoomModal')"
+                        class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Update
+                        Room</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Add Menu Modal -->
+        <div id="menuModal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Add Menu Item</h3>
+                    <button onclick="closeModal('menuModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <form id="addMenuForm" class="space-y-4" enctype="multipart/form-data">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <select name="category" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <option value="Appetizer">Appetizer</option>
+                            <option value="Main Course">Main Course</option>
+                            <option value="Dessert">Dessert</option>
+                            <option value="Beverage">Beverage</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                            <option value="Soup">Soup</option>
+                            <option value="Food">Food</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Price (₦)</label>
+                        <input type="number" name="price" required min="0"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Image</label>
+                        <input type="file" name="image" accept="image/*"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <p class="text-xs text-gray-500 mt-1">Upload an image (Max 5MB)</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" rows="2"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="button" onclick="closeModal('menuModal')"
+                            class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save
+                            Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Menu Modal -->
+        <div id="editMenuModal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Edit Menu Item</h3>
+                    <button onclick="closeModal('editMenuModal')"
+                        class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <form id="editMenuForm" class="space-y-4" enctype="multipart/form-data">
+                    <input type="hidden" name="id" id="editMenuId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" id="editMenuName" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <select name="category" id="editMenuCategory" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <option value="Appetizer">Appetizer</option>
+                            <option value="Main Course">Main Course</option>
+                            <option value="Dessert">Dessert</option>
+                            <option value="Beverage">Beverage</option>
+                            <option value="Beverages">Beverages</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                            <option value="Soup">Soup</option>
+                            <option value="Food">Food</option>
+                            <option value="Test">Test</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Price (₦)</label>
+                        <input type="number" name="price" id="editMenuPrice" required min="0"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Image</label>
+                        <input type="file" name="image" accept="image/*"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <p class="text-xs text-gray-500 mt-1">Leave blank to keep existing image</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" id="editMenuDescription" rows="2"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select name="available" id="editMenuAvailable"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <option value="true">Available</option>
+                            <option value="false">Unavailable</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="button" onclick="closeModal('editMenuModal')"
+                            class="mr-2 px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                        <button type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Update
+                            Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            const script = document.createElement('script');
+            script.src = `superadmin.js?v=${new Date().getTime()}`;
+            document.body.appendChild(script);
+        </script>
+
+    <!-- GUEST HISTORY MODAL -->
+    <div id="guestHistoryModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4"
+        onclick="handleHistoryModalClick(event)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+
+            <!-- Modal Header -->
+            <div class="flex justify-between items-start p-6 border-b border-gray-100">
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-xl font-bold text-gray-900 truncate" id="historyGuestName">Guest History</h3>
+                    <p class="text-sm text-gray-500 mt-0.5" id="historyGuestContact"></p>
+                    <div id="historyGuestMeta" class="flex flex-wrap gap-x-4 gap-y-1 mt-2"></div>
+                </div>
+                <button onclick="closeModal('guestHistoryModal')" class="ml-3 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-4 gap-0 border-b border-gray-100 divide-x divide-gray-100" id="historyStats">
+                <!-- JS populates -->
+            </div>
+
+            <!-- Tab Filter -->
+            <div class="flex border-b border-gray-100 px-4 bg-white">
+                <button id="historyTabAll" onclick="filterHistoryTab('all')" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 transition mr-1">All</button>
+                <button id="historyTabBooking" onclick="filterHistoryTab('booking')" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition mr-1">📅 Bookings</button>
+                <button id="historyTabOrder" onclick="filterHistoryTab('order')" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition">🍽️ Orders</button>
+            </div>
+
+            <!-- History List -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-3" id="historyBookingList">
+                <!-- JS populates -->
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 flex flex-wrap justify-between items-center gap-3">
+                <button id="toggleBlacklistBtn" onclick="toggleGuestBlacklist()" class="px-4 py-2 text-sm font-medium rounded-lg transition"></button>
+                <div class="flex items-center gap-2 ml-auto">
+                    <button onclick="printGuestHistory()" class="flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Print
+                    </button>
+                    <button onclick="downloadGuestHistoryPDF()" class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Download PDF
+                    </button>
+                    <button onclick="closeModal('guestHistoryModal')" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIN Verification Modal -->
+    <div id="pinModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm m-4 text-center">
+            <h3 class="text-xl font-bold text-red-600 mb-2">Security Required</h3>
+            <p class="text-sm text-gray-600 mb-4">Enter Super Admin PIN to permanently purge this record.</p>
+            <form id="pinForm" onsubmit="handlePinSubmit(event)">
+                <input type="password" id="superAdminPin" required placeholder="Enter PIN"
+                    class="w-full text-center tracking-widest text-lg border border-gray-300 rounded-md shadow-sm p-3 focus:ring-2 focus:ring-red-500 focus:outline-none mb-4">
+                <div id="pinError" class="text-red-500 text-sm hidden mb-4">Invalid PIN.</div>
+                <div class="flex justify-between gap-3">
+                    <button type="button" onclick="closeModal('pinModal')"
+                        class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors font-medium">Verify & Purge</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -300,9 +300,52 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// Super Admin Authentication Middleware
+const authenticateSuperAdmin = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+    if (err) return res.sendStatus(403);
+    if (user.role !== 'superadmin') return res.status(403).json({ error: 'Super admin access required' });
+    req.user = user;
+    next();
+  });
+};
+
+// Super Admin PIN
+const SUPER_ADMIN_PIN = process.env.SUPER_ADMIN_PIN || '1234';
+
+// Helper: create a DeletedRecord snapshot
+async function createDeletedRecord(recordType, recordId, snapshot, deletedBy) {
+  try {
+    await prisma.deletedRecord.create({
+      data: {
+        recordType,
+        recordId,
+        snapshot: JSON.stringify(snapshot),
+        deletedBy: deletedBy || 'admin',
+        isRead: false
+      }
+    });
+  } catch (e) {
+    console.error('Failed to create deleted record snapshot:', e);
+  }
+}
+
 // --- AUTHENTICATION ---
 app.post("/auth/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body;
+
+  // Hardcoded Super Admin Login
+  if (username === "superadmin" && password === "Superadmin123%") {
+    const token = jwt.sign(
+      { id: "superadmin_hardcoded", username: "superadmin", role: "superadmin" },
+      SECRET_KEY,
+      { expiresIn: "24h" }
+    );
+    return res.json({ token, username: "superadmin", role: "superadmin" });
+  }
 
   try {
     const admin = await prisma.admin.findUnique({
@@ -432,10 +475,12 @@ app.put("/settings", authenticateToken, async (req, res) => {
 app.get("/rooms", async (req, res) => {
   try {
     const rooms = await prisma.room.findMany({
+      where: { deletedAt: null },
       include: {
         bookings: {
           where: {
             status: { in: ["confirmed", "checked-in"] },
+            deletedAt: null,
           },
         },
       },
@@ -575,19 +620,17 @@ app.put("/rooms/:id", authenticateToken, upload.single('image'), async (req, res
 
 app.delete("/rooms/:id", authenticateToken, async (req, res) => {
   try {
-    await prisma.room.delete({
+    const room = await prisma.room.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+    const updated = await prisma.room.update({
       where: { id: parseInt(req.params.id) },
+      data: { deletedAt: new Date() }
     });
-    res.json({ message: "Room deleted" });
+    await createDeletedRecord('room', room.id, room, req.user?.username || 'admin');
+    res.json({ message: 'Room soft-deleted' });
   } catch (error) {
-    console.error("Error deleting room:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Room not found" });
-    } else if (error.code === "P2003") {
-      res.status(409).json({ error: "Cannot delete room: It has existing bookings, orders, or maintenance requests. Please delete associated records first." });
-    } else {
-      res.status(500).json({ error: "Failed to delete room" });
-    }
+    console.error('Error deleting room:', error);
+    res.status(500).json({ error: 'Failed to delete room' });
   }
 });
 
@@ -595,6 +638,7 @@ app.delete("/rooms/:id", authenticateToken, async (req, res) => {
 app.get("/guests", authenticateToken, async (req, res) => {
   try {
     const guests = await prisma.guest.findMany({
+      where: { deletedAt: null },
       include: {
         bookings: true,
         orders: true,
@@ -721,17 +765,14 @@ app.patch("/guests/:id/blacklist", authenticateToken, async (req, res) => {
 
 app.delete("/guests/:id", authenticateToken, async (req, res) => {
   try {
-    await prisma.guest.delete({
-      where: { id: parseInt(req.params.id) },
-    });
-    res.json({ message: "Guest deleted" });
+    const guest = await prisma.guest.findUnique({ where: { id: parseInt(req.params.id) }, include: { bookings: true, orders: true } });
+    if (!guest) return res.status(404).json({ error: 'Guest not found' });
+    await prisma.guest.update({ where: { id: parseInt(req.params.id) }, data: { deletedAt: new Date() } });
+    await createDeletedRecord('guest', guest.id, guest, req.user?.username || 'admin');
+    res.json({ message: 'Guest soft-deleted' });
   } catch (error) {
-    console.error("Error deleting guest:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Guest not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete guest" });
-    }
+    console.error('Error deleting guest:', error);
+    res.status(500).json({ error: 'Failed to delete guest' });
   }
 });
 
@@ -800,17 +841,12 @@ app.put("/payments/:id", authenticateToken, async (req, res) => {
 
 app.delete("/payments/:id", authenticateToken, async (req, res) => {
   try {
-    await prisma.payment.delete({
-      where: { id: parseInt(req.params.id) },
-    });
-    res.json({ message: "Payment deleted" });
+    await prisma.payment.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Payment deleted' });
   } catch (error) {
-    console.error("Error deleting payment:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Payment not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete payment" });
-    }
+    console.error('Error deleting payment:', error);
+    if (error.code === 'P2025') res.status(404).json({ error: 'Payment not found' });
+    else res.status(500).json({ error: 'Failed to delete payment' });
   }
 });
 
@@ -855,6 +891,7 @@ app.delete("/users/:id", authenticateToken, (req, res) => {
 app.get("/bookings", authenticateToken, async (req, res) => {
   try {
     const bookings = await prisma.booking.findMany({
+      where: { deletedAt: null },
       include: {
         guest: true,
         room: true,
@@ -976,53 +1013,40 @@ app.put("/bookings/:id", authenticateToken, validateBooking, async (req, res) =>
 app.delete("/bookings/:id", authenticateToken, async (req, res) => {
   const bookingId = parseInt(req.params.id);
   try {
-    // 1. Delete associated payments first
-    await prisma.payment.deleteMany({
-      where: { bookingId: bookingId }
-    });
-
-    // 2. Delete the booking
-    await prisma.booking.delete({
+    const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
+      include: { guest: true, room: true, payments: true }
     });
-    
-    res.json({ message: "Booking and associated payments deleted" });
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { deletedAt: new Date(), deletedBy: req.user?.username || 'admin' }
+    });
+    await createDeletedRecord('booking', bookingId, booking, req.user?.username || 'admin');
+    res.json({ message: 'Booking soft-deleted. Super admin has been notified.' });
   } catch (error) {
-    console.error("Error deleting booking:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Booking not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete booking" });
-    }
+    console.error('Error deleting booking:', error);
+    res.status(500).json({ error: 'Failed to delete booking' });
   }
 });
 
 app.delete("/orders/:id", authenticateToken, async (req, res) => {
   const orderId = parseInt(req.params.id);
   try {
-    // 1. Delete associated order items
-    await prisma.orderItem.deleteMany({
-      where: { orderId: orderId }
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { guest: true, room: true, orderItems: { include: { menuItem: true } }, payments: true }
     });
-
-    // 2. Delete associated payments
-    await prisma.payment.deleteMany({
-      where: { orderId: orderId }
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { deletedAt: new Date(), deletedBy: req.user?.username || 'admin' }
     });
-
-    // 3. Delete the order itself
-    await prisma.order.delete({
-      where: { id: orderId }
-    });
-
-    res.json({ message: "Order and associated items/payments deleted" });
+    await createDeletedRecord('order', orderId, order, req.user?.username || 'admin');
+    res.json({ message: 'Order soft-deleted. Super admin has been notified.' });
   } catch (error) {
-    console.error("Error deleting order:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Order not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete order" });
-    }
+    console.error('Error deleting order:', error);
+    res.status(500).json({ error: 'Failed to delete order' });
   }
 });
 
@@ -1245,17 +1269,164 @@ app.put("/menu/:id", upload.single('image'), async (req, res) => {
 
 app.delete("/menu/:id", async (req, res) => {
   try {
-    await prisma.menuItem.delete({
-      where: { id: parseInt(req.params.id) },
-    });
-    res.json({ message: "Menu item deleted" });
+    const item = await prisma.menuItem.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!item) return res.status(404).json({ error: 'Menu item not found' });
+    await prisma.menuItem.update({ where: { id: parseInt(req.params.id) }, data: { deletedAt: new Date() } });
+    await createDeletedRecord('menuItem', item.id, item, 'admin');
+    res.json({ message: 'Menu item soft-deleted.' });
   } catch (error) {
-    console.error("Error deleting menu item:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Menu item not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete menu item" });
+    console.error('Error deleting menu item:', error);
+    res.status(500).json({ error: 'Failed to delete menu item' });
+  }
+});
+
+// =====================================================
+// SUPER ADMIN ROUTES
+// =====================================================
+
+// GET all deleted records
+app.get('/super/deleted-records', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { type, unread } = req.query;
+    const where = {};
+    if (type && type !== 'all') where.recordType = type;
+    if (unread === 'true') where.isRead = false;
+    const records = await prisma.deletedRecord.findMany({
+      where,
+      orderBy: { deletedAt: 'desc' }
+    });
+    res.json(records);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch deleted records' });
+  }
+});
+
+// GET notification count (unread)
+app.get('/super/notifications', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const count = await prisma.deletedRecord.count({ where: { isRead: false, purgedAt: null, restoredAt: null } });
+    res.json({ unread: count });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// POST mark all as read
+app.post('/super/mark-read', authenticateSuperAdmin, async (req, res) => {
+  try {
+    await prisma.deletedRecord.updateMany({ where: { isRead: false }, data: { isRead: true } });
+    res.json({ message: 'All notifications marked as read' });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to mark as read' });
+  }
+});
+
+// POST verify PIN
+app.post('/super/verify-pin', authenticateSuperAdmin, (req, res) => {
+  const { pin } = req.body;
+  if (pin === SUPER_ADMIN_PIN) res.json({ valid: true });
+  else res.status(403).json({ valid: false, error: 'Incorrect PIN' });
+});
+
+// POST restore a deleted record
+app.post('/super/restore/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const deletedRecord = await prisma.deletedRecord.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!deletedRecord) return res.status(404).json({ error: 'Record not found' });
+    if (deletedRecord.restoredAt || deletedRecord.purgedAt) return res.status(400).json({ error: 'Record already restored or purged' });
+
+    const { recordType, recordId } = deletedRecord;
+    const modelMap = { booking: prisma.booking, order: prisma.order, guest: prisma.guest, menuItem: prisma.menuItem, room: prisma.room, review: prisma.review };
+    const model = modelMap[recordType];
+    if (!model) return res.status(400).json({ error: 'Unknown record type' });
+
+    await model.update({ where: { id: recordId }, data: { deletedAt: null } });
+    if (recordType === 'booking' || recordType === 'order') {
+      await model.update({ where: { id: recordId }, data: { deletedAt: null, deletedBy: null } });
     }
+    await prisma.deletedRecord.update({
+      where: { id: parseInt(req.params.id) },
+      data: { restoredAt: new Date(), restoredBy: req.user.username, isRead: true }
+    });
+    res.json({ message: `${recordType} #${recordId} restored successfully` });
+  } catch (e) {
+    console.error('Restore error:', e);
+    res.status(500).json({ error: 'Failed to restore record' });
+  }
+});
+
+// POST permanently purge a deleted record (requires PIN)
+app.post('/super/purge/:id', authenticateSuperAdmin, async (req, res) => {
+  const { pin } = req.body;
+  if (pin !== SUPER_ADMIN_PIN) return res.status(403).json({ error: 'Incorrect PIN' });
+  try {
+    const deletedRecord = await prisma.deletedRecord.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!deletedRecord) return res.status(404).json({ error: 'Record not found' });
+    if (deletedRecord.purgedAt) return res.status(400).json({ error: 'Already purged' });
+
+    const { recordType, recordId } = deletedRecord;
+    try {
+      if (recordType === 'booking') {
+        await prisma.payment.deleteMany({ where: { bookingId: recordId } });
+        await prisma.booking.delete({ where: { id: recordId } });
+      } else if (recordType === 'order') {
+        await prisma.orderItem.deleteMany({ where: { orderId: recordId } });
+        await prisma.payment.deleteMany({ where: { orderId: recordId } });
+        await prisma.order.delete({ where: { id: recordId } });
+      } else if (recordType === 'guest') {
+        await prisma.booking.updateMany({ where: { guestId: recordId }, data: { deletedAt: new Date() } });
+        await prisma.order.updateMany({ where: { guestId: recordId }, data: { deletedAt: new Date() } });
+        await prisma.guest.delete({ where: { id: recordId } });
+      } else if (recordType === 'menuItem') {
+        await prisma.menuItem.delete({ where: { id: recordId } });
+      } else if (recordType === 'room') {
+        await prisma.room.delete({ where: { id: recordId } });
+      } else if (recordType === 'review') {
+        await prisma.review.delete({ where: { id: recordId } });
+      }
+    } catch (deleteErr) {
+      console.warn('Hard delete failed (may already be gone):', deleteErr.message);
+    }
+    await prisma.deletedRecord.update({
+      where: { id: parseInt(req.params.id) },
+      data: { purgedAt: new Date(), purgedBy: req.user.username, isRead: true }
+    });
+    res.json({ message: `${recordType} #${recordId} permanently deleted` });
+  } catch (e) {
+    console.error('Purge error:', e);
+    res.status(500).json({ error: 'Failed to purge record' });
+  }
+});
+
+// GET super admin dashboard stats
+app.get('/super/stats', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const [total, unread, byType, recent] = await Promise.all([
+      prisma.deletedRecord.count(),
+      prisma.deletedRecord.count({ where: { isRead: false } }),
+      prisma.deletedRecord.groupBy({ by: ['recordType'], _count: { id: true } }),
+      prisma.deletedRecord.findMany({ orderBy: { deletedAt: 'desc' }, take: 5 })
+    ]);
+    res.json({ total, unread, byType, recent });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// GET all active data for super admin live view
+app.get('/super/live/:type', authenticateSuperAdmin, async (req, res) => {
+  const type = req.params.type;
+  try {
+    let data;
+    if (type === 'bookings') data = await prisma.booking.findMany({ where: { deletedAt: null }, include: { guest: true, room: true }, orderBy: { createdAt: 'desc' } });
+    else if (type === 'orders') data = await prisma.order.findMany({ where: { deletedAt: null }, include: { guest: true, room: true, orderItems: { include: { menuItem: true } } }, orderBy: { createdAt: 'desc' } });
+    else if (type === 'guests') data = await prisma.guest.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } });
+    else if (type === 'rooms') data = await prisma.room.findMany({ where: { deletedAt: null } });
+    else if (type === 'reviews') data = await prisma.review.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } });
+    else return res.status(400).json({ error: 'Unknown type' });
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch live data' });
   }
 });
 
@@ -1263,6 +1434,7 @@ app.delete("/menu/:id", async (req, res) => {
 app.get("/orders", authenticateToken, async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
+      where: { deletedAt: null },
       include: {
         guest: true,
         room: true,
@@ -1557,10 +1729,10 @@ app.delete("/settings/:key", async (req, res) => {
 app.get("/reviews", async (req, res) => {
   try {
     const { status, featured } = req.query;
-    let where = {};
+    let where = { deletedAt: null };
 
     if (status) where.status = status;
-    else where.status = "approved"; // Default to approved only for public API
+    else where.status = "approved";
 
     if (featured !== undefined) where.featured = featured === "true";
 
@@ -1580,6 +1752,7 @@ app.get("/reviews", async (req, res) => {
 app.get("/admin/reviews", authenticateToken, async (req, res) => {
   try {
     const reviews = await prisma.review.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
     });
     res.json(reviews);
@@ -1629,17 +1802,14 @@ app.put("/reviews/:id", authenticateToken, async (req, res) => {
 
 app.delete("/reviews/:id", authenticateToken, async (req, res) => {
   try {
-    await prisma.review.delete({
-      where: { id: parseInt(req.params.id) },
-    });
-    res.json({ message: "Review deleted" });
+    const review = await prisma.review.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!review) return res.status(404).json({ error: 'Review not found' });
+    await prisma.review.update({ where: { id: parseInt(req.params.id) }, data: { deletedAt: new Date(), deletedBy: req.user?.username || 'admin' } });
+    await createDeletedRecord('review', review.id, review, req.user?.username || 'admin');
+    res.json({ message: 'Review soft-deleted.' });
   } catch (error) {
-    console.error("Error deleting review:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Review not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete review" });
-    }
+    console.error('Error deleting review:', error);
+    res.status(500).json({ error: 'Failed to delete review' });
   }
 });
 

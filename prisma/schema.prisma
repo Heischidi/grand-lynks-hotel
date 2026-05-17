@@ -14,7 +14,7 @@ model Admin {
   id        Int       @id @default(autoincrement())
   username  String    @unique
   password  String    // bcrypt hash
-  role      String    @default("admin")
+  role      String    @default("admin") // admin | superadmin
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -32,6 +32,7 @@ model Room {
   orders        Order[]
   maintenanceRequests MaintenanceRequest[]
   housekeepingTasks   HousekeepingTask[]
+  deletedAt     DateTime? // soft-delete timestamp
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -49,6 +50,7 @@ model Guest {
   bookings      Booking[]
   orders    Order[]
   payments  Payment[]
+  deletedAt DateTime? // soft-delete timestamp
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -67,6 +69,8 @@ model Booking {
   guest        Guest     @relation(fields: [guestId], references: [id])
   room         Room      @relation(fields: [roomId], references: [id])
   payments     Payment[]
+  deletedAt    DateTime? // soft-delete timestamp
+  deletedBy    String?   // admin username who soft-deleted
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -82,6 +86,7 @@ model MenuItem {
   description String?
   image       String?
   orderItems  OrderItem[]
+  deletedAt   DateTime?   // soft-delete timestamp
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -99,6 +104,8 @@ model Order {
   room         Room?       @relation(fields: [roomId], references: [id])
   orderItems   OrderItem[]
   payments     Payment[]
+  deletedAt    DateTime?   // soft-delete timestamp
+  deletedBy    String?     // admin username who soft-deleted
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -148,10 +155,31 @@ model Review {
   suggestions  String?
   status       String   @default("pending") // pending, approved, rejected
   featured     Boolean  @default(false)
+  deletedAt    DateTime? // soft-delete timestamp
+  deletedBy    String?   // admin username who soft-deleted
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@map("reviews")
+}
+
+// ============================================================
+// SUPER ADMIN — Permanent record of all soft-deleted items
+// ============================================================
+model DeletedRecord {
+  id           Int      @id @default(autoincrement())
+  recordType   String   // booking | order | guest | menuItem | room | review
+  recordId     Int      // original record's ID
+  snapshot     String   // Full JSON snapshot of the record at time of deletion
+  deletedBy    String   // admin username who triggered the delete
+  deletedAt    DateTime @default(now())
+  isRead       Boolean  @default(false)  // has super admin viewed this notification?
+  restoredAt   DateTime?  // set if super admin restored it
+  restoredBy   String?    // superadmin username who restored
+  purgedAt     DateTime?  // set if permanently destroyed by super admin
+  purgedBy     String?    // superadmin username who purged
+
+  @@map("deleted_records")
 }
 
 model ContentSection {

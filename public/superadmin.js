@@ -128,7 +128,8 @@ const sections = {
     walkin: document.getElementById('section-walkin'),
     guests: document.getElementById('section-guests'),
     reviews: document.getElementById('section-reviews'),
-    settings: document.getElementById('section-settings')
+    settings: document.getElementById('section-settings'),
+    vault: document.getElementById('section-vault')
 };
 
 // --- AUTHENTICATION ---
@@ -142,13 +143,14 @@ function init() {
     sections.guests = document.getElementById('section-guests');
     sections.reviews = document.getElementById('section-reviews');
     sections.settings = document.getElementById('section-settings');
+    sections.vault = document.getElementById('section-vault');
 
     const token = localStorage.getItem('adminToken');
     const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
 
     if (token) {
-        if (user.role === 'superadmin') {
-            window.location.href = 'superadmin.html';
+        if (user.role !== 'superadmin') {
+            window.location.href = 'admin.html';
             return;
         }
         showDashboard(user);
@@ -170,6 +172,10 @@ function showDashboard(user) {
     }
     // Load initial data
     switchTab('rooms');
+    
+    // Start notification polling
+    pollNotifications();
+    setInterval(pollNotifications, 30000); // Check every 30 seconds
 }
 
 async function handleLogin(e) {
@@ -191,8 +197,8 @@ async function handleLogin(e) {
             localStorage.setItem('adminToken', data.token);
             localStorage.setItem('adminUser', JSON.stringify({ username: data.username, role: data.role }));
             
-            if (data.role === 'superadmin') {
-                window.location.href = 'superadmin.html';
+            if (data.role !== 'superadmin') {
+                window.location.href = 'admin.html';
                 return;
             }
             
@@ -272,6 +278,7 @@ function switchTab(tabName) {
         if (tabName === 'guests' && (!window.allGuests || window.allGuests.length === 0)) fetchGuests();
         if (tabName === 'reviews') fetchAdminReviews();
         if (tabName === 'settings') fetchSettings();
+        if (tabName === 'vault') fetchVaultRecords();
     }
 }
 
@@ -1981,3 +1988,154 @@ window.addEventListener('load', () => {
     setTimeout(forceTop, 300);
     setTimeout(forceTop, 600);
 });
+
+// --- SUPER ADMIN VAULT LOGIC ---
+
+async function pollNotifications() {
+    try {
+        const response = await authFetch('/super/notifications');
+        if (response && response.ok) {
+            const data = await response.json();
+            const badge = document.getElementById('vaultBadge');
+            if (badge) {
+                if (data.unreadCount > 0) {
+                    badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Error polling notifications', e);
+    }
+}
+
+async function fetchVaultRecords() {
+    const tbody = document.getElementById('vaultTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">Loading vault records...</td></tr>';
+
+    try {
+        // Mark as read when opening vault
+        await authFetch('/super/mark-read', { method: 'POST' });
+        pollNotifications(); // update badge instantly
+
+        const response = await authFetch('/super/deleted-records');
+        if (response && response.ok) {
+            const records = await response.json();
+            renderVaultRecords(records);
+        } else {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Failed to load vault records</td></tr>';
+        }
+    } catch (e) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Error loading vault records</td></tr>';
+    }
+}
+
+function renderVaultRecords(records) {
+    const tbody = document.getElementById('vaultTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Vault is empty.</td></tr>';
+        return;
+    }
+
+    records.forEach(record => {
+        let detailsText = 'No details';
+        try {
+            const snap = JSON.parse(record.snapshot);
+            if (record.recordType === 'Booking') {
+                detailsText = `Booking #${snap.id} - ${snap.guest?.name || 'Unknown'} (Room ${snap.room?.roomNumber || 'Unknown'})`;
+            } else if (record.recordType === 'Order') {
+                detailsText = `Order #${snap.id} - ₦${snap.totalAmount?.toLocaleString() || 0}`;
+            } else if (record.recordType === 'Room') {
+                detailsText = `Room ${snap.roomNumber || snap.number || 'Unknown'} (${snap.type})`;
+            } else if (record.recordType === 'MenuItem') {
+                detailsText = `Menu Item: ${snap.name}`;
+            } else {
+                detailsText = `${record.recordType} ID: ${record.recordId}`;
+            }
+        } catch (e) {
+            detailsText = 'Invalid Snapshot Data';
+        }
+
+        const statusBadge = record.purgedAt 
+            ? '<span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Purged</span>'
+            : record.restoredAt 
+            ? '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Restored</span>'
+            : '<span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Archived</span>';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.recordType}</td>
+            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title="${detailsText}">${detailsText}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.deletedBy || 'System'}</td>
+            <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                ${!record.purgedAt && !record.restoredAt ? `
+                    <button onclick="restoreRecord(${record.id})" class="text-green-600 hover:text-green-900 mr-3">Restore</button>
+                    <button onclick="promptPurge(${record.id})" class="text-red-600 hover:text-red-900 font-bold">Purge</button>
+                ` : '<span class="text-gray-400">No actions</span>'}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.restoreRecord = async function(id) {
+    if (!confirm('Are you sure you want to restore this record back to the live database?')) return;
+    
+    const response = await authFetch(`/super/restore/${id}`, { method: 'POST' });
+    if (response && response.ok) {
+        alert('Record restored successfully!');
+        fetchVaultRecords();
+    } else {
+        const err = await response.json().catch(()=>({}));
+        alert(err.error || 'Failed to restore record');
+    }
+};
+
+let currentPurgeId = null;
+
+window.promptPurge = function(id) {
+    currentPurgeId = id;
+    document.getElementById('superAdminPin').value = '';
+    document.getElementById('pinError').classList.add('hidden');
+    openModal('pinModal');
+};
+
+window.handlePinSubmit = async function(e) {
+    e.preventDefault();
+    if (!currentPurgeId) return;
+
+    const pin = document.getElementById('superAdminPin').value;
+    const btn = document.querySelector('#pinForm button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.textContent = 'Verifying...';
+    btn.disabled = true;
+
+    try {
+        const response = await authFetch(`/super/purge/${currentPurgeId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin })
+        });
+
+        if (response && response.ok) {
+            closeModal('pinModal');
+            alert('Record permanently purged.');
+            fetchVaultRecords();
+        } else {
+            document.getElementById('pinError').classList.remove('hidden');
+            document.getElementById('superAdminPin').value = '';
+        }
+    } catch (err) {
+        console.error(err);
+        alert('An error occurred.');
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+};
