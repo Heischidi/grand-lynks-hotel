@@ -317,9 +317,169 @@ const authenticateSuperAdmin = (req, res, next) => {
 const SUPER_ADMIN_PIN = process.env.SUPER_ADMIN_PIN || '1234';
 
 // Helper: create a DeletedRecord snapshot
+const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_NOTIFY_EMAIL || "xty0005@gmail.com";
+const SUPER_ADMIN_PHONE = process.env.SUPER_ADMIN_NOTIFY_PHONE || "08051045535";
+
+async function sendSMS(to, message) {
+  const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+  const twilioAuth = process.env.TWILIO_AUTH_TOKEN;
+  const twilioFrom = process.env.TWILIO_FROM_NUMBER;
+  
+  const termiiApiKey = process.env.TERMII_API_KEY;
+  const termiiSenderId = process.env.TERMII_SENDER_ID || "GrandLynks";
+
+  if (twilioSid && twilioAuth && twilioFrom) {
+    try {
+      const auth = Buffer.from(`${twilioSid}:${twilioAuth}`).toString('base64');
+      const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          To: to,
+          From: twilioFrom,
+          Body: message
+        })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        console.log('Twilio SMS sent successfully:', data.sid);
+        return true;
+      } else {
+        console.error('Twilio SMS API error:', data);
+      }
+    } catch (e) {
+      console.error('Twilio SMS dispatch failed:', e);
+    }
+  }
+
+  if (termiiApiKey) {
+    try {
+      // Normalize number format for Termii (+234 format)
+      let formattedPhone = to;
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '234' + formattedPhone.substring(1);
+      } else if (formattedPhone.startsWith('+')) {
+        formattedPhone = formattedPhone.substring(1);
+      }
+
+      const response = await fetch('https://api.ng.termii.com/api/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: formattedPhone,
+          from: termiiSenderId,
+          sms: message,
+          type: "plain",
+          channel: "generic",
+          api_key: termiiApiKey
+        })
+      });
+      const data = await response.json();
+      console.log('Termii SMS sent successfully:', data);
+      return true;
+    } catch (e) {
+      console.error('Termii SMS dispatch failed:', e);
+    }
+  }
+
+  console.warn('SMS warning: No SMS gateway API credentials (Twilio or Termii) configured in environment variables.');
+  return false;
+}
+
+async function notifySuperAdminOnDeletion(deletedRecord) {
+  let snapshotDetailsHtml = "";
+  let smsDetails = "";
+  try {
+    if (deletedRecord.snapshot) {
+      const snapshot = JSON.parse(deletedRecord.snapshot);
+      snapshotDetailsHtml = "<h3 style='color: #8b1d30; margin-top: 20px;'>Record Contents Preview:</h3><ul>";
+      Object.entries(snapshot).forEach(([key, val]) => {
+        if (typeof val !== 'object' && val !== null && val !== undefined) {
+          let displayedVal = val;
+          if (typeof val === 'string' && (val.includes('T') && !isNaN(Date.parse(val)))) {
+            displayedVal = new Date(val).toLocaleString();
+          }
+          snapshotDetailsHtml += `<li><strong>${key}:</strong> ${displayedVal}</li>`;
+        }
+      });
+      snapshotDetailsHtml += "</ul>";
+      
+      const identifier = snapshot.name || snapshot.guestName || snapshot.number || snapshot.totalAmount || snapshot.id || "";
+      smsDetails = identifier ? ` (${identifier})` : "";
+    }
+  } catch (err) {
+    console.error("Error formatting snapshot details:", err);
+  }
+
+  const subject = `⚠️ [VAULT ALERT] ${deletedRecord.recordType.toUpperCase()} soft-deleted`;
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ffccd5; border-radius: 8px; overflow: hidden">
+      <div style="background:#d90429; padding:20px; color:#fff; text-align:center;">
+        <h2 style="margin:0;">⚠️ Super Admin Vault Alert</h2>
+        <p style="margin:5px 0 0;">A record has been soft-deleted and moved to the Vault.</p>
+      </div>
+      <div style="padding:24px; color:#333; line-height:1.6;">
+        <p>Hello Super Admin,</p>
+        <p>A record has been soft-deleted by standard admin <strong>${deletedRecord.deletedBy}</strong>:</p>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #eee; font-weight:bold; width:30%;">Record Type:</td>
+            <td style="padding:8px; border-bottom:1px solid #eee;">${deletedRecord.recordType.toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #eee; font-weight:bold;">Original ID:</td>
+            <td style="padding:8px; border-bottom:1px solid #eee;">${deletedRecord.recordId}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #eee; font-weight:bold;">Deleted By:</td>
+            <td style="padding:8px; border-bottom:1px solid #eee;">${deletedRecord.deletedBy}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #eee; font-weight:bold;">Deleted At:</td>
+            <td style="padding:8px; border-bottom:1px solid #eee;">${new Date(deletedRecord.deletedAt).toLocaleString()}</td>
+          </tr>
+        </table>
+        
+        ${snapshotDetailsHtml}
+        
+        <div style="margin-top:30px; text-align:center;">
+          <a href="https://www.grandlynkshomesandapartments.com/superadmin" style="background:#d90429; color:#fff; padding:12px 24px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block;">Open Super Admin Vault</a>
+        </div>
+      </div>
+      <div style="background:#f8f9fa; padding:12px; text-align:center; font-size:12px; color:#666; border-top:1px solid #eee;">
+        Grand Lynks Security System • Auto-generated Alert
+      </div>
+    </div>
+  `;
+
+  // 1. Send Email via Resend
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Grand Lynks Security <noreply@grandlynkshomesandapartments.com>',
+      to: SUPER_ADMIN_EMAIL,
+      subject: subject,
+      html: emailHtml
+    });
+    if (error) {
+      console.error("Resend vault notification email failed:", error);
+    } else {
+      console.log(`Vault notification email successfully sent to ${SUPER_ADMIN_EMAIL}. ID: ${data.id}`);
+    }
+  } catch (error) {
+    console.error("Failed to send super admin deletion email notification:", error);
+  }
+
+  // 2. Send SMS
+  const smsMessage = `GL Vault Alert: A ${deletedRecord.recordType.toUpperCase()} (ID: ${deletedRecord.recordId})${smsDetails} was soft-deleted by ${deletedRecord.deletedBy} at ${new Date(deletedRecord.deletedAt).toLocaleTimeString()}. Review here: grandlynkshomesandapartments.com/superadmin`;
+  await sendSMS(SUPER_ADMIN_PHONE, smsMessage);
+}
+
 async function createDeletedRecord(recordType, recordId, snapshot, deletedBy) {
   try {
-    await prisma.deletedRecord.create({
+    const deletedRecord = await prisma.deletedRecord.create({
       data: {
         recordType,
         recordId,
@@ -327,6 +487,11 @@ async function createDeletedRecord(recordType, recordId, snapshot, deletedBy) {
         deletedBy: deletedBy || 'admin',
         isRead: false
       }
+    });
+
+    // Asynchronously notify Super Admin (don't block the request)
+    notifySuperAdminOnDeletion(deletedRecord).catch(err => {
+      console.error('Super admin notification error:', err);
     });
   } catch (e) {
     console.error('Failed to create deleted record snapshot:', e);
