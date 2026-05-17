@@ -1884,10 +1884,16 @@ if (settingsForm) {
 console.log('All functions successfully defined and attached to window.');
 
 // Init
-document.addEventListener('DOMContentLoaded', () => {
+function bootstrap() {
     init();
     initPullToRefresh();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+    bootstrap();
+}
 
 // --- PULL-TO-REFRESH ---
 function initPullToRefresh() {
