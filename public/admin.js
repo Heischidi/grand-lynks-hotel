@@ -1620,36 +1620,36 @@ function printStyles() {
     return `
         <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 32px; font-size: 13px; }
-            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #8b1d30; padding-bottom: 16px; margin-bottom: 20px; }
-            .logo-area { display: flex; align-items: center; gap: 14px; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; font-size: 14px; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #8b1d30; padding-bottom: 20px; margin-bottom: 28px; gap: 20px; }
+            .logo-area { display: flex; align-items: center; gap: 18px; }
             .hotel-logo { height: 95px; width: auto; display: block; object-fit: contain; }
             .hotel-info { display: flex; flex-direction: column; justify-content: center; }
-            .hotel-name-new { font-size: 16px; font-weight: 700; color: #1a1a2e; letter-spacing: -0.3px; line-height: 1.2; }
-            .hotel-sub  { font-size: 10px; color: #666; margin-top: 2px; }
-            .doc-title  { font-size: 16px; font-weight: 700; color: #1a1a2e; text-align: right; }
-            .doc-date   { font-size: 11px; color: #888; text-align: right; margin-top: 2px; }
-            .guest-info { background: #f8f8f8; border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; }
-            .guest-info h2 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-            .guest-info p  { font-size: 12px; color: #555; margin-top: 2px; }
-            .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-            .stat { background: #f4f6fb; border-radius: 8px; padding: 10px; text-align: center; }
-            .stat-num { font-size: 20px; font-weight: 800; }
-            .stat-lbl { font-size: 10px; color: #888; margin-top: 2px; }
-            .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #666; margin: 16px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-            .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-bottom: 10px; page-break-inside: avoid; }
+            .hotel-name-new { font-size: 19px; font-weight: 700; color: #1a1a2e; letter-spacing: -0.3px; line-height: 1.2; }
+            .hotel-sub  { font-size: 11px; color: #666; margin-top: 2px; }
+            .doc-title  { font-size: 20px; font-weight: 700; color: #1a1a2e; text-align: right; }
+            .doc-date   { font-size: 12px; color: #888; text-align: right; margin-top: 4px; }
+            .guest-info { background: #f8f8f8; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; }
+            .guest-info h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+            .guest-info p  { font-size: 13px; color: #555; margin-top: 2px; }
+            .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+            .stat { background: #f4f6fb; border-radius: 8px; padding: 12px; text-align: center; }
+            .stat-num { font-size: 22px; font-weight: 800; }
+            .stat-lbl { font-size: 11px; color: #888; margin-top: 2px; }
+            .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #666; margin: 20px 0 10px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+            .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; margin-bottom: 14px; page-break-inside: avoid; }
             .card.booking { border-left: 4px solid #3b82f6; }
             .card.order   { border-left: 4px solid #f97316; }
             .card-header  { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-            .card-title   { font-size: 13px; font-weight: 700; }
-            .card-date    { font-size: 10px; color: #888; margin-top: 2px; }
-            .card-amount  { font-size: 14px; font-weight: 800; }
-            .badge        { display: inline-block; padding: 2px 6px; border-radius: 20px; font-size: 9px; font-weight: 700; text-transform: uppercase; margin-left: 6px; }
-            .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-top: 8px; }
+            .card-title   { font-size: 15px; font-weight: 700; }
+            .card-date    { font-size: 11px; color: #888; margin-top: 2px; }
+            .card-amount  { font-size: 16px; font-weight: 800; }
+            .badge        { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-left: 6px; }
+            .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; margin-top: 10px; }
             .grid2 span.lbl { font-weight: 600; color: #888; }
-            .item-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px dotted #eee; }
-            .pay-row  { display: flex; justify-content: space-between; font-size: 11px; color: #555; padding: 2px 0; }
-            .footer   { margin-top: 32px; border-top: 1px solid #eee; padding-top: 12px; font-size: 10px; color: #aaa; text-align: center; }
+            .item-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px dotted #eee; }
+            .pay-row  { display: flex; justify-content: space-between; font-size: 12px; color: #555; padding: 3px 0; }
+            .footer   { margin-top: 40px; border-top: 1px solid #eee; padding-top: 16px; font-size: 11px; color: #aaa; text-align: center; }
             @media print {
                 body { padding: 16px; }
                 .no-print { display: none !important; }
