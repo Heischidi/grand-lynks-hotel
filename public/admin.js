@@ -1621,7 +1621,8 @@ function printStyles() {
         <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 32px; font-size: 13px; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #8b1d30; padding-bottom: 16px; margin-bottom: 20px; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #8b1d30; padding-bottom: 16px; margin-bottom: 20px; }
+            .hotel-logo { height: 65px; width: auto; display: block; object-fit: contain; }
             .hotel-name { font-size: 22px; font-weight: 800; color: #8b1d30; letter-spacing: -0.5px; }
             .hotel-sub  { font-size: 11px; color: #666; margin-top: 2px; }
             .doc-title  { font-size: 16px; font-weight: 700; color: #1a1a2e; text-align: right; }
@@ -1660,9 +1661,7 @@ function hotelHeader(docTitle) {
     return `
     <div class="header">
         <div>
-            <div class="hotel-name">Grand Lynks Hotel</div>
-            <div class="hotel-sub">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja &bull; +234 814 223 4691</div>
-            <div class="hotel-sub">grandlynkshomesandapartments.com</div>
+            <img src="images/logo.jpg" class="hotel-logo" alt="Grand Lynks Logo">
         </div>
         <div>
             <div class="doc-title">${docTitle}</div>
