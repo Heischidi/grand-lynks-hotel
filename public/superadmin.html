@@ -951,6 +951,66 @@
         </div>
     </div>
 
+    <!-- Vault Details Modal -->
+    <div id="vaultDetailsModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99998] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl m-4 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <span>🔍 Deleted Record Details</span>
+                    <span id="vaultDetailsRecordType" class="px-2.5 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded-full uppercase">Type</span>
+                </h3>
+                <button onclick="closeModal('vaultDetailsModal')" class="text-gray-400 hover:text-gray-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto py-6 space-y-6">
+                <!-- Meta info -->
+                <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl text-sm border border-gray-100">
+                    <div>
+                        <span class="block text-gray-500 font-medium">Deleted By</span>
+                        <span id="vaultDetailsDeletedBy" class="font-semibold text-gray-800">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-500 font-medium">Deleted At</span>
+                        <span id="vaultDetailsDeletedAt" class="font-semibold text-gray-800">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-500 font-medium">Record ID</span>
+                        <span id="vaultDetailsRecordId" class="font-semibold text-gray-800">-</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-500 font-medium">Status</span>
+                        <span id="vaultDetailsStatus" class="font-semibold text-gray-800">-</span>
+                    </div>
+                </div>
+
+                <!-- Structured Snapshot Data -->
+                <div>
+                    <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Snapshot Data Fields</h4>
+                    <div class="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 border-b border-gray-100">
+                                    <th class="px-4 py-3 font-semibold">Field Name</th>
+                                    <th class="px-4 py-3 font-semibold">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vaultDetailsTableBody" class="divide-y divide-gray-50">
+                                <!-- JS populates -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-gray-100 flex justify-end gap-3" id="vaultDetailsActions">
+                <!-- JS dynamically inserts action buttons -->
+            </div>
+        </div>
+    </div>
+
     <!-- PIN Verification Modal -->
     <div id="pinModal"
         class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">

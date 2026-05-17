@@ -2017,6 +2017,8 @@ async function pollNotifications() {
     }
 }
 
+let cachedVaultRecords = [];
+
 async function fetchVaultRecords() {
     const tbody = document.getElementById('vaultTableBody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">Loading vault records...</td></tr>';
@@ -2029,6 +2031,7 @@ async function fetchVaultRecords() {
         const response = await authFetch('/super/deleted-records');
         if (response && response.ok) {
             const records = await response.json();
+            cachedVaultRecords = records;
             renderVaultRecords(records);
         } else {
             if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Failed to load vault records</td></tr>';
@@ -2052,14 +2055,19 @@ function renderVaultRecords(records) {
         let detailsText = 'No details';
         try {
             const snap = JSON.parse(record.snapshot);
-            if (record.recordType === 'Booking') {
-                detailsText = `Booking #${snap.id} - ${snap.guest?.name || 'Unknown'} (Room ${snap.room?.roomNumber || 'Unknown'})`;
-            } else if (record.recordType === 'Order') {
-                detailsText = `Order #${snap.id} - ₦${snap.totalAmount?.toLocaleString() || 0}`;
-            } else if (record.recordType === 'Room') {
+            const typeLower = record.recordType.toLowerCase();
+            if (typeLower === 'booking') {
+                detailsText = `Booking #${snap.id} - ${snap.guest?.name || 'Unknown'} (Room ${snap.room?.roomNumber || snap.roomId || 'Unknown'})`;
+            } else if (typeLower === 'order') {
+                detailsText = `Order #${snap.id} - ₦${(snap.totalAmount || snap.total_price || 0).toLocaleString()}`;
+            } else if (typeLower === 'room') {
                 detailsText = `Room ${snap.roomNumber || snap.number || 'Unknown'} (${snap.type})`;
-            } else if (record.recordType === 'MenuItem') {
+            } else if (typeLower === 'menuitem') {
                 detailsText = `Menu Item: ${snap.name}`;
+            } else if (typeLower === 'guest') {
+                detailsText = `Guest: ${snap.name || 'Unknown'} (${snap.email || 'No Email'})`;
+            } else if (typeLower === 'review') {
+                detailsText = `Review by ${snap.guestName || 'Unknown'} - ${snap.rating} Stars`;
             } else {
                 detailsText = `${record.recordType} ID: ${record.recordId}`;
             }
@@ -2080,6 +2088,7 @@ function renderVaultRecords(records) {
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.deletedBy || 'System'}</td>
             <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="viewVaultDetails(${record.id})" class="text-blue-600 hover:text-blue-900 mr-3">Details</button>
                 ${!record.purgedAt && !record.restoredAt ? `
                     <button onclick="restoreRecord(${record.id})" class="text-green-600 hover:text-green-900 mr-3">Restore</button>
                     <button onclick="promptPurge(${record.id})" class="text-red-600 hover:text-red-900 font-bold">Purge</button>
@@ -2089,6 +2098,88 @@ function renderVaultRecords(records) {
         tbody.appendChild(tr);
     });
 }
+
+function formatSnapshotVal(val) {
+    if (val === null || val === undefined) return '<em class="text-gray-400">None</em>';
+    if (typeof val === 'object') {
+        if (Array.isArray(val)) {
+            if (val.length === 0) return '[]';
+            return `<ul class="list-disc pl-4 space-y-1 font-mono text-xs">
+                ${val.map(item => `<li>${formatObjectInline(item)}</li>`).join('')}
+            </ul>`;
+        }
+        return `<div class="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono text-xs max-h-40 overflow-y-auto">
+            ${Object.entries(val).map(([k, v]) => `<div><strong>${k}:</strong> ${typeof v === 'object' ? JSON.stringify(v) : v}</div>`).join('')}
+        </div>`;
+    }
+    if (typeof val === 'string' && val.startsWith('http')) {
+        return `<a href="${val}" target="_blank" class="text-blue-600 hover:underline break-all">${val}</a>`;
+    }
+    if (typeof val === 'number' && (val > 1000 || val < -1000)) {
+        return `₦${val.toLocaleString()}`;
+    }
+    if (typeof val === 'string' && val.includes('T') && !isNaN(Date.parse(val)) && val.length > 10) {
+        return new Date(val).toLocaleString();
+    }
+    return val.toString();
+}
+
+function formatObjectInline(obj) {
+    if (typeof obj !== 'object' || obj === null) return String(obj);
+    if (obj.name) return obj.name;
+    if (obj.menuItem?.name) return `${obj.menuItem.name} x${obj.quantity || 1}`;
+    return JSON.stringify(obj);
+}
+
+window.viewVaultDetails = function(recordId) {
+    const record = cachedVaultRecords.find(r => r.id === recordId);
+    if (!record) {
+        alert('Error: Record details not found in cache.');
+        return;
+    }
+
+    document.getElementById('vaultDetailsRecordType').textContent = record.recordType;
+    document.getElementById('vaultDetailsDeletedBy').textContent = record.deletedBy || 'System';
+    document.getElementById('vaultDetailsDeletedAt').textContent = new Date(record.deletedAt).toLocaleString();
+    document.getElementById('vaultDetailsRecordId').textContent = record.recordId;
+    
+    const statusText = record.purgedAt ? 'Purged' : (record.restoredAt ? 'Restored' : 'Archived');
+    document.getElementById('vaultDetailsStatus').textContent = statusText;
+
+    const tbody = document.getElementById('vaultDetailsTableBody');
+    tbody.innerHTML = '';
+
+    try {
+        const snap = JSON.parse(record.snapshot);
+        Object.entries(snap).forEach(([key, val]) => {
+            const humanizedKey = key
+                .replace(/([A-Z])/g, ' $1')
+                .replace(/^./, str => str.toUpperCase());
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-medium text-gray-700 bg-gray-50/50 w-1/3">${humanizedKey}</td>
+                <td class="px-4 py-3 text-gray-600">${formatSnapshotVal(val)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500">Failed to parse snapshot JSON data</td></tr>';
+    }
+
+    const actionsDiv = document.getElementById('vaultDetailsActions');
+    actionsDiv.innerHTML = '';
+    
+    if (!record.purgedAt && !record.restoredAt) {
+        actionsDiv.innerHTML = `
+            <button onclick="closeModal('vaultDetailsModal'); restoreRecord(${record.id})" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition shadow-sm">Restore Record</button>
+            <button onclick="closeModal('vaultDetailsModal'); promptPurge(${record.id})" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition shadow-sm font-bold">Purge Record</button>
+        `;
+    }
+    actionsDiv.innerHTML += `<button onclick="closeModal('vaultDetailsModal')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition border border-gray-200">Close</button>`;
+
+    openModal('vaultDetailsModal');
+};
 
 window.restoreRecord = async function(id) {
     if (!confirm('Are you sure you want to restore this record back to the live database?')) return;
