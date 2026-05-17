@@ -1630,7 +1630,7 @@ function printStyles() {
             body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 32px; font-size: 13px; }
             .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #8b1d30; padding-bottom: 16px; margin-bottom: 20px; }
             .logo-area { display: flex; align-items: center; gap: 14px; }
-            .hotel-logo { height: 60px; width: auto; display: block; object-fit: contain; }
+            .hotel-logo { height: 75px; width: auto; display: block; object-fit: contain; }
             .hotel-info { display: flex; flex-direction: column; justify-content: center; }
             .hotel-name-new { font-size: 16px; font-weight: 700; color: #1a1a2e; letter-spacing: -0.3px; line-height: 1.2; }
             .hotel-sub  { font-size: 10px; color: #666; margin-top: 2px; }
