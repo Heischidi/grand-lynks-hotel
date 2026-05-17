@@ -1622,7 +1622,7 @@ function printStyles() {
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 32px; font-size: 13px; }
             .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #8b1d30; padding-bottom: 16px; margin-bottom: 20px; }
-            .hotel-logo { height: 65px; width: auto; display: block; object-fit: contain; }
+            .hotel-logo { height: 65px; width: auto; display: block; object-fit: contain; mix-blend-mode: multiply; }
             .hotel-name { font-size: 22px; font-weight: 800; color: #8b1d30; letter-spacing: -0.5px; }
             .hotel-sub  { font-size: 11px; color: #666; margin-top: 2px; }
             .doc-title  { font-size: 16px; font-weight: 700; color: #1a1a2e; text-align: right; }
