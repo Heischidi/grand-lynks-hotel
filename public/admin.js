@@ -1622,9 +1622,11 @@ function printStyles() {
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 32px; font-size: 13px; }
             .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #8b1d30; padding-bottom: 16px; margin-bottom: 20px; }
-            .hotel-logo { height: 65px; width: auto; display: block; object-fit: contain; }
-            .hotel-name { font-size: 22px; font-weight: 800; color: #8b1d30; letter-spacing: -0.5px; }
-            .hotel-sub  { font-size: 11px; color: #666; margin-top: 2px; }
+            .logo-area { display: flex; align-items: center; gap: 14px; }
+            .hotel-logo { height: 60px; width: auto; display: block; object-fit: contain; }
+            .hotel-info { display: flex; flex-direction: column; justify-content: center; }
+            .hotel-name-new { font-size: 16px; font-weight: 700; color: #1a1a2e; letter-spacing: -0.3px; line-height: 1.2; }
+            .hotel-sub  { font-size: 10px; color: #666; margin-top: 2px; }
             .doc-title  { font-size: 16px; font-weight: 700; color: #1a1a2e; text-align: right; }
             .doc-date   { font-size: 11px; color: #888; text-align: right; margin-top: 2px; }
             .guest-info { background: #f8f8f8; border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; }
@@ -1660,8 +1662,13 @@ function hotelHeader(docTitle) {
     const now = new Date().toLocaleString('en-GB', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
     return `
     <div class="header">
-        <div>
+        <div class="logo-area">
             <img src="images/logo.png" class="hotel-logo" alt="Grand Lynks Logo">
+            <div class="hotel-info">
+                <div class="hotel-name-new">Grand Lynks Homes & Apartments Ltd</div>
+                <div class="hotel-sub">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja &bull; +234 814 223 4691</div>
+                <div class="hotel-sub">grandlynkshomesandapartments.com</div>
+            </div>
         </div>
         <div>
             <div class="doc-title">${docTitle}</div>
