@@ -171,7 +171,13 @@
 
             <nav class="flex-1 overflow-y-auto py-4">
                 <ul class="space-y-1 px-3">
-                    <!-- Normal admin: only Orders and Walk-in Booking are accessible -->
+                    <!-- Normal admin: can view Rooms but cannot edit/delete. Full access to Orders and Walk-in. -->
+                    <li>
+                        <button onclick="switchTab('rooms'); closeSidebarOnMobile()" id="nav-rooms"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">🛏️</span> Rooms
+                        </button>
+                    </li>
                     <li>
                         <button onclick="switchTab('orders'); closeSidebarOnMobile()" id="nav-orders"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
@@ -213,8 +219,8 @@
         <!-- MAIN CONTENT AREA -->
         <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 md:p-8 relative w-full md:ml-72">
 
-            <!-- ROOMS SECTION (Super Admin only – hidden for normal admin) -->
-            <section id="section-rooms" class="hidden fade-in">
+            <!-- ROOMS SECTION (Normal admin: view only, no edit/delete. Super Admin: full access.) -->
+            <section id="section-rooms" class="fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:sticky md:top-0 md:z-30 md:bg-gray-50/95 md:backdrop-blur-sm md:-mx-6 md:px-6 md:py-4 md:mb-2 md:border-b md:border-gray-200">
                     <h2 class="text-xl md:text-2xl font-bold text-gray-800">Room Management</h2>
                     <!-- Add Room button is Super Admin only -->

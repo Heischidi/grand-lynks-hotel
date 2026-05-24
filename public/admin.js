@@ -168,8 +168,8 @@ function showDashboard(user) {
     if (user && user.username) {
         adminUsernameDisplay.textContent = user.username;
     }
-    // Normal admin lands on Orders (rooms/menu/etc. are superadmin-only)
-    switchTab('orders');
+    // Normal admin lands on Rooms (view-only — no edit/delete)
+    switchTab('rooms');
 }
 
 async function handleLogin(e) {
