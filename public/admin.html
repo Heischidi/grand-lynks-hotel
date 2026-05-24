@@ -171,11 +171,17 @@
 
             <nav class="flex-1 overflow-y-auto py-4">
                 <ul class="space-y-1 px-3">
-                    <!-- Normal admin: can view Rooms but cannot edit/delete. Full access to Orders and Walk-in. -->
+                    <!-- Normal admin: Rooms & Food Menu are view-only (no add/edit/delete). Full access to Orders and Walk-in. -->
                     <li>
                         <button onclick="switchTab('rooms'); closeSidebarOnMobile()" id="nav-rooms"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">🛏️</span> Rooms
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchTab('menu'); closeSidebarOnMobile()" id="nav-menu"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">🍽️</span> Food Menu
                         </button>
                     </li>
                     <li>
@@ -301,14 +307,11 @@
                 </div>
             </section>
  
-            <!-- MENU SECTION -->
+            <!-- MENU SECTION (Normal admin: view only, no add/edit/delete. Super Admin: full access.) -->
             <section id="section-menu" class="hidden fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:sticky md:top-0 md:z-30 md:bg-gray-50/95 md:backdrop-blur-sm md:-mx-6 md:px-6 md:py-4 md:mb-2 md:border-b md:border-gray-200">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Food & Beverages</h2>
-                    <button onclick="openModal('menuModal')"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95 w-full sm:w-auto">
-                        + Add Item
-                    </button>
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Food &amp; Beverages</h2>
+                    <!-- Add Item button is Super Admin only -->
                 </div>
 
                 <div class="bg-white rounded-lg shadow overflow-x-auto">
