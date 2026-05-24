@@ -171,18 +171,7 @@
 
             <nav class="flex-1 overflow-y-auto py-4">
                 <ul class="space-y-1 px-3">
-                    <li>
-                        <button onclick="switchTab('rooms'); closeSidebarOnMobile()" id="nav-rooms"
-                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
-                            <span class="mr-3">🛏️</span> Rooms
-                        </button>
-                    </li>
-                    <li>
-                        <button onclick="switchTab('menu'); closeSidebarOnMobile()" id="nav-menu"
-                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
-                            <span class="mr-3">🍽️</span> Food Menu
-                        </button>
-                    </li>
+                    <!-- Normal admin: only Orders and Walk-in Booking are accessible -->
                     <li>
                         <button onclick="switchTab('orders'); closeSidebarOnMobile()" id="nav-orders"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
@@ -193,24 +182,6 @@
                         <button onclick="switchTab('walkin'); closeSidebarOnMobile()" id="nav-walkin"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">🏨</span> Walk-in Booking
-                        </button>
-                    </li>
-                    <li>
-                        <button onclick="switchTab('guests'); closeSidebarOnMobile()" id="nav-guests"
-                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
-                            <span class="mr-3">👤</span> Guest Directory
-                        </button>
-                    </li>
-                    <li>
-                        <button onclick="switchTab('reviews'); closeSidebarOnMobile()" id="nav-reviews"
-                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
-                            <span class="mr-3">⭐</span> Reviews
-                        </button>
-                    </li>
-                    <li>
-                        <button onclick="switchTab('settings'); closeSidebarOnMobile()" id="nav-settings"
-                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
-                            <span class="mr-3">⚙️</span> Settings
                         </button>
                     </li>
                     <li class="border-t border-gray-100 my-2 pt-2">
@@ -242,14 +213,11 @@
         <!-- MAIN CONTENT AREA -->
         <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 md:p-8 relative w-full md:ml-72">
 
-            <!-- ROOMS SECTION -->
-            <section id="section-rooms" class="fade-in">
+            <!-- ROOMS SECTION (Super Admin only – hidden for normal admin) -->
+            <section id="section-rooms" class="hidden fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:sticky md:top-0 md:z-30 md:bg-gray-50/95 md:backdrop-blur-sm md:-mx-6 md:px-6 md:py-4 md:mb-2 md:border-b md:border-gray-200">
                     <h2 class="text-xl md:text-2xl font-bold text-gray-800">Room Management</h2>
-                    <button onclick="openModal('roomModal')"
-                        class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95 w-full sm:w-auto">
-                        + Add Room
-                    </button>
+                    <!-- Add Room button is Super Admin only -->
                 </div>
 
                 <div class="bg-white rounded-lg shadow overflow-x-auto">
