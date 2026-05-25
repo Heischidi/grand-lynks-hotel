@@ -524,6 +524,29 @@
                             </div>
                         </div>
 
+                        <!-- Staff Notes -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Staff Notes</h3>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Internal Notes <span class="text-xs text-gray-400">(optional – not shared with guest)</span></label>
+                                <textarea name="staffNotes" id="walkInStaffNotes" rows="3"
+                                    placeholder="e.g. VIP guest, allergy notes, special requests, behavioural flags…"
+                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-300 focus:outline-none resize-none"></textarea>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Discount on Room Booking (%)</label>
+                                <div class="relative max-w-xs">
+                                    <input type="number" name="bookingDiscount" id="walkInBookingDiscount"
+                                        min="0" max="100" step="0.01" placeholder="0"
+                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-8 focus:ring-blue-500 focus:border-blue-500">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-400 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Enter 0 for no discount. Applied to total room booking amount.</p>
+                            </div>
+                        </div>
+
                         <div class="flex justify-end pt-4">
                             <button type="submit"
                                 class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm">
@@ -580,6 +603,30 @@
                                         class="block w-full border border-gray-300 rounded-md shadow-sm py-2 pl-8 pr-3 focus:ring-blue-500 focus:border-blue-500">
                                 </div>
                                 <p class="text-xs text-gray-400 mt-1">Flat fee added to delivery orders.</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Room Booking Discount (%)</label>
+                                <div class="relative">
+                                    <input type="number" id="settingRoomDiscount" name="roomDiscount" step="0.01" min="0" max="100"
+                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Global discount applied to all room bookings.</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Food Order Discount (%)</label>
+                                <div class="relative">
+                                    <input type="number" id="settingFoodDiscount" name="foodDiscount" step="0.01" min="0" max="100"
+                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Global discount applied to all food orders.</p>
                             </div>
                         </div>
 

@@ -603,7 +603,7 @@ app.get("/settings", async (req, res) => {
   try {
     const settings = await prisma.siteSettings.findMany();
     // Default fallback values if not set
-    const defaultSettings = { taxRate: "8.5", roomServiceFee: "1000" };
+    const defaultSettings = { taxRate: "8.5", roomServiceFee: "1000", roomDiscount: "0", foodDiscount: "0" };
     
     const configData = { ...defaultSettings };
     settings.forEach(s => { configData[s.key] = s.value; });
@@ -1072,7 +1072,7 @@ app.get("/bookings", authenticateToken, async (req, res) => {
 
 app.post("/bookings", validateBooking, async (req, res) => {
   try {
-    const { guestId, roomId, startDate, endDate, status } = req.body;
+    const { guestId, roomId, startDate, endDate, status, specialRequests, discountPct } = req.body;
 
     // Check for overlapping bookings
     const overlappingBookings = await prisma.booking.findMany({
@@ -1121,7 +1121,13 @@ app.post("/bookings", validateBooking, async (req, res) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const totalAmount = room.pricePerNight * nights;
+    let totalAmount = room.pricePerNight * nights;
+
+    // Apply per-booking discount if provided
+    const discount = parseFloat(discountPct) || 0;
+    if (discount > 0 && discount <= 100) {
+      totalAmount = totalAmount * (1 - discount / 100);
+    }
 
     const booking = await prisma.booking.create({
       data: {
@@ -1131,6 +1137,7 @@ app.post("/bookings", validateBooking, async (req, res) => {
         endDate: end,
         status: status || "pending",
         totalAmount,
+        ...(specialRequests && { specialRequests }),
       },
       include: {
         guest: true,
@@ -1144,7 +1151,7 @@ app.post("/bookings", validateBooking, async (req, res) => {
     // Send Admin Notification
     sendAdminNotificationEmail({
       type: "booking",
-      details: `New booking received from <strong>${booking.guest.name}</strong> for room <strong>${booking.room.number}</strong> (${booking.room.type}). <br>Total Amount: ₦${booking.totalAmount.toLocaleString()} <br>Check-in: ${new Date(booking.startDate).toDateString()}`
+      details: `New booking received from <strong>${booking.guest.name}</strong> for room <strong>${booking.room.number}</strong> (${booking.room.type}). <br>Total Amount: ₦${booking.totalAmount.toLocaleString()}${discount > 0 ? ` (after ${discount}% discount)` : ''} <br>Check-in: ${new Date(booking.startDate).toDateString()}`
     });
 
     res.json({ message: "Booking created successfully", booking });

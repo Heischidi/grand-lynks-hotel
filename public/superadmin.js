@@ -1041,26 +1041,27 @@ async function handleWalkInSubmit(e) {
             body: JSON.stringify(guestData)
         });
 
-        if (!guestResponse.ok) throw new Error('Failed to create guest record');
+        if (!guestResponse.ok) {
+            const errData = await guestResponse.json().catch(() => ({}));
+            throw new Error(errData.error || 'Failed to create guest record');
+        }
         const guestResult = await guestResponse.json();
         const guestId = guestResult.guest.id;
 
         // 2. Create Booking
         const paymentStatus = formData.get('paymentStatus'); // 'paid' or 'pending'
+        const staffNotes    = formData.get('staffNotes') || '';
+        const discountPct   = parseFloat(formData.get('bookingDiscount') || '0') || 0;
         
         const bookingData = {
             guestId: guestId,
             roomId: formData.get('roomId'),
             startDate: formData.get('startDate'),
             endDate: formData.get('endDate'),
-            status: paymentStatus === 'paid' ? 'confirmed' : 'pending'
+            status: paymentStatus === 'paid' ? 'confirmed' : 'pending',
+            ...(staffNotes && { specialRequests: staffNotes }),
+            ...(discountPct > 0 && { discountPct })
         };
-
-        // Note: Using authFetch for bookings if required, but server.js POST /bookings is confusingly open or closed.
-        // Line 395 in server.js: app.post("/api/bookings", validateBooking, ...) -> NO AUTH middleware listed in the line itself?
-        // Wait, other POSTs like /api/rooms have authenticateToken.
-        // Safer to use authFetch just in case, but if it fails due to no token (if user not logged in?), wait.
-        // Admin dashboard requires login, so authFetch is perfect.
 
         const bookingResponse = await authFetch('/bookings', {
             method: 'POST',
@@ -1068,9 +1069,16 @@ async function handleWalkInSubmit(e) {
         });
 
         if (bookingResponse && bookingResponse.ok) {
-            const successMsg = paymentStatus === 'paid' 
+            const bookingResult = await bookingResponse.json();
+            let successMsg = paymentStatus === 'paid' 
                 ? 'Guest successfully registered and payment confirmed!' 
                 : 'Guest registered! Booking is PENDING payment verification.';
+            if (discountPct > 0) {
+                successMsg += `\n\nDiscount of ${discountPct}% applied.`;
+            }
+            if (staffNotes) {
+                successMsg += `\n\n📝 Staff notes saved.`;
+            }
             alert(successMsg);
             e.target.reset();
             if (paymentStatus === 'paid') {
@@ -1185,6 +1193,10 @@ async function fetchSettings() {
             const data = await response.json();
             document.getElementById('settingTaxRate').value = data.taxRate || 8.5;
             document.getElementById('settingRoomServiceFee').value = data.roomServiceFee || 1000;
+            const roomDiscEl = document.getElementById('settingRoomDiscount');
+            if (roomDiscEl) roomDiscEl.value = data.roomDiscount || 0;
+            const foodDiscEl = document.getElementById('settingFoodDiscount');
+            if (foodDiscEl) foodDiscEl.value = data.foodDiscount || 0;
             document.getElementById('saveSettingsBtn').classList.remove('hidden');
         }
     } catch (e) {
@@ -1863,7 +1875,9 @@ if (settingsForm) {
 
         const payload = {
             taxRate: document.getElementById('settingTaxRate').value,
-            roomServiceFee: document.getElementById('settingRoomServiceFee').value
+            roomServiceFee: document.getElementById('settingRoomServiceFee').value,
+            roomDiscount: document.getElementById('settingRoomDiscount')?.value || '0',
+            foodDiscount: document.getElementById('settingFoodDiscount')?.value || '0'
         };
 
         try {

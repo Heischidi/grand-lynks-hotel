@@ -396,6 +396,12 @@ class BookingIntegration {
       const guestResponse = await guestRes.json();
       
       if (!guestRes.ok) {
+        // 403 means the email is on the blacklist — show a clear, friendly rejection
+        if (guestRes.status === 403) {
+          this.showBlacklistRejection();
+          this.hideLoading("btnPay", "Confirm Booking");
+          return;
+        }
         throw new Error(guestResponse.error || "Failed to process guest information.");
       }
 
@@ -429,6 +435,61 @@ class BookingIntegration {
       this.showError(`Booking failed: ${error.message}`);
       this.hideLoading("btnPay", "Confirm Booking");
     }
+  }
+
+  showBlacklistRejection() {
+    // Remove any existing overlay
+    const existing = document.getElementById("blacklistRejectionOverlay");
+    if (existing) existing.remove();
+
+    // Close the payment notice modal if open
+    const backdrop = document.getElementById("paymentNoticeBackdrop");
+    if (backdrop) backdrop.style.display = "none";
+    document.body.style.overflow = "";
+
+    const overlay = document.createElement("div");
+    overlay.id = "blacklistRejectionOverlay";
+    overlay.style.cssText = `
+      position:fixed; inset:0; background:rgba(0,0,0,0.88);
+      z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;
+    `;
+
+    overlay.innerHTML = `
+      <div style="
+        background:#1a1a2e; border:2px solid #dc2626; border-radius:12px;
+        max-width:480px; width:100%; padding:36px 32px; color:#fff; text-align:center;
+        box-shadow:0 20px 60px rgba(0,0,0,0.8);
+      ">
+        <div style="font-size:3rem; margin-bottom:16px;">🚫</div>
+        <h2 style="color:#dc2626; margin:0 0 16px; font-size:1.4rem; font-family:'Playfair Display',serif;">
+          Booking Request Declined
+        </h2>
+        <div style="
+          background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.4);
+          border-radius:8px; padding:20px 22px; line-height:1.8; font-size:0.95rem; color:#ddd; text-align:left;
+        ">
+          <p style="margin:0;">
+            We are unable to process a booking for the email address provided.
+            If you believe this is an error, please contact the hotel directly.
+          </p>
+          <p style="margin:12px 0 0; color:#aaa; font-style:italic;">
+            📞 Please call our front desk or visit us in person for assistance.
+          </p>
+        </div>
+        <button id="blacklistOkBtn" style="
+          margin-top:24px; padding:12px 36px; border-radius:6px; border:none;
+          background:#dc2626; color:#fff; cursor:pointer; font-size:1rem; font-weight:600;
+        ">Close</button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = "hidden";
+
+    document.getElementById("blacklistOkBtn").addEventListener("click", () => {
+      overlay.remove();
+      document.body.style.overflow = "";
+    });
   }
 
   showGuestConfirmation() {
