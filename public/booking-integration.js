@@ -293,19 +293,32 @@ class BookingIntegration {
     const nights = ms > 0 ? Math.ceil(ms / (1000 * 60 * 60 * 24)) : 0;
 
     const price = room.pricePerNight || room.price || 0;
-    const total = price * nights;
+    const discount = parseFloat(room.discount) || 0;
+    const discountedPrice = discount > 0 ? price * (1 - discount / 100) : price;
+    const total = discountedPrice * nights;
 
     // Update Sidebar Elements (Specific IDs)
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    const money = n => "₦" + n.toLocaleString();
+    const setHTML = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+    const money = n => "₦" + Math.round(n).toLocaleString();
 
     set("sumRoom", room.type);
     set("sumCheckin", checkin || "—");
     set("sumCheckout", checkout || "—");
     set("sumGuests", guests || "—");
-    set("sumPrice", money(price));
     set("sumNights", nights);
     set("sumTotal", money(total));
+
+    // Show discounted price with badge if applicable
+    if (discount > 0) {
+      setHTML("sumPrice", `
+        <span style="text-decoration:line-through;color:#9ca3af;font-size:0.85em;">${money(price)}</span><br>
+        <span style="color:#16a34a;font-weight:700;">${money(discountedPrice)}</span>
+        <span style="margin-left:4px;background:#dcfce7;color:#15803d;font-size:0.75em;font-weight:700;padding:1px 6px;border-radius:4px;">${discount}% OFF</span>
+      `);
+    } else {
+      set("sumPrice", money(price));
+    }
   }
 
   validateForm() {
@@ -353,10 +366,12 @@ class BookingIntegration {
         if (totalEl && this.currentBooking) {
           const { room, checkin, checkout } = this.currentBooking;
           const price = room.pricePerNight || room.price || 0;
+          const discount = parseFloat(room.discount) || 0;
+          const effectivePrice = discount > 0 ? price * (1 - discount / 100) : price;
           const nights = Math.ceil(
             (new Date(checkout) - new Date(checkin)) / (1000 * 60 * 60 * 24)
           ) || 0;
-          totalEl.textContent = "\u20A6" + (price * nights).toLocaleString();
+          totalEl.textContent = "\u20A6" + Math.round(effectivePrice * nights).toLocaleString();
         }
         document.getElementById("paymentNoticeStep1").style.display = "none";
         document.getElementById("paymentNoticeStep2").style.display = "block";

@@ -24,6 +24,7 @@ model Room {
   number        Int       @unique
   type          String
   pricePerNight Float
+  discount      Float     @default(0)  // percentage discount (0-100) shown to public
   status        String    @default("available") // available, occupied, maintenance, reserved
   description   String?
   amenities     String?   // JSON string of amenities

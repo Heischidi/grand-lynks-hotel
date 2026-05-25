@@ -325,7 +325,11 @@ function renderRooms(rooms) {
             </td>
             <td data-label="Number" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap font-medium text-xs md:text-sm text-gray-900 block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Number:</span>${room.roomNumber || room.number || 'N/A'}</td>
             <td data-label="Type" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Type:</span>${room.type}</td>
-            <td data-label="Price" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Price:</span>₦${(room.pricePerNight || room.price).toLocaleString()}</td>
+            <td data-label="Price" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm block md:table-cell text-right md:text-left"><span class="md:hidden font-bold mr-2 text-gray-500 float-left">Price:</span>
+                <div class="inline-block">
+                    ${room.discount > 0 ? `<span class="line-through text-gray-400 text-xs">₦${(room.pricePerNight || room.price).toLocaleString()}</span><br><span class="text-green-700 font-semibold">₦${Math.round((room.pricePerNight || room.price) * (1 - room.discount / 100)).toLocaleString()}</span> <span class="ml-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded">${room.discount}% OFF</span>` : `₦${(room.pricePerNight || room.price).toLocaleString()}`}
+                </div>
+            </td>
             <td data-label="Status" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left">
                 <span class="md:hidden font-bold mr-2 text-gray-500 float-left">Status:</span>
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${room.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
@@ -390,6 +394,8 @@ window.openEditRoomModal = function (roomId) {
     document.getElementById('editRoomType').value = room.type;
     document.getElementById('editRoomPrice').value = room.pricePerNight || room.price || 0;
     document.getElementById('editRoomDescription').value = room.description || '';
+    const discountInput = document.getElementById('editRoomDiscount');
+    if (discountInput) discountInput.value = room.discount || 0;
 
     // Parse existing JSON string of amenities into a comma-separated string for the textarea
     let amenitiesStr = '';
@@ -408,12 +414,6 @@ window.openEditRoomModal = function (roomId) {
     }
     const statusSelect = document.getElementById('editRoomStatus');
     if (statusSelect) {
-        // Backend stores 'status' string, but UI often uses 'available' boolean derived status.
-        // Let's rely on room.status which is raw.
-        // Wait, schema says status: String // available, occupied, maintenance, reserved
-        // The select options are: available, booked, maintenance
-        // Map 'occupied'/'reserved' to 'booked' for the dropdown if needed?
-        // Or just set value directly if it matches.
         if (room.status) {
             statusSelect.value = (room.status === 'occupied' || room.status === 'reserved') ? 'booked' : room.status;
         } else {

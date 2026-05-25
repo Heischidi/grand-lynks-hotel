@@ -667,7 +667,7 @@ app.get("/rooms", async (req, res) => {
 app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const imagePath = req.file ? await uploadToSupabase(req.file) : null;
-    const { number, type, pricePerNight, description, amenities } = req.body;
+    const { number, type, pricePerNight, description, amenities, discount } = req.body;
 
     // Validate manually since Multer parses body
     if (!number || !type || !pricePerNight) {
@@ -678,6 +678,7 @@ app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) =
       number: parseInt(number),
       type,
       pricePerNight: parseFloat(pricePerNight),
+      discount: discount !== undefined ? Math.min(100, Math.max(0, parseFloat(discount) || 0)) : 0,
       description,
       status: "available"
     };
@@ -692,9 +693,6 @@ app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) =
     }
 
     if (imagePath) {
-      // Store as JSON string array as per schema comment, or just flat string if cleaner?
-      // Schema says: images String? // JSON string of image paths
-      // Let's stick to the schema convention.
       roomData.images = JSON.stringify([imagePath]);
     }
 
@@ -715,12 +713,8 @@ app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) =
 app.put("/rooms/:id", authenticateToken, upload.single('image'), async (req, res) => {
   try {
     console.log("PUT /rooms/:id called");
-    console.log("Headers CT:", req.headers['content-type']);
-    console.log("Body:", req.body);
-    console.log("File:", req.file);
-
     const imagePath = req.file ? await uploadToSupabase(req.file) : null;
-    const { number, type, pricePerNight, description, status, amenities } = req.body;
+    const { number, type, pricePerNight, description, status, amenities, discount } = req.body;
 
     const updateData = {};
 
@@ -733,7 +727,6 @@ app.put("/rooms/:id", authenticateToken, upload.single('image'), async (req, res
       }
     }
 
-    // Improved validation and parsing
     if (number) {
       const parsedNumber = parseInt(number);
       if (isNaN(parsedNumber)) {
@@ -750,6 +743,11 @@ app.put("/rooms/:id", authenticateToken, upload.single('image'), async (req, res
         return res.status(400).json({ error: "Invalid price per night" });
       }
       updateData.pricePerNight = parsedPrice;
+    }
+
+    // Allow setting discount to 0 explicitly
+    if (discount !== undefined) {
+      updateData.discount = Math.min(100, Math.max(0, parseFloat(discount) || 0));
     }
 
     if (description !== undefined) updateData.description = description;
@@ -770,7 +768,6 @@ app.put("/rooms/:id", authenticateToken, upload.single('image'), async (req, res
     if (error.code === "P2025") {
       res.status(404).json({ error: "Room not found" });
     } else if (error.code === "P2002") {
-      // Handle unique constraint violation (e.g., room number already exists)
       const target = error.meta?.target;
       if (target && target.includes('number')) {
         res.status(409).json({ error: "Room number already exists" });
@@ -1123,11 +1120,21 @@ app.post("/bookings", validateBooking, async (req, res) => {
     const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     let totalAmount = room.pricePerNight * nights;
 
-    // Apply per-booking discount if provided
-    const discount = parseFloat(discountPct) || 0;
-    if (discount > 0 && discount <= 100) {
-      totalAmount = totalAmount * (1 - discount / 100);
+    // Apply room-level discount (set by admin per room)
+    const roomDiscount = parseFloat(room.discount) || 0;
+    if (roomDiscount > 0) {
+      totalAmount = totalAmount * (1 - roomDiscount / 100);
     }
+
+    // Apply any additional per-booking discount (from walk-in staff)
+    const manualDiscount = parseFloat(discountPct) || 0;
+    if (manualDiscount > 0 && manualDiscount <= 100) {
+      totalAmount = totalAmount * (1 - manualDiscount / 100);
+    }
+
+    const effectiveDiscount = roomDiscount > 0 || manualDiscount > 0
+      ? `Room: ${roomDiscount}%${manualDiscount > 0 ? `, Staff override: ${manualDiscount}%` : ''}`
+      : null;
 
     const booking = await prisma.booking.create({
       data: {
@@ -1151,7 +1158,7 @@ app.post("/bookings", validateBooking, async (req, res) => {
     // Send Admin Notification
     sendAdminNotificationEmail({
       type: "booking",
-      details: `New booking received from <strong>${booking.guest.name}</strong> for room <strong>${booking.room.number}</strong> (${booking.room.type}). <br>Total Amount: ₦${booking.totalAmount.toLocaleString()}${discount > 0 ? ` (after ${discount}% discount)` : ''} <br>Check-in: ${new Date(booking.startDate).toDateString()}`
+      details: `New booking received from <strong>${booking.guest.name}</strong> for room <strong>${booking.room.number}</strong> (${booking.room.type}). <br>Total Amount: ₦${booking.totalAmount.toLocaleString()}${effectiveDiscount ? ` (after discount: ${effectiveDiscount})` : ''} <br>Check-in: ${new Date(booking.startDate).toDateString()}`
     });
 
     res.json({ message: "Booking created successfully", booking });
