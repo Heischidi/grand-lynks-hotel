@@ -2230,6 +2230,166 @@ app.post("/room-service-orders", async (req, res) => {
   }
 });
 
+// --- SUPER ADMIN STATISTICS ---
+app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+
+    // Fetch all needed data in parallel
+    const [bookings, orders, guests, rooms] = await Promise.all([
+      prisma.booking.findMany({
+        where: { deletedAt: null },
+        select: { totalAmount: true, status: true, createdAt: true, startDate: true, endDate: true }
+      }),
+      prisma.order.findMany({
+        where: { deletedAt: null },
+        select: { totalAmount: true, status: true, createdAt: true }
+      }),
+      prisma.guest.findMany({
+        where: { deletedAt: null },
+        select: { id: true, createdAt: true }
+      }),
+      prisma.room.findMany({
+        where: { deletedAt: null },
+        select: { id: true, status: true, bookings: {
+          where: { status: { in: ['confirmed', 'checked-in'] }, deletedAt: null },
+          select: { id: true }
+        }}
+      })
+    ]);
+
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // Helper: is a date in target year?
+    const inYear = (d, y) => new Date(d).getFullYear() === y;
+    const getMonth = (d) => new Date(d).getMonth(); // 0-indexed
+
+    // --- Monthly aggregates for selected year ---
+    const monthlyBookingRevenue = Array(12).fill(0);
+    const monthlyOrderRevenue   = Array(12).fill(0);
+    const monthlyBookingCount   = Array(12).fill(0);
+    const monthlyOrderCount     = Array(12).fill(0);
+    const monthlyGuestCount     = Array(12).fill(0);
+
+    const bookingStatusCount = { pending: 0, confirmed: 0, 'checked-in': 0, completed: 0, cancelled: 0 };
+    const allTimeBookingRevenue = { rooms: 0, food: 0 };
+
+    bookings.forEach(b => {
+      const m = getMonth(b.createdAt);
+      if (inYear(b.createdAt, year)) {
+        monthlyBookingCount[m]++;
+        if (['confirmed', 'checked-in', 'completed'].includes(b.status)) {
+          monthlyBookingRevenue[m] += b.totalAmount || 0;
+        }
+      }
+      // Status breakdown (all time)
+      if (bookingStatusCount[b.status] !== undefined) bookingStatusCount[b.status]++;
+      // All-time revenue
+      if (['confirmed', 'checked-in', 'completed'].includes(b.status)) {
+        allTimeBookingRevenue.rooms += b.totalAmount || 0;
+      }
+    });
+
+    orders.forEach(o => {
+      const m = getMonth(o.createdAt);
+      if (inYear(o.createdAt, year)) {
+        monthlyOrderCount[m]++;
+        if (['completed', 'delivered'].includes(o.status)) {
+          monthlyOrderRevenue[m] += o.totalAmount || 0;
+        }
+      }
+      if (['completed', 'delivered'].includes(o.status)) {
+        allTimeBookingRevenue.food += o.totalAmount || 0;
+      }
+    });
+
+    guests.forEach(g => {
+      const m = getMonth(g.createdAt);
+      if (inYear(g.createdAt, year)) {
+        monthlyGuestCount[m]++;
+      }
+    });
+
+    // --- Yearly summaries (last 5 years) ---
+    const currentYear = new Date().getFullYear();
+    const yearlyRevenue = [];
+    for (let y = currentYear - 4; y <= currentYear; y++) {
+      let rev = 0;
+      bookings.forEach(b => {
+        if (inYear(b.createdAt, y) && ['confirmed', 'checked-in', 'completed'].includes(b.status)) {
+          rev += b.totalAmount || 0;
+        }
+      });
+      orders.forEach(o => {
+        if (inYear(o.createdAt, y) && ['completed', 'delivered'].includes(o.status)) {
+          rev += o.totalAmount || 0;
+        }
+      });
+      yearlyRevenue.push({ year: y, revenue: rev });
+    }
+
+    // --- KPI Summaries ---
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+
+    const revenueThisMonth =
+      (inYear(now, year) ? monthlyBookingRevenue[thisMonth] + monthlyOrderRevenue[thisMonth] : 0);
+
+    const revenueThisYear = monthlyBookingRevenue.reduce((a, b) => a + b, 0) +
+                            monthlyOrderRevenue.reduce((a, b) => a + b, 0);
+
+    const bookingsThisMonth = inYear(now, year) ? monthlyBookingCount[thisMonth] : 0;
+    const ordersThisMonth   = inYear(now, year) ? monthlyOrderCount[thisMonth] : 0;
+
+    const totalRooms = rooms.length;
+    const occupiedRooms = rooms.filter(r => r.bookings.length > 0).length;
+    const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+    // --- Top 5 months by revenue ---
+    const monthlyTotals = months.map((name, i) => ({
+      month: name,
+      bookingRevenue: monthlyBookingRevenue[i],
+      orderRevenue: monthlyOrderRevenue[i],
+      totalRevenue: monthlyBookingRevenue[i] + monthlyOrderRevenue[i],
+      bookingCount: monthlyBookingCount[i],
+      orderCount: monthlyOrderCount[i]
+    }));
+    const topMonths = [...monthlyTotals].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5);
+
+    res.json({
+      year,
+      months,
+      monthlyBookingRevenue,
+      monthlyOrderRevenue,
+      monthlyBookingCount,
+      monthlyOrderCount,
+      monthlyGuestCount,
+      monthlyTotals,
+      topMonths,
+      bookingStatusCount,
+      revenueBySource: {
+        rooms: allTimeBookingRevenue.rooms,
+        food: allTimeBookingRevenue.food
+      },
+      yearlyRevenue,
+      kpi: {
+        revenueThisMonth,
+        revenueThisYear,
+        bookingsThisMonth,
+        ordersThisMonth,
+        totalGuests: guests.length,
+        totalRooms,
+        occupiedRooms,
+        occupancyRate
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching statistics:", error);
+    res.status(500).json({ error: "Failed to fetch statistics" });
+  }
+});
+
 // --- Database Health Check ---
 app.get("/health", async (req, res) => {
   try {

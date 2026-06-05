@@ -129,6 +129,7 @@ const sections = {
     guests: document.getElementById('section-guests'),
     reviews: document.getElementById('section-reviews'),
     settings: document.getElementById('section-settings'),
+    statistics: document.getElementById('section-statistics'),
     vault: document.getElementById('section-vault')
 };
 
@@ -143,6 +144,7 @@ function init() {
     sections.guests = document.getElementById('section-guests');
     sections.reviews = document.getElementById('section-reviews');
     sections.settings = document.getElementById('section-settings');
+    sections.statistics = document.getElementById('section-statistics');
     sections.vault = document.getElementById('section-vault');
 
     const token = localStorage.getItem('adminToken');
@@ -278,6 +280,7 @@ function switchTab(tabName) {
         if (tabName === 'guests' && (!window.allGuests || window.allGuests.length === 0)) fetchGuests();
         if (tabName === 'reviews') fetchAdminReviews();
         if (tabName === 'settings') fetchSettings();
+        if (tabName === 'statistics') fetchStatistics();
         if (tabName === 'vault') fetchVaultRecords();
     }
 }
@@ -2256,3 +2259,317 @@ window.handlePinSubmit = async function(e) {
         btn.disabled = false;
     }
 };
+
+// ============================================================
+// --- STATISTICS & ANALYTICS ---
+// ============================================================
+
+// Cache for Chart.js instances so we can destroy & recreate on refresh
+const _charts = {};
+
+function destroyChart(key) {
+    if (_charts[key]) {
+        _charts[key].destroy();
+        delete _charts[key];
+    }
+}
+
+function fmtCurrency(n) {
+    if (n >= 1_000_000) return '₦' + (n / 1_000_000).toFixed(1) + 'M';
+    if (n >= 1_000)     return '₦' + (n / 1_000).toFixed(1) + 'K';
+    return '₦' + Math.round(n).toLocaleString();
+}
+
+function fmtCurrencyFull(n) {
+    return '₦' + Math.round(n).toLocaleString();
+}
+
+async function fetchStatistics() {
+    const yearInput = document.getElementById('statsYearInput');
+    const year = yearInput ? parseInt(yearInput.value) || new Date().getFullYear() : new Date().getFullYear();
+    if (yearInput) yearInput.value = year;
+
+    const loading = document.getElementById('statsLoading');
+    const errorEl = document.getElementById('statsError');
+    const content = document.getElementById('statsContent');
+
+    if (loading) loading.classList.remove('hidden');
+    if (errorEl) errorEl.classList.add('hidden');
+    if (content) content.classList.add('hidden');
+
+    try {
+        const res = await authFetch(`/statistics?year=${year}`);
+        if (!res || !res.ok) throw new Error('API error');
+        const data = await res.json();
+
+        if (loading) loading.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
+
+        renderStatistics(data);
+    } catch (err) {
+        console.error('Statistics fetch error:', err);
+        if (loading) loading.classList.add('hidden');
+        if (errorEl)  errorEl.classList.remove('hidden');
+    }
+}
+
+function renderStatistics(data) {
+    const { kpi, months, monthlyBookingRevenue, monthlyOrderRevenue,
+            monthlyBookingCount, monthlyOrderCount, monthlyGuestCount,
+            monthlyTotals, topMonths, bookingStatusCount,
+            revenueBySource, yearlyRevenue, year } = data;
+
+    // ---- KPI Cards ----
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    setText('kpiRevenueMonth',   fmtCurrency(kpi.revenueThisMonth));
+    setText('kpiRevenueYear',    fmtCurrency(kpi.revenueThisYear));
+    setText('kpiBookingsMonth',  kpi.bookingsThisMonth);
+    setText('kpiOrdersMonth',    kpi.ordersThisMonth);
+    setText('kpiGuests',         kpi.totalGuests.toLocaleString());
+    setText('kpiOccupancy',      kpi.occupancyRate + '%');
+    setText('kpiOccupancyDetail', kpi.occupiedRooms + '/' + kpi.totalRooms);
+
+    // Year labels
+    ['chartBarYearLabel','topMonthsYearLabel','activityYearLabel'].forEach(id => setText(id, year));
+
+    // ---- Chart 1: Monthly Revenue Grouped Bar ----
+    destroyChart('monthlyRevenue');
+    const ctxBar = document.getElementById('chartMonthlyRevenue');
+    if (ctxBar) {
+        _charts.monthlyRevenue = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Room Bookings',
+                        data: monthlyBookingRevenue,
+                        backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    },
+                    {
+                        label: 'Food Orders',
+                        data: monthlyOrderRevenue,
+                        backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${fmtCurrencyFull(ctx.raw)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                    y: {
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            font: { size: 10 },
+                            callback: v => fmtCurrency(v)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- Chart 2: 5-Year Trend Line ----
+    destroyChart('yearlyTrend');
+    const ctxLine = document.getElementById('chartYearlyTrend');
+    if (ctxLine && yearlyRevenue && yearlyRevenue.length) {
+        _charts.yearlyTrend = new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: yearlyRevenue.map(y => y.year),
+                datasets: [{
+                    label: 'Annual Revenue',
+                    data: yearlyRevenue.map(y => y.revenue),
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99,102,241,0.1)',
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#6366f1',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    fill: true,
+                    tension: 0.35
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: ctx => ` Revenue: ${fmtCurrencyFull(ctx.raw)}` }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                    y: {
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: { font: { size: 10 }, callback: v => fmtCurrency(v) }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- Chart 3: Booking Status Doughnut ----
+    destroyChart('bookingStatus');
+    const ctxDoughnut = document.getElementById('chartBookingStatus');
+    const statusColors = {
+        pending:    '#f59e0b',
+        confirmed:  '#3b82f6',
+        'checked-in': '#10b981',
+        completed:  '#6366f1',
+        cancelled:  '#ef4444'
+    };
+    if (ctxDoughnut && bookingStatusCount) {
+        const statusLabels = Object.keys(bookingStatusCount);
+        const statusData   = statusLabels.map(k => bookingStatusCount[k]);
+        const statusBg     = statusLabels.map(k => statusColors[k] || '#9ca3af');
+
+        _charts.bookingStatus = new Chart(ctxDoughnut, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: statusBg,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.parsed / statusData.reduce((a,b)=>a+b,0)*100)||0}%)`
+                        }
+                    }
+                }
+            }
+        });
+
+        // Custom legend
+        const legendEl = document.getElementById('statusLegend');
+        if (legendEl) {
+            legendEl.innerHTML = statusLabels.map((k, i) => `
+                <span class="flex items-center gap-1">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${statusBg[i]}"></span>
+                    ${k.charAt(0).toUpperCase() + k.slice(1)}: <strong>${statusData[i]}</strong>
+                </span>
+            `).join('');
+        }
+    }
+
+    // ---- Chart 4: Revenue by Source Pie ----
+    destroyChart('revenueSource');
+    const ctxPie = document.getElementById('chartRevenueSource');
+    if (ctxPie && revenueBySource) {
+        const sourceLabels = ['Room Bookings', 'Food Orders'];
+        const sourceData   = [revenueBySource.rooms, revenueBySource.food];
+        const sourceBg     = ['#6366f1', '#10b981'];
+
+        _charts.revenueSource = new Chart(ctxPie, {
+            type: 'pie',
+            data: {
+                labels: sourceLabels,
+                datasets: [{
+                    data: sourceData,
+                    backgroundColor: sourceBg,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${fmtCurrencyFull(ctx.raw)}`
+                        }
+                    }
+                }
+            }
+        });
+
+        const srcLegend = document.getElementById('sourceLegend');
+        if (srcLegend) {
+            const total = sourceData.reduce((a,b) => a+b, 0);
+            srcLegend.innerHTML = sourceLabels.map((l, i) => `
+                <span class="flex items-center gap-1">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${sourceBg[i]}"></span>
+                    ${l}: <strong>${total > 0 ? Math.round(sourceData[i]/total*100) : 0}%</strong>
+                </span>
+            `).join('');
+        }
+    }
+
+    // ---- Top Months Table ----
+    const topBody = document.getElementById('topMonthsTableBody');
+    if (topBody && topMonths) {
+        topBody.innerHTML = topMonths.map((m, idx) => `
+            <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+                <td class="py-2 text-gray-400 font-medium">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx+1}</td>
+                <td class="py-2 font-semibold text-gray-700">${m.month}</td>
+                <td class="py-2 text-right text-indigo-600">${fmtCurrency(m.bookingRevenue)}</td>
+                <td class="py-2 text-right text-emerald-600">${fmtCurrency(m.orderRevenue)}</td>
+                <td class="py-2 text-right font-bold text-gray-800">${fmtCurrency(m.totalRevenue)}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="5" class="py-4 text-center text-gray-400">No revenue data for this year</td></tr>';
+    }
+
+    // ---- Monthly Activity Table ----
+    const actBody = document.getElementById('monthlyActivityTableBody');
+    if (actBody && monthlyTotals) {
+        actBody.innerHTML = monthlyTotals.map((m, i) => {
+            const isCurrentMonth = new Date().getMonth() === i && new Date().getFullYear() === year;
+            return `
+                <tr class="${isCurrentMonth ? 'bg-indigo-50' : 'hover:bg-gray-50'} transition">
+                    <td class="py-2 pr-4 font-medium text-gray-700 ${isCurrentMonth ? 'text-indigo-700' : ''}">${m.month}${isCurrentMonth ? ' <span class="text-xs text-indigo-500">(current)</span>' : ''}</td>
+                    <td class="py-2 px-2 text-right text-indigo-600">${m.bookingRevenue > 0 ? fmtCurrencyFull(m.bookingRevenue) : '<span class="text-gray-300">—</span>'}</td>
+                    <td class="py-2 px-2 text-right text-emerald-600">${m.orderRevenue > 0 ? fmtCurrencyFull(m.orderRevenue) : '<span class="text-gray-300">—</span>'}</td>
+                    <td class="py-2 px-2 text-right font-semibold text-gray-800">${m.totalRevenue > 0 ? fmtCurrencyFull(m.totalRevenue) : '<span class="text-gray-300">—</span>'}</td>
+                    <td class="py-2 px-2 text-right text-gray-600">${m.bookingCount || '<span class="text-gray-300">0</span>'}</td>
+                    <td class="py-2 px-2 text-right text-gray-600">${m.orderCount || '<span class="text-gray-300">0</span>'}</td>
+                    <td class="py-2 pl-2 text-right text-gray-600">${monthlyGuestCount[i] || '<span class="text-gray-300">0</span>'}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+}
+
+// Initialize year input when Statistics section first loads
+document.addEventListener('DOMContentLoaded', () => {
+    const yearInput = document.getElementById('statsYearInput');
+    if (yearInput) yearInput.value = new Date().getFullYear();
+
+    // Allow Enter key on year input to refresh
+    if (yearInput) {
+        yearInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') fetchStatistics();
+        });
+        yearInput.addEventListener('change', fetchStatistics);
+    }
+});
+
