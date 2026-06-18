@@ -128,7 +128,8 @@ const sections = {
     walkin: document.getElementById('section-walkin'),
     guests: document.getElementById('section-guests'),
     reviews: document.getElementById('section-reviews'),
-    settings: document.getElementById('section-settings')
+    settings: document.getElementById('section-settings'),
+    tracker: document.getElementById('section-tracker')
 };
 
 // --- AUTHENTICATION ---
@@ -142,6 +143,7 @@ function init() {
     sections.guests = document.getElementById('section-guests');
     sections.reviews = document.getElementById('section-reviews');
     sections.settings = document.getElementById('section-settings');
+    sections.tracker = document.getElementById('section-tracker');
 
     const token = localStorage.getItem('adminToken');
     const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
@@ -272,6 +274,7 @@ function switchTab(tabName) {
         if (tabName === 'guests' && (!window.allGuests || window.allGuests.length === 0)) fetchGuests();
         if (tabName === 'reviews') fetchAdminReviews();
         if (tabName === 'settings') fetchSettings();
+        if (tabName === 'tracker') fetchRoomsForTracker();
     }
 }
 
@@ -342,6 +345,79 @@ function renderRooms(rooms) {
             </td>
         `;
         tbody.appendChild(tr);
+    });
+}
+
+// --- LIVE ROOM TRACKER ---
+
+window.fetchRoomsForTracker = async function() {
+    const grid = document.getElementById('roomTrackerGrid');
+    if(grid) grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Refreshing tracker...</div>';
+
+    const response = await fetch(`${API_URL}/rooms`);
+    if (response && response.ok) {
+        const rooms = await response.json();
+        renderRoomTracker(rooms);
+    } else {
+        if(grid) grid.innerHTML = '<div class="col-span-full text-center text-red-500 py-10">Failed to load live tracker.</div>';
+    }
+};
+
+function renderRoomTracker(rooms) {
+    const grid = document.getElementById('roomTrackerGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (rooms.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">No rooms available to track.</div>';
+        return;
+    }
+
+    // Sort rooms by number
+    rooms.sort((a, b) => {
+        const numA = parseInt(a.roomNumber || a.number) || 0;
+        const numB = parseInt(b.roomNumber || b.number) || 0;
+        return numA - numB;
+    });
+
+    rooms.forEach(room => {
+        const card = document.createElement('div');
+        
+        // Determine status colors based on backend status and availability
+        let statusColorClass = 'bg-green-500 border-green-600';
+        let statusTextClass = 'text-green-800 bg-green-100';
+        let displayStatus = 'Available';
+        let statusIcon = '✅';
+
+        if (room.status === 'maintenance') {
+            statusColorClass = 'bg-yellow-400 border-yellow-500';
+            statusTextClass = 'text-yellow-800 bg-yellow-100';
+            displayStatus = 'Maintenance';
+            statusIcon = '⚠️';
+        } else if (room.status === 'booked' || room.status === 'checked-in' || room.status === 'occupied' || room.status === 'reserved' || !room.available) {
+            statusColorClass = 'bg-red-500 border-red-600';
+            statusTextClass = 'text-red-800 bg-red-100';
+            displayStatus = 'Occupied';
+            statusIcon = '🔒';
+        }
+
+        card.className = `bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col h-full`;
+        
+        card.innerHTML = `
+            <div class="absolute top-0 left-0 w-full h-1.5 ${statusColorClass}"></div>
+            <div class="flex justify-between items-start mb-2 mt-1">
+                <span class="text-2xl font-black text-gray-800 tracking-tight">${room.roomNumber || room.number || 'N/A'}</span>
+                <span class="text-lg">${statusIcon}</span>
+            </div>
+            <p class="text-xs text-gray-500 font-medium mb-3 truncate" title="${room.type}">${room.type}</p>
+            <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
+                <span class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${statusTextClass}">
+                    ${displayStatus}
+                </span>
+                <span class="text-xs font-semibold text-gray-600">₦${(room.pricePerNight || room.price || 0).toLocaleString()}</span>
+            </div>
+        `;
+        grid.appendChild(card);
     });
 }
 

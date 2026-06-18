@@ -204,6 +204,12 @@
                         </button>
                     </li>
                     <li>
+                        <button onclick="switchTab('tracker'); closeSidebarOnMobile()" id="nav-tracker"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">📅</span> Live Tracker
+                        </button>
+                    </li>
+                    <li>
                         <button onclick="switchTab('menu'); closeSidebarOnMobile()" id="nav-menu"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">🍽️</span> Food Menu
@@ -324,6 +330,32 @@
                     </table>
                 </div>
             </section>
+
+            <!-- ROOM TRACKER SECTION -->
+            <section id="section-tracker" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Live Room Tracker</h2>
+                        <p class="text-sm text-gray-500 mt-1">Real-time status of all hotel rooms</p>
+                    </div>
+                    <button onclick="fetchRoomsForTracker()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center shadow-sm">
+                        <span class="mr-2">↻</span> Refresh
+                    </button>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex flex-wrap gap-6 mb-6 text-sm font-medium bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                    <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-green-500 shadow-sm border border-green-600"></span> Available</div>
+                    <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-red-500 shadow-sm border border-red-600"></span> Booked / Occupied</div>
+                    <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-yellow-400 shadow-sm border border-yellow-500"></span> Maintenance</div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="roomTrackerGrid">
+                    <!-- JS will populate -->
+                    <div class="col-span-full text-center text-gray-500 py-10">Loading live tracker...</div>
+                </div>
+            </section>
+
 
             <!-- GUEST DIRECTORY SECTION -->
             <section id="section-guests" class="hidden fade-in">

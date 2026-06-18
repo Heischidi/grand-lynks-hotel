@@ -174,12 +174,17 @@
         if (typeof rawPrice === 'string') rawPrice = parseFloat(rawPrice.replace(/,/g, ''));
         const priceValue = Number(rawPrice) || 0;
 
-        const isAvailable =
-          typeof room.available === "boolean"
-            ? room.available
-            : typeof room.status === "string"
-              ? room.status.toLowerCase() === "available"
-              : false;
+        let statusColorClass = 'color: #10b981; background: #d1fae5; border-color: #34d399;'; // Green
+        let displayStatus = 'Available';
+
+        if (room.status === 'maintenance') {
+            statusColorClass = 'color: #b45309; background: #fef3c7; border-color: #fcd34d;'; // Yellow
+            displayStatus = 'Maintenance';
+        } else if (room.status === 'booked' || room.status === 'checked-in' || room.status === 'occupied' || room.status === 'reserved' || room.available === false) {
+            statusColorClass = 'color: #b91c1c; background: #fee2e2; border-color: #f87171;'; // Red
+            displayStatus = 'Occupied';
+        }
+
         let imgSrc = "images/grandroom101.jpeg";
         if (room.images) {
           try {
@@ -206,18 +211,22 @@
           } catch(e) {}
         }
 
+        const roomNumberHTML = room.roomNumber || room.number ? `<span style="font-size:0.85rem; padding: 2px 6px; background:#f3f4f6; border-radius:4px; margin-left: 8px; vertical-align: middle;">Room ${room.roomNumber || room.number}</span>` : '';
+
         // Pass formatted price or 0 to modal
         container.innerHTML += `
             <div class="room-card" onclick="showRoomPreview('${roomType}', '${imgSrc}', ${priceValue}, '${room.description || "Comfortable and elegant."}', ${room.id}, this)" data-amenities='${rawAmenitiesData.replace(/'/g, "&apos;")}'>
-              <img loading="lazy" src="${imgSrc}" alt="${roomType}">
+              <div style="position: relative;">
+                <img loading="lazy" src="${imgSrc}" alt="${roomType}">
+                <div style="position: absolute; top: 12px; right: 12px; padding: 4px 10px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; border: 1px solid transparent; ${statusColorClass} box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  ${displayStatus}
+                </div>
+              </div>
               <div class="room-info">
-                <h3>${roomType}</h3>
+                <h3>${roomType} ${roomNumberHTML}</h3>
                 <p>${room.description || "Comfortable and elegant."}</p>
                 ${amenitiesHTML}
                 <p class="room-price"><strong>₦${priceValue ? priceValue.toLocaleString() : "Contact for Price"}</strong> per night</p>
-                <p class="room-availability ${isAvailable ? "available" : "booked"}">
-                  ${isAvailable ? "Available" : "Booked"}
-                </p>
                 <!-- Check availability button removed -->
                 <a href="booking.html?room=${encodeURIComponent(roomType)}&price=${priceValue}&roomId=${room.id}" 
                    class="btn" onclick="event.stopPropagation()">Book Now</a>
