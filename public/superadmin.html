@@ -1070,6 +1070,26 @@
                         </div>
                     </div>
 
+                    <!-- Room Performance Table -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mt-4">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-4">Room Performance — <span id="roomPerformanceYearLabel" class="text-indigo-600"></span></h3>
+                        <p class="text-xs text-gray-400 mb-4">Total bookings and revenue generated per room in the selected year.</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs min-w-[600px]">
+                                <thead>
+                                    <tr class="border-b border-gray-100">
+                                        <th class="text-left text-gray-400 font-medium py-2 pr-4">Room</th>
+                                        <th class="text-left text-gray-400 font-medium py-2 px-2">Type</th>
+                                        <th class="text-right text-gray-400 font-medium py-2 px-2">Total Bookings</th>
+                                        <th class="text-right text-gray-400 font-medium py-2 pl-2">Total Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="roomPerformanceTableBody" class="divide-y divide-gray-50">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
             </section>
 

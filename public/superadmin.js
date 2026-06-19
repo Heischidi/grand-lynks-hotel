@@ -483,31 +483,24 @@ window.updateRoomStatusFromTracker = async function(roomId, newStatus) {
 // LIVE TRACKER — CALENDAR VIEW
 // =====================================================
 
-// --- State ---
 let _calYear  = new Date().getFullYear();
-let _calMonth = new Date().getMonth(); // 0-based
-let _calRooms    = [];   // latest rooms data
-let _calBookings = [];   // latest bookings data
-let _currentTrackerView = 'grid'; // 'grid' | 'calendar'
+let _calMonth = new Date().getMonth();
+let _calRooms    = [];
+let _calBookings = [];
+let _currentTrackerView = 'grid';
 let _trackerPollingTimer = null;
 
-// --- Public: called when tab is shown or refresh button clicked ---
 window.refreshTracker = function() {
     fetchRoomsForTracker();
-    if (_currentTrackerView === 'calendar') {
-        fetchCalendarData();
-    }
+    if (_currentTrackerView === 'calendar') fetchCalendarData();
 };
 
-// --- Toggle between grid and calendar ---
 window.switchTrackerView = function(view) {
     _currentTrackerView = view;
-
     const gridView = document.getElementById('trackerGridView');
     const calView  = document.getElementById('trackerCalendarView');
     const gridBtn  = document.getElementById('trackerViewGridBtn');
     const calBtn   = document.getElementById('trackerViewCalBtn');
-
     if (view === 'grid') {
         gridView && gridView.classList.remove('hidden');
         calView  && calView.classList.add('hidden');
@@ -520,44 +513,32 @@ window.switchTrackerView = function(view) {
     }
 };
 
-// --- Month navigation ---
 window.prevMonth = function() {
     _calMonth--;
     if (_calMonth < 0) { _calMonth = 11; _calYear--; }
     renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
 };
-
 window.nextMonth = function() {
     _calMonth++;
     if (_calMonth > 11) { _calMonth = 0; _calYear++; }
     renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
 };
-
 window.goToToday = function() {
-    const now  = new Date();
-    _calYear   = now.getFullYear();
-    _calMonth  = now.getMonth();
+    const now = new Date();
+    _calYear = now.getFullYear();
+    _calMonth = now.getMonth();
     renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
 };
 
-// --- Fetch rooms + bookings in parallel ---
 async function fetchCalendarData() {
     const token = localStorage.getItem('adminToken');
     try {
         const [roomsRes, bookingsRes] = await Promise.all([
             fetch(`${API_URL}/rooms`),
-            fetch(`${API_URL}/bookings`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
+            fetch(`${API_URL}/bookings`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
-
-        if (roomsRes && roomsRes.ok) {
-            _calRooms = await roomsRes.json();
-        }
-        if (bookingsRes && bookingsRes.ok) {
-            _calBookings = await bookingsRes.json();
-        }
-
+        if (roomsRes && roomsRes.ok)    _calRooms    = await roomsRes.json();
+        if (bookingsRes && bookingsRes.ok) _calBookings = await bookingsRes.json();
         renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
     } catch (err) {
         console.error('Calendar data fetch error:', err);
@@ -566,164 +547,13 @@ async function fetchCalendarData() {
     }
 }
 
-// --- Render the month grid ---
-function renderCalendarView(rooms, bookings, year, month) {
-    const cells     = document.getElementById('calendarCells');
-    const titleEl   = document.getElementById('calMonthTitle');
-    if (!cells) return;
-
-    // Update month title
-    const monthNames = ['January','February','March','April','May','June',
-                        'July','August','September','October','November','December'];
-    if (titleEl) titleEl.textContent = `${monthNames[month]} ${year}`;
-
-    // Build the grid
-    cells.innerHTML = '';
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // First day of month (Mon=0 … Sun=6)
-    const firstDay = new Date(year, month, 1);
-    let startOffset = firstDay.getDay(); // 0=Sun … 6=Sat
-    // Convert to Mon-first (0=Mon … 6=Sun)
-    startOffset = (startOffset === 0) ? 6 : startOffset - 1;
-
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    // Sort rooms by number for consistent display
-    const sortedRooms = [...rooms].sort((a, b) => {
-        const na = parseInt(a.roomNumber || a.number) || 0;
-        const nb = parseInt(b.roomNumber || b.number) || 0;
-        return na - nb;
-    });
-
-    // Helper: determine a room's status on a specific date
-    function roomStatusOnDate(room, date) {
-        const d = new Date(date);
-        d.setHours(12, 0, 0, 0); // noon to avoid timezone edge-cases
-
-        // Maintenance status takes priority
-        if (room.status === 'maintenance') return 'maintenance';
-
-        // Check if any active booking covers this date
-        const isBooked = (bookings || []).some(b => {
-            if (b.roomId !== room.id) return false;
-            if (['cancelled', 'checked-out'].includes(b.status)) return false;
-            const start = new Date(b.startDate);
-            const end   = new Date(b.endDate);
-            start.setHours(0, 0, 0, 0);
-            end.setHours(23, 59, 59, 999);
-            return d >= start && d <= end;
-        });
-
-        if (isBooked) return 'occupied';
-
-        // For today and past: trust the room's own status flag
-        if (d <= today) {
-            const s = (room.status || '').toLowerCase();
-            if (s === 'occupied' || s === 'booked' || s === 'reserved' || s === 'checked-in' || !room.available) {
-                return 'occupied';
-            }
-        }
-
-        return 'available';
-    }
-
-    // Max chips visible per cell before showing "+N more"
-    const MAX_CHIPS = 6;
-
-    // Empty leading cells
-    for (let i = 0; i < startOffset; i++) {
-        const empty = document.createElement('div');
-        empty.className = 'cal-cell empty';
-        cells.appendChild(empty);
-    }
-
-    // Day cells
-    for (let day = 1; day <= daysInMonth; day++) {
-        const cellDate = new Date(year, month, day);
-        const isToday  = cellDate.getTime() === today.getTime();
-
-        const cell = document.createElement('div');
-        cell.className = `cal-cell${isToday ? ' today' : ''}`;
-
-        // Day number
-        const dayNum = document.createElement('div');
-        dayNum.className = 'cal-day-num';
-        dayNum.textContent = day;
-        cell.appendChild(dayNum);
-
-        // Room chips
-        const chipsContainer = document.createElement('div');
-        chipsContainer.className = 'cal-room-chips';
-
-        const visibleRooms = sortedRooms.slice(0, MAX_CHIPS);
-        const hiddenCount  = sortedRooms.length - visibleRooms.length;
-
-        visibleRooms.forEach(room => {
-            const status  = roomStatusOnDate(room, cellDate);
-            const chip    = document.createElement('span');
-            chip.className = `cal-chip ${status}`;
-
-            const roomNum = room.roomNumber || room.number || '?';
-            const icon    = status === 'available'   ? '●'
-                          : status === 'occupied'    ? '●'
-                          : '●';
-            chip.title    = `Room ${roomNum} — ${status.charAt(0).toUpperCase() + status.slice(1)}`;
-            chip.textContent = `R${roomNum}`;
-            chipsContainer.appendChild(chip);
-        });
-
-        cell.appendChild(chipsContainer);
-
-        if (hiddenCount > 0) {
-            const overflow = document.createElement('div');
-            overflow.className = 'cal-overflow';
-            overflow.textContent = `+${hiddenCount} more`;
-            cell.appendChild(overflow);
-        }
-
-        cells.appendChild(cell);
-
-        // Clickable: open day bookings modal
-        cell.addEventListener('click', () => openDayModal(cellDate, sortedRooms, bookings));
-    }
-}
-
-// --- 30-second auto-refresh polling (only when tracker tab is visible) ---
-function startTrackerPolling() {
-    stopTrackerPolling();
-    _trackerPollingTimer = setInterval(() => {
-        const trackerSection = document.getElementById('section-tracker');
-        if (trackerSection && !trackerSection.classList.contains('hidden')) {
-            // Silently refresh grid
-            fetchRoomsForTracker();
-            // If calendar is showing, refresh it too
-            if (_currentTrackerView === 'calendar') {
-                fetchCalendarData();
-            }
-        }
-    }, 30000);
-}
-
-function stopTrackerPolling() {
-    if (_trackerPollingTimer) {
-        clearInterval(_trackerPollingTimer);
-        _trackerPollingTimer = null;
-    }
-}
-
-// Start polling when dashboard loads
-window._startTrackerPolling = startTrackerPolling;
-
-// --- Day Bookings Modal ---
-function _roomStatusOnDateCtx(room, date, bookings) {
-    const d = new Date(date); d.setHours(12,0,0,0);
+function roomStatusOnDate(room, date, bookings) {
+    const d = new Date(date);
+    d.setHours(12, 0, 0, 0);
     if (room.status === 'maintenance') return 'maintenance';
-    const isBooked = (bookings||[]).some(b => {
+    const isBooked = (bookings || []).some(b => {
         if (b.roomId !== room.id) return false;
-        if (['cancelled','checked-out'].includes(b.status)) return false;
+        if (['cancelled', 'checked-out'].includes(b.status)) return false;
         const start = new Date(b.startDate); start.setHours(0,0,0,0);
         const end   = new Date(b.endDate);   end.setHours(23,59,59,999);
         return d >= start && d <= end;
@@ -737,6 +567,66 @@ function _roomStatusOnDateCtx(room, date, bookings) {
     return 'available';
 }
 
+function renderCalendarView(rooms, bookings, year, month) {
+    const cells   = document.getElementById('calendarCells');
+    const titleEl = document.getElementById('calMonthTitle');
+    if (!cells) return;
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    if (titleEl) titleEl.textContent = `${monthNames[month]} ${year}`;
+    cells.innerHTML = '';
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const firstDay = new Date(year, month, 1);
+    let startOffset = firstDay.getDay();
+    startOffset = (startOffset === 0) ? 6 : startOffset - 1;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const sortedRooms = [...rooms].sort((a,b) => (parseInt(a.roomNumber||a.number)||0) - (parseInt(b.roomNumber||b.number)||0));
+    const MAX_CHIPS = 6;
+
+    for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-cell empty';
+        cells.appendChild(empty);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const cellDate = new Date(year, month, day);
+        const isToday  = cellDate.getTime() === today.getTime();
+        const cell = document.createElement('div');
+        cell.className = `cal-cell${isToday ? ' today' : ''}`;
+
+        const dayNum = document.createElement('div');
+        dayNum.className = 'cal-day-num';
+        dayNum.textContent = day;
+        cell.appendChild(dayNum);
+
+        const chipsContainer = document.createElement('div');
+        chipsContainer.className = 'cal-room-chips';
+        const visibleRooms = sortedRooms.slice(0, MAX_CHIPS);
+        const hiddenCount  = sortedRooms.length - visibleRooms.length;
+        visibleRooms.forEach(room => {
+            const status = roomStatusOnDate(room, cellDate, bookings);
+            const chip = document.createElement('span');
+            chip.className = `cal-chip ${status}`;
+            chip.title = `Room ${room.roomNumber || room.number} — ${status.charAt(0).toUpperCase()+status.slice(1)}`;
+            chip.textContent = `R${room.roomNumber || room.number || '?'}`;
+            chipsContainer.appendChild(chip);
+        });
+        cell.appendChild(chipsContainer);
+        if (hiddenCount > 0) {
+            const ov = document.createElement('div');
+            ov.className = 'cal-overflow';
+            ov.textContent = `+${hiddenCount} more`;
+            cell.appendChild(ov);
+        }
+
+        // Clickable: open day bookings modal
+        cell.addEventListener('click', () => openDayModal(cellDate, rooms, bookings));
+        cells.appendChild(cell);
+    }
+}
+
+// --- Day Bookings Modal ---
 window.openDayModal = function(date, rooms, bookings) {
     const modal      = document.getElementById('dayBookingsModal');
     const titleEl    = document.getElementById('dayModalTitle');
@@ -749,29 +639,39 @@ window.openDayModal = function(date, rooms, bookings) {
     if (subtitleEl) subtitleEl.textContent = 'Room occupancy on this day';
 
     const d = new Date(date); d.setHours(12,0,0,0);
-    const sortedR = [...(rooms||[])].sort((a,b) => (parseInt(a.roomNumber||a.number)||0) - (parseInt(b.roomNumber||b.number)||0));
-    const bkgs = bookings || _calBookings;
+    const sortedRooms = [...(rooms||[])].sort((a,b) => (parseInt(a.roomNumber||a.number)||0) - (parseInt(b.roomNumber||b.number)||0));
 
-    const rows = sortedR.map(room => {
-        const status = _roomStatusOnDateCtx(room, d, bkgs);
-        const booking = bkgs.find(b => {
+    const rows = sortedRooms.map(room => {
+        const status = roomStatusOnDate(room, d, bookings);
+        // Find matching booking for detail
+        const booking = (bookings||[]).find(b => {
             if (b.roomId !== room.id) return false;
             if (['cancelled','checked-out'].includes(b.status)) return false;
             const start = new Date(b.startDate); start.setHours(0,0,0,0);
             const end   = new Date(b.endDate);   end.setHours(23,59,59,999);
             return d >= start && d <= end;
         });
-        const badge = status === 'available'
+
+        const statusBadge = status === 'available'
             ? '<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-bold">Available</span>'
             : status === 'maintenance'
             ? '<span class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">Maintenance</span>'
             : '<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">Booked</span>';
+
         const guestInfo = booking && booking.guest
-            ? `<p class="text-xs text-gray-500 mt-0.5">Guest: <span class="font-medium text-gray-700">${booking.guest.name||'N/A'}</span></p><p class="text-xs text-gray-400">Check-in: ${new Date(booking.startDate).toLocaleDateString('en-GB')} &rarr; Check-out: ${new Date(booking.endDate).toLocaleDateString('en-GB')}</p>`
+            ? `<p class="text-xs text-gray-500 mt-0.5">Guest: <span class="font-medium text-gray-700">${booking.guest.name || 'N/A'}</span></p>
+               <p class="text-xs text-gray-400">Check-in: ${new Date(booking.startDate).toLocaleDateString('en-GB')} &rarr; Check-out: ${new Date(booking.endDate).toLocaleDateString('en-GB')}</p>`
             : booking
             ? `<p class="text-xs text-gray-400">Check-in: ${new Date(booking.startDate).toLocaleDateString('en-GB')} &rarr; Check-out: ${new Date(booking.endDate).toLocaleDateString('en-GB')}</p>`
             : '';
-        return `<div class="flex items-start justify-between py-3 border-b border-gray-50 last:border-0"><div><p class="text-sm font-bold text-gray-800">Room ${room.roomNumber||room.number} <span class="text-xs font-normal text-gray-500">${room.type}</span></p>${guestInfo}</div><div class="ml-3 flex-shrink-0">${badge}</div></div>`;
+
+        return `<div class="flex items-start justify-between py-3 border-b border-gray-50 last:border-0">
+            <div>
+                <p class="text-sm font-bold text-gray-800">Room ${room.roomNumber || room.number} <span class="text-xs font-normal text-gray-500">${room.type}</span></p>
+                ${guestInfo}
+            </div>
+            <div class="ml-3 flex-shrink-0">${statusBadge}</div>
+        </div>`;
     }).join('');
 
     if (contentEl) contentEl.innerHTML = rows || '<p class="text-center text-gray-400 py-8">No rooms found.</p>';
@@ -783,10 +683,24 @@ window.closeDayModal = function() {
     if (modal) modal.classList.add('hidden');
 };
 
+// Close modal on backdrop click
 document.addEventListener('click', function(e) {
     const modal = document.getElementById('dayBookingsModal');
     if (modal && e.target === modal) modal.classList.add('hidden');
 });
+
+// --- 30s Polling ---
+function startTrackerPolling() {
+    if (_trackerPollingTimer) clearInterval(_trackerPollingTimer);
+    _trackerPollingTimer = setInterval(() => {
+        const sec = document.getElementById('section-tracker');
+        if (sec && !sec.classList.contains('hidden')) {
+            fetchRoomsForTracker();
+            if (_currentTrackerView === 'calendar') fetchCalendarData();
+        }
+    }, 30000);
+}
+window._startTrackerPolling = startTrackerPolling;
 
 async function handleAddRoom(e) {
     e.preventDefault();
@@ -2756,7 +2670,7 @@ function renderStatistics(data) {
     const { kpi, months, monthlyBookingRevenue, monthlyOrderRevenue,
             monthlyBookingCount, monthlyOrderCount, monthlyGuestCount,
             monthlyTotals, topMonths, bookingStatusCount,
-            revenueBySource, yearlyRevenue, year } = data;
+            revenueBySource, yearlyRevenue, year, roomPerformance } = data;
 
     // ---- KPI Cards ----
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -2770,7 +2684,7 @@ function renderStatistics(data) {
     setText('kpiOccupancyDetail', kpi.occupiedRooms + '/' + kpi.totalRooms);
 
     // Year labels
-    ['chartBarYearLabel','topMonthsYearLabel','activityYearLabel'].forEach(id => setText(id, year));
+    ['chartBarYearLabel','topMonthsYearLabel','activityYearLabel','roomPerformanceYearLabel'].forEach(id => setText(id, year));
 
     // ---- Chart 1: Monthly Revenue Grouped Bar ----
     destroyChart('monthlyRevenue');
@@ -2995,6 +2909,21 @@ function renderStatistics(data) {
                 </tr>
             `;
         }).join('');
+    }
+
+    // ---- Room Performance Table ----
+    const rpBody = document.getElementById('roomPerformanceTableBody');
+    if (rpBody && roomPerformance) {
+        rpBody.innerHTML = roomPerformance.map((r, i) => {
+            return `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="py-2 pr-4 font-medium text-gray-700">Room ${r.number}</td>
+                    <td class="py-2 px-2 text-gray-600">${r.type || 'Standard'}</td>
+                    <td class="py-2 px-2 text-right text-gray-600">${r.bookings || '<span class="text-gray-300">0</span>'}</td>
+                    <td class="py-2 pl-2 text-right font-semibold ${r.revenue > 0 ? 'text-indigo-600' : 'text-gray-300'}">${r.revenue > 0 ? fmtCurrencyFull(r.revenue) : '—'}</td>
+                </tr>
+            `;
+        }).join('') || '<tr><td colspan="4" class="py-4 text-center text-gray-400">No room performance data</td></tr>';
     }
 }
 

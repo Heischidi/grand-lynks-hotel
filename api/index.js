@@ -2251,10 +2251,16 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
       }),
       prisma.room.findMany({
         where: { deletedAt: null },
-        select: { id: true, status: true, bookings: {
-          where: { status: { in: ['confirmed', 'checked-in'] }, deletedAt: null },
-          select: { id: true }
-        }}
+        select: { 
+          id: true, 
+          number: true, 
+          type: true, 
+          status: true, 
+          bookings: {
+            where: { deletedAt: null },
+            select: { id: true, status: true, totalAmount: true, createdAt: true }
+          }
+        }
       })
     ]);
 
@@ -2357,6 +2363,27 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     }));
     const topMonths = [...monthlyTotals].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5);
 
+    // --- Room Performance ---
+    const roomPerformance = rooms.map(r => {
+      let rCount = 0;
+      let rRev = 0;
+      r.bookings.forEach(b => {
+        if (inYear(b.createdAt, year)) {
+          rCount++;
+          if (['confirmed', 'checked-in', 'completed'].includes(b.status)) {
+            rRev += b.totalAmount || 0;
+          }
+        }
+      });
+      return {
+        id: r.id,
+        number: r.number,
+        type: r.type,
+        bookings: rCount,
+        revenue: rRev
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
+
     res.json({
       year,
       months,
@@ -2382,7 +2409,8 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
         totalRooms,
         occupiedRooms,
         occupancyRate
-      }
+      },
+      roomPerformance
     });
   } catch (error) {
     console.error("Error fetching statistics:", error);
