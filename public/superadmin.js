@@ -641,24 +641,8 @@ function renderCalendarView(rooms, bookings, year, month) {
             const status = roomStatusOnDate(room, cellDate, bookings);
             const chip = document.createElement('span');
             chip.className = `cal-chip ${status}`;
-
-            let guestName = '';
-            if (status === 'occupied') {
-                const b = (bookings||[]).find(bk => {
-                    if (bk.roomId !== room.id) return false;
-                    if (['cancelled', 'checked-out'].includes(bk.status)) return false;
-                    const d = new Date(cellDate); d.setHours(12,0,0,0);
-                    const start = new Date(bk.startDate); start.setHours(0,0,0,0);
-                    const end   = new Date(bk.endDate);   end.setHours(23,59,59,999);
-                    return d >= start && d <= end;
-                });
-                if (b && b.guest && b.guest.name) {
-                    guestName = ` - ${b.guest.name}`;
-                }
-            }
-
-            chip.title = `Room ${room.roomNumber || room.number} — ${status.charAt(0).toUpperCase()+status.slice(1)}${guestName}`;
-            chip.textContent = `R${room.roomNumber || room.number || '?'}${guestName}`;
+            chip.title = `Room ${room.roomNumber || room.number} — ${status.charAt(0).toUpperCase()+status.slice(1)}`;
+            chip.textContent = `R${room.roomNumber || room.number || '?'}`;
             chipsContainer.appendChild(chip);
         });
         cell.appendChild(chipsContainer);
