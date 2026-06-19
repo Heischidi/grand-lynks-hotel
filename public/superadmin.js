@@ -180,6 +180,11 @@ function showDashboard(user) {
     // Start notification polling
     pollNotifications();
     setInterval(pollNotifications, 30000); // Check every 30 seconds
+
+    // Start live tracker polling (after a short delay to let calendar JS register)
+    setTimeout(() => {
+        if (window._startTrackerPolling) window._startTrackerPolling();
+    }, 500);
 }
 
 async function handleLogin(e) {
@@ -367,7 +372,12 @@ window.fetchRoomsForTracker = async function() {
     const response = await fetch(`${API_URL}/rooms`);
     if (response && response.ok) {
         const rooms = await response.json();
+        _calRooms = rooms; // keep calendar state in sync
         renderRoomTracker(rooms);
+        // If calendar view is active, re-render calendar too
+        if (_currentTrackerView === 'calendar') {
+            renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+        }
     } else {
         if(grid) grid.innerHTML = '<div class="col-span-full text-center text-red-500 py-10">Failed to load live tracker.</div>';
     }
@@ -462,12 +472,247 @@ window.updateRoomStatusFromTracker = async function(roomId, newStatus) {
     });
 
     if (response && response.ok) {
-        // Silently re-fetch and re-render the tracker grid
+        // Re-fetch tracker — this will re-render grid AND calendar if active
         fetchRoomsForTracker();
     } else {
         alert('Failed to update room status. Please try again.');
     }
 };
+
+// =====================================================
+// LIVE TRACKER — CALENDAR VIEW
+// =====================================================
+
+// --- State ---
+let _calYear  = new Date().getFullYear();
+let _calMonth = new Date().getMonth(); // 0-based
+let _calRooms    = [];   // latest rooms data
+let _calBookings = [];   // latest bookings data
+let _currentTrackerView = 'grid'; // 'grid' | 'calendar'
+let _trackerPollingTimer = null;
+
+// --- Public: called when tab is shown or refresh button clicked ---
+window.refreshTracker = function() {
+    fetchRoomsForTracker();
+    if (_currentTrackerView === 'calendar') {
+        fetchCalendarData();
+    }
+};
+
+// --- Toggle between grid and calendar ---
+window.switchTrackerView = function(view) {
+    _currentTrackerView = view;
+
+    const gridView = document.getElementById('trackerGridView');
+    const calView  = document.getElementById('trackerCalendarView');
+    const gridBtn  = document.getElementById('trackerViewGridBtn');
+    const calBtn   = document.getElementById('trackerViewCalBtn');
+
+    if (view === 'grid') {
+        gridView && gridView.classList.remove('hidden');
+        calView  && calView.classList.add('hidden');
+        gridBtn  && (gridBtn.classList.add('active'),   calBtn && calBtn.classList.remove('active'));
+    } else {
+        gridView && gridView.classList.add('hidden');
+        calView  && calView.classList.remove('hidden');
+        calBtn   && (calBtn.classList.add('active'),   gridBtn && gridBtn.classList.remove('active'));
+        fetchCalendarData();
+    }
+};
+
+// --- Month navigation ---
+window.prevMonth = function() {
+    _calMonth--;
+    if (_calMonth < 0) { _calMonth = 11; _calYear--; }
+    renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+};
+
+window.nextMonth = function() {
+    _calMonth++;
+    if (_calMonth > 11) { _calMonth = 0; _calYear++; }
+    renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+};
+
+window.goToToday = function() {
+    const now  = new Date();
+    _calYear   = now.getFullYear();
+    _calMonth  = now.getMonth();
+    renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+};
+
+// --- Fetch rooms + bookings in parallel ---
+async function fetchCalendarData() {
+    const token = localStorage.getItem('adminToken');
+    try {
+        const [roomsRes, bookingsRes] = await Promise.all([
+            fetch(`${API_URL}/rooms`),
+            fetch(`${API_URL}/bookings`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
+
+        if (roomsRes && roomsRes.ok) {
+            _calRooms = await roomsRes.json();
+        }
+        if (bookingsRes && bookingsRes.ok) {
+            _calBookings = await bookingsRes.json();
+        }
+
+        renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+    } catch (err) {
+        console.error('Calendar data fetch error:', err);
+        const cells = document.getElementById('calendarCells');
+        if (cells) cells.innerHTML = '<div class="col-span-7 text-center text-red-500 py-12">Failed to load calendar data.</div>';
+    }
+}
+
+// --- Render the month grid ---
+function renderCalendarView(rooms, bookings, year, month) {
+    const cells     = document.getElementById('calendarCells');
+    const titleEl   = document.getElementById('calMonthTitle');
+    if (!cells) return;
+
+    // Update month title
+    const monthNames = ['January','February','March','April','May','June',
+                        'July','August','September','October','November','December'];
+    if (titleEl) titleEl.textContent = `${monthNames[month]} ${year}`;
+
+    // Build the grid
+    cells.innerHTML = '';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // First day of month (Mon=0 … Sun=6)
+    const firstDay = new Date(year, month, 1);
+    let startOffset = firstDay.getDay(); // 0=Sun … 6=Sat
+    // Convert to Mon-first (0=Mon … 6=Sun)
+    startOffset = (startOffset === 0) ? 6 : startOffset - 1;
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Sort rooms by number for consistent display
+    const sortedRooms = [...rooms].sort((a, b) => {
+        const na = parseInt(a.roomNumber || a.number) || 0;
+        const nb = parseInt(b.roomNumber || b.number) || 0;
+        return na - nb;
+    });
+
+    // Helper: determine a room's status on a specific date
+    function roomStatusOnDate(room, date) {
+        const d = new Date(date);
+        d.setHours(12, 0, 0, 0); // noon to avoid timezone edge-cases
+
+        // Maintenance status takes priority
+        if (room.status === 'maintenance') return 'maintenance';
+
+        // Check if any active booking covers this date
+        const isBooked = (bookings || []).some(b => {
+            if (b.roomId !== room.id) return false;
+            if (['cancelled', 'checked-out'].includes(b.status)) return false;
+            const start = new Date(b.startDate);
+            const end   = new Date(b.endDate);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+            return d >= start && d <= end;
+        });
+
+        if (isBooked) return 'occupied';
+
+        // For today and past: trust the room's own status flag
+        if (d <= today) {
+            const s = (room.status || '').toLowerCase();
+            if (s === 'occupied' || s === 'booked' || s === 'reserved' || s === 'checked-in' || !room.available) {
+                return 'occupied';
+            }
+        }
+
+        return 'available';
+    }
+
+    // Max chips visible per cell before showing "+N more"
+    const MAX_CHIPS = 6;
+
+    // Empty leading cells
+    for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-cell empty';
+        cells.appendChild(empty);
+    }
+
+    // Day cells
+    for (let day = 1; day <= daysInMonth; day++) {
+        const cellDate = new Date(year, month, day);
+        const isToday  = cellDate.getTime() === today.getTime();
+
+        const cell = document.createElement('div');
+        cell.className = `cal-cell${isToday ? ' today' : ''}`;
+
+        // Day number
+        const dayNum = document.createElement('div');
+        dayNum.className = 'cal-day-num';
+        dayNum.textContent = day;
+        cell.appendChild(dayNum);
+
+        // Room chips
+        const chipsContainer = document.createElement('div');
+        chipsContainer.className = 'cal-room-chips';
+
+        const visibleRooms = sortedRooms.slice(0, MAX_CHIPS);
+        const hiddenCount  = sortedRooms.length - visibleRooms.length;
+
+        visibleRooms.forEach(room => {
+            const status  = roomStatusOnDate(room, cellDate);
+            const chip    = document.createElement('span');
+            chip.className = `cal-chip ${status}`;
+
+            const roomNum = room.roomNumber || room.number || '?';
+            const icon    = status === 'available'   ? '●'
+                          : status === 'occupied'    ? '●'
+                          : '●';
+            chip.title    = `Room ${roomNum} — ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+            chip.textContent = `R${roomNum}`;
+            chipsContainer.appendChild(chip);
+        });
+
+        cell.appendChild(chipsContainer);
+
+        if (hiddenCount > 0) {
+            const overflow = document.createElement('div');
+            overflow.className = 'cal-overflow';
+            overflow.textContent = `+${hiddenCount} more`;
+            cell.appendChild(overflow);
+        }
+
+        cells.appendChild(cell);
+    }
+}
+
+// --- 30-second auto-refresh polling (only when tracker tab is visible) ---
+function startTrackerPolling() {
+    stopTrackerPolling();
+    _trackerPollingTimer = setInterval(() => {
+        const trackerSection = document.getElementById('section-tracker');
+        if (trackerSection && !trackerSection.classList.contains('hidden')) {
+            // Silently refresh grid
+            fetchRoomsForTracker();
+            // If calendar is showing, refresh it too
+            if (_currentTrackerView === 'calendar') {
+                fetchCalendarData();
+            }
+        }
+    }, 30000);
+}
+
+function stopTrackerPolling() {
+    if (_trackerPollingTimer) {
+        clearInterval(_trackerPollingTimer);
+        _trackerPollingTimer = null;
+    }
+}
+
+// Start polling when dashboard loads
+window._startTrackerPolling = startTrackerPolling;
 
 
 async function handleAddRoom(e) {
