@@ -1392,6 +1392,9 @@ async function handleWalkInSubmit(e) {
             roomId: formData.get('roomId'),
             startDate: formData.get('startDate'),
             endDate: formData.get('endDate'),
+            checkInTime: formData.get('checkInTime'),
+            checkOutTime: formData.get('checkOutTime'),
+            bookedBy: formData.get('bookedBy'),
             status: paymentStatus === 'paid' ? 'confirmed' : 'pending',
             ...(staffNotes && { specialRequests: staffNotes }),
             ...(discountPct > 0 && { discountPct }) // pass discount to API for amount calculation

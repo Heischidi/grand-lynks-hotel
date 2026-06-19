@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Admin {
@@ -64,6 +65,9 @@ model Booking {
   roomId       Int
   startDate    DateTime
   endDate      DateTime
+  checkInTime  String?
+  checkOutTime String?
+  bookedBy     String?
   status       String    @default("pending") // pending, confirmed, checked-in, checked-out, cancelled
   totalAmount  Float
   specialRequests String?

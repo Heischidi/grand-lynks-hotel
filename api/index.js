@@ -1069,7 +1069,7 @@ app.get("/bookings", authenticateToken, async (req, res) => {
 
 app.post("/bookings", validateBooking, async (req, res) => {
   try {
-    const { guestId, roomId, startDate, endDate, status, specialRequests, discountPct } = req.body;
+    const { guestId, roomId, startDate, endDate, status, specialRequests, discountPct, checkInTime, checkOutTime, bookedBy } = req.body;
 
     // Check for overlapping bookings
     const overlappingBookings = await prisma.booking.findMany({
@@ -1145,6 +1145,9 @@ app.post("/bookings", validateBooking, async (req, res) => {
         status: status || "pending",
         totalAmount,
         ...(specialRequests && { specialRequests }),
+        ...(checkInTime && { checkInTime }),
+        ...(checkOutTime && { checkOutTime }),
+        ...(bookedBy && { bookedBy }),
       },
       include: {
         guest: true,
