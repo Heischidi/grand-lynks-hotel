@@ -420,12 +420,20 @@ function renderRoomTracker(rooms, bookings = []) {
     rooms.forEach(room => {
         const card = document.createElement('div');
         
-        // Determine status colors based on backend status and availability
         let statusColorClass = 'bg-green-500';
         let statusTextClass = 'text-green-800 bg-green-100';
         let displayStatus = 'Available';
         let statusIcon = '✅';
         let currentStatus = 'available';
+
+        const today = new Date(); today.setHours(12,0,0,0);
+        const activeBooking = bookings.find(b => {
+            if (b.roomId !== room.id) return false;
+            if (['cancelled', 'checked-out'].includes(b.status)) return false;
+            const start = new Date(b.startDate); start.setHours(0,0,0,0);
+            const end = new Date(b.endDate); end.setHours(23,59,59,999);
+            return today >= start && today <= end;
+        });
 
         if (room.status === 'maintenance') {
             statusColorClass = 'bg-yellow-400';
@@ -433,7 +441,7 @@ function renderRoomTracker(rooms, bookings = []) {
             displayStatus = 'Maintenance';
             statusIcon = '⚠️';
             currentStatus = 'maintenance';
-        } else if (room.status === 'booked' || room.status === 'checked-in' || room.status === 'occupied' || room.status === 'reserved' || !room.available) {
+        } else if (activeBooking || room.status === 'booked' || room.status === 'checked-in' || room.status === 'occupied' || room.status === 'reserved' || !room.available) {
             statusColorClass = 'bg-red-500';
             statusTextClass = 'text-red-800 bg-red-100';
             displayStatus = 'Occupied';
@@ -442,18 +450,8 @@ function renderRoomTracker(rooms, bookings = []) {
         }
 
         let guestHtml = '';
-        if (currentStatus === 'occupied') {
-            const today = new Date(); today.setHours(12,0,0,0);
-            const activeBooking = bookings.find(b => {
-                if (b.roomId !== room.id) return false;
-                if (['cancelled', 'checked-out'].includes(b.status)) return false;
-                const start = new Date(b.startDate); start.setHours(0,0,0,0);
-                const end = new Date(b.endDate); end.setHours(23,59,59,999);
-                return today >= start && today <= end;
-            });
-            if (activeBooking && activeBooking.guest) {
-                guestHtml = `<div class="mt-1 mb-2 px-2 py-1 bg-gray-50 rounded border border-gray-100"><p class="text-[11px] text-gray-700 font-semibold truncate" title="${activeBooking.guest.name}">👤 ${activeBooking.guest.name}</p></div>`;
-            }
+        if (currentStatus === 'occupied' && activeBooking && activeBooking.guest) {
+            guestHtml = `<div class="mt-1 mb-2 px-2 py-1 bg-gray-50 rounded border border-gray-100"><p class="text-[11px] text-gray-700 font-semibold truncate" title="${activeBooking.guest.name}">👤 ${activeBooking.guest.name}</p></div>`;
         }
 
         card.className = `bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col`;
