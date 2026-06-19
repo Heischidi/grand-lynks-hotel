@@ -343,8 +343,8 @@ function renderRooms(rooms) {
                 </span>
             </td>
             <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium block md:table-cell">
-                <!-- Edit/Delete rooms is restricted to Super Admin only -->
-                <span class="text-gray-400 text-xs italic">View only</span>
+                <button onclick="openEditRoomModal(${room.id})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
+                <button onclick="deleteRoom(${room.id})" class="text-red-600 hover:text-red-900">Delete</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -862,8 +862,8 @@ function renderMenu(items) {
                 </span>
             </td>
             <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium block md:table-cell">
-                 <!-- Edit/Delete menu items is restricted to Super Admin only -->
-                <span class="text-gray-400 text-xs italic">View only</span>
+                <button onclick="openEditMenuModal(${item.id})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
+                <button onclick="deleteMenuItem(${item.id})" class="text-red-600 hover:text-red-900">Delete</button>
             </td>
         `;
         tbody.appendChild(tr);
