@@ -369,21 +369,38 @@ window.fetchRoomsForTracker = async function() {
     const grid = document.getElementById('roomTrackerGrid');
     if(grid) grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Refreshing tracker...</div>';
 
-    const response = await fetch(`${API_URL}/rooms`);
-    if (response && response.ok) {
-        const rooms = await response.json();
-        _calRooms = rooms; // keep calendar state in sync
-        renderRoomTracker(rooms);
-        // If calendar view is active, re-render calendar too
-        if (_currentTrackerView === 'calendar') {
-            renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+    const token = localStorage.getItem('superAdminToken') || localStorage.getItem('adminToken');
+    try {
+        const [roomsRes, bookingsRes] = await Promise.all([
+            fetch(`${API_URL}/rooms`),
+            fetch(`${API_URL}/bookings`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+
+        if (roomsRes && roomsRes.ok) {
+            const rooms = await roomsRes.json();
+            _calRooms = rooms; // keep calendar state in sync
+            
+            let bookings = [];
+            if (bookingsRes && bookingsRes.ok) {
+                bookings = await bookingsRes.json();
+                _calBookings = bookings;
+            }
+
+            renderRoomTracker(rooms, bookings);
+            // If calendar view is active, re-render calendar too
+            if (_currentTrackerView === 'calendar') {
+                renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+            }
+        } else {
+            if(grid) grid.innerHTML = '<div class="col-span-full text-center text-red-500 py-10">Failed to load live tracker.</div>';
         }
-    } else {
+    } catch (err) {
+        console.error(err);
         if(grid) grid.innerHTML = '<div class="col-span-full text-center text-red-500 py-10">Failed to load live tracker.</div>';
     }
 };
 
-function renderRoomTracker(rooms) {
+function renderRoomTracker(rooms, bookings = []) {
     const grid = document.getElementById('roomTrackerGrid');
     if (!grid) return;
     grid.innerHTML = '';
@@ -424,6 +441,21 @@ function renderRoomTracker(rooms) {
             currentStatus = 'occupied';
         }
 
+        let guestHtml = '';
+        if (currentStatus === 'occupied') {
+            const today = new Date(); today.setHours(12,0,0,0);
+            const activeBooking = bookings.find(b => {
+                if (b.roomId !== room.id) return false;
+                if (['cancelled', 'checked-out'].includes(b.status)) return false;
+                const start = new Date(b.startDate); start.setHours(0,0,0,0);
+                const end = new Date(b.endDate); end.setHours(23,59,59,999);
+                return today >= start && today <= end;
+            });
+            if (activeBooking && activeBooking.guest) {
+                guestHtml = `<div class="mt-1 mb-2 px-2 py-1 bg-gray-50 rounded border border-gray-100"><p class="text-[11px] text-gray-700 font-semibold truncate" title="${activeBooking.guest.name}">👤 ${activeBooking.guest.name}</p></div>`;
+            }
+        }
+
         card.className = `bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col`;
         
         card.innerHTML = `
@@ -438,6 +470,7 @@ function renderRoomTracker(rooms) {
                     ${displayStatus}
                 </span>
             </div>
+            ${guestHtml}
             <div class="mt-auto pt-2 border-t border-gray-100">
                 <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Change Status</p>
                 <div class="flex gap-1">
