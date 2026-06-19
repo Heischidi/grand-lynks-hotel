@@ -172,6 +172,9 @@ function showDashboard(user) {
     }
     // Normal admin lands on Rooms (view-only — no edit/delete)
     switchTab('rooms');
+
+    // Start live tracker polling
+    setTimeout(() => { if (window._startTrackerPolling) window._startTrackerPolling(); }, 500);
 }
 
 async function handleLogin(e) {
@@ -348,8 +351,6 @@ function renderRooms(rooms) {
     });
 }
 
-// --- LIVE ROOM TRACKER ---
-
 window.fetchRoomsForTracker = async function() {
     const grid = document.getElementById('roomTrackerGrid');
     if(grid) grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Refreshing tracker...</div>';
@@ -357,88 +358,15 @@ window.fetchRoomsForTracker = async function() {
     const response = await fetch(`${API_URL}/rooms`);
     if (response && response.ok) {
         const rooms = await response.json();
+        _calRooms = rooms;
         renderRoomTracker(rooms);
+        if (_currentTrackerView === 'calendar') {
+            renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+        }
     } else {
         if(grid) grid.innerHTML = '<div class="col-span-full text-center text-red-500 py-10">Failed to load live tracker.</div>';
     }
 };
-
-function renderRoomTracker(rooms) {
-    const grid = document.getElementById('roomTrackerGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    if (rooms.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">No rooms available to track.</div>';
-        return;
-    }
-
-    // Sort rooms by number
-    rooms.sort((a, b) => {
-        const numA = parseInt(a.roomNumber || a.number) || 0;
-        const numB = parseInt(b.roomNumber || b.number) || 0;
-        return numA - numB;
-    });
-
-    rooms.forEach(room => {
-        const card = document.createElement('div');
-        
-        // Determine status colors based on backend status and availability
-        let statusColorClass = 'bg-green-500';
-        let statusTextClass = 'text-green-800 bg-green-100';
-        let displayStatus = 'Available';
-        let statusIcon = '✅';
-        let currentStatus = 'available';
-
-        if (room.status === 'maintenance') {
-            statusColorClass = 'bg-yellow-400';
-            statusTextClass = 'text-yellow-800 bg-yellow-100';
-            displayStatus = 'Maintenance';
-            statusIcon = '⚠️';
-            currentStatus = 'maintenance';
-        } else if (room.status === 'booked' || room.status === 'checked-in' || room.status === 'occupied' || room.status === 'reserved' || !room.available) {
-            statusColorClass = 'bg-red-500';
-            statusTextClass = 'text-red-800 bg-red-100';
-            displayStatus = 'Occupied';
-            statusIcon = '🔒';
-            currentStatus = 'occupied';
-        }
-
-        card.className = `bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col`;
-        
-        card.innerHTML = `
-            <div class="absolute top-0 left-0 w-full h-1.5 ${statusColorClass}"></div>
-            <div class="flex justify-between items-start mb-1 mt-1">
-                <span class="text-2xl font-black text-gray-800 tracking-tight">${room.roomNumber || room.number || 'N/A'}</span>
-                <span class="text-lg">${statusIcon}</span>
-            </div>
-            <p class="text-xs text-gray-500 font-medium mb-2 truncate" title="${room.type}">${room.type}</p>
-            <div class="mb-3">
-                <span class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${statusTextClass}">
-                    ${displayStatus}
-                </span>
-            </div>
-            <div class="mt-auto pt-2 border-t border-gray-100">
-                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Change Status</p>
-                <div class="flex gap-1">
-                    <button onclick="updateRoomStatusFromTracker(${room.id}, 'available')" 
-                        class="flex-1 text-[10px] font-bold py-1 rounded-md transition-all ${ currentStatus === 'available' ? 'bg-green-500 text-white shadow-sm' : 'bg-green-50 text-green-700 hover:bg-green-100'}">
-                        Free
-                    </button>
-                    <button onclick="updateRoomStatusFromTracker(${room.id}, 'occupied')" 
-                        class="flex-1 text-[10px] font-bold py-1 rounded-md transition-all ${ currentStatus === 'occupied' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-700 hover:bg-red-100'}">
-                        Booked
-                    </button>
-                    <button onclick="updateRoomStatusFromTracker(${room.id}, 'maintenance')" 
-                        class="flex-1 text-[10px] font-bold py-1 rounded-md transition-all ${ currentStatus === 'maintenance' ? 'bg-yellow-400 text-white shadow-sm' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}">
-                        Fix
-                    </button>
-                </div>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-}
 
 window.updateRoomStatusFromTracker = async function(roomId, newStatus) {
     const token = localStorage.getItem('adminToken');
@@ -452,13 +380,234 @@ window.updateRoomStatusFromTracker = async function(roomId, newStatus) {
     });
 
     if (response && response.ok) {
-        // Silently re-fetch and re-render the tracker grid
         fetchRoomsForTracker();
     } else {
         alert('Failed to update room status. Please try again.');
     }
 };
 
+// =====================================================
+// LIVE TRACKER — CALENDAR VIEW
+// =====================================================
+
+let _calYear  = new Date().getFullYear();
+let _calMonth = new Date().getMonth();
+let _calRooms    = [];
+let _calBookings = [];
+let _currentTrackerView = 'grid';
+let _trackerPollingTimer = null;
+
+window.refreshTracker = function() {
+    fetchRoomsForTracker();
+    if (_currentTrackerView === 'calendar') fetchCalendarData();
+};
+
+window.switchTrackerView = function(view) {
+    _currentTrackerView = view;
+    const gridView = document.getElementById('trackerGridView');
+    const calView  = document.getElementById('trackerCalendarView');
+    const gridBtn  = document.getElementById('trackerViewGridBtn');
+    const calBtn   = document.getElementById('trackerViewCalBtn');
+    if (view === 'grid') {
+        gridView && gridView.classList.remove('hidden');
+        calView  && calView.classList.add('hidden');
+        gridBtn  && (gridBtn.classList.add('active'),   calBtn && calBtn.classList.remove('active'));
+    } else {
+        gridView && gridView.classList.add('hidden');
+        calView  && calView.classList.remove('hidden');
+        calBtn   && (calBtn.classList.add('active'),   gridBtn && gridBtn.classList.remove('active'));
+        fetchCalendarData();
+    }
+};
+
+window.prevMonth = function() {
+    _calMonth--;
+    if (_calMonth < 0) { _calMonth = 11; _calYear--; }
+    renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+};
+window.nextMonth = function() {
+    _calMonth++;
+    if (_calMonth > 11) { _calMonth = 0; _calYear++; }
+    renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+};
+window.goToToday = function() {
+    const now = new Date();
+    _calYear = now.getFullYear();
+    _calMonth = now.getMonth();
+    renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+};
+
+async function fetchCalendarData() {
+    const token = localStorage.getItem('adminToken');
+    try {
+        const [roomsRes, bookingsRes] = await Promise.all([
+            fetch(`${API_URL}/rooms`),
+            fetch(`${API_URL}/bookings`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+        if (roomsRes && roomsRes.ok)    _calRooms    = await roomsRes.json();
+        if (bookingsRes && bookingsRes.ok) _calBookings = await bookingsRes.json();
+        renderCalendarView(_calRooms, _calBookings, _calYear, _calMonth);
+    } catch (err) {
+        console.error('Calendar data fetch error:', err);
+        const cells = document.getElementById('calendarCells');
+        if (cells) cells.innerHTML = '<div class="col-span-7 text-center text-red-500 py-12">Failed to load calendar data.</div>';
+    }
+}
+
+function roomStatusOnDate(room, date, bookings) {
+    const d = new Date(date);
+    d.setHours(12, 0, 0, 0);
+    if (room.status === 'maintenance') return 'maintenance';
+    const isBooked = (bookings || []).some(b => {
+        if (b.roomId !== room.id) return false;
+        if (['cancelled', 'checked-out'].includes(b.status)) return false;
+        const start = new Date(b.startDate); start.setHours(0,0,0,0);
+        const end   = new Date(b.endDate);   end.setHours(23,59,59,999);
+        return d >= start && d <= end;
+    });
+    if (isBooked) return 'occupied';
+    const today = new Date(); today.setHours(0,0,0,0);
+    if (d <= today) {
+        const s = (room.status || '').toLowerCase();
+        if (s === 'occupied' || s === 'booked' || s === 'reserved' || s === 'checked-in' || !room.available) return 'occupied';
+    }
+    return 'available';
+}
+
+function renderCalendarView(rooms, bookings, year, month) {
+    const cells   = document.getElementById('calendarCells');
+    const titleEl = document.getElementById('calMonthTitle');
+    if (!cells) return;
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    if (titleEl) titleEl.textContent = `${monthNames[month]} ${year}`;
+    cells.innerHTML = '';
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const firstDay = new Date(year, month, 1);
+    let startOffset = firstDay.getDay();
+    startOffset = (startOffset === 0) ? 6 : startOffset - 1;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const sortedRooms = [...rooms].sort((a,b) => (parseInt(a.roomNumber||a.number)||0) - (parseInt(b.roomNumber||b.number)||0));
+    const MAX_CHIPS = 6;
+
+    for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-cell empty';
+        cells.appendChild(empty);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const cellDate = new Date(year, month, day);
+        const isToday  = cellDate.getTime() === today.getTime();
+        const cell = document.createElement('div');
+        cell.className = `cal-cell${isToday ? ' today' : ''}`;
+
+        const dayNum = document.createElement('div');
+        dayNum.className = 'cal-day-num';
+        dayNum.textContent = day;
+        cell.appendChild(dayNum);
+
+        const chipsContainer = document.createElement('div');
+        chipsContainer.className = 'cal-room-chips';
+        const visibleRooms = sortedRooms.slice(0, MAX_CHIPS);
+        const hiddenCount  = sortedRooms.length - visibleRooms.length;
+        visibleRooms.forEach(room => {
+            const status = roomStatusOnDate(room, cellDate, bookings);
+            const chip = document.createElement('span');
+            chip.className = `cal-chip ${status}`;
+            chip.title = `Room ${room.roomNumber || room.number} — ${status.charAt(0).toUpperCase()+status.slice(1)}`;
+            chip.textContent = `R${room.roomNumber || room.number || '?'}`;
+            chipsContainer.appendChild(chip);
+        });
+        cell.appendChild(chipsContainer);
+        if (hiddenCount > 0) {
+            const ov = document.createElement('div');
+            ov.className = 'cal-overflow';
+            ov.textContent = `+${hiddenCount} more`;
+            cell.appendChild(ov);
+        }
+
+        // Clickable: open day bookings modal
+        cell.addEventListener('click', () => openDayModal(cellDate, rooms, bookings));
+        cells.appendChild(cell);
+    }
+}
+
+// --- Day Bookings Modal ---
+window.openDayModal = function(date, rooms, bookings) {
+    const modal      = document.getElementById('dayBookingsModal');
+    const titleEl    = document.getElementById('dayModalTitle');
+    const subtitleEl = document.getElementById('dayModalSubtitle');
+    const contentEl  = document.getElementById('dayModalContent');
+    if (!modal) return;
+
+    const dateLabel = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (titleEl)    titleEl.textContent    = dateLabel;
+    if (subtitleEl) subtitleEl.textContent = 'Room occupancy on this day';
+
+    const d = new Date(date); d.setHours(12,0,0,0);
+    const sortedRooms = [...(rooms||[])].sort((a,b) => (parseInt(a.roomNumber||a.number)||0) - (parseInt(b.roomNumber||b.number)||0));
+
+    const rows = sortedRooms.map(room => {
+        const status = roomStatusOnDate(room, d, bookings);
+        // Find matching booking for detail
+        const booking = (bookings||[]).find(b => {
+            if (b.roomId !== room.id) return false;
+            if (['cancelled','checked-out'].includes(b.status)) return false;
+            const start = new Date(b.startDate); start.setHours(0,0,0,0);
+            const end   = new Date(b.endDate);   end.setHours(23,59,59,999);
+            return d >= start && d <= end;
+        });
+
+        const statusBadge = status === 'available'
+            ? '<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-bold">Available</span>'
+            : status === 'maintenance'
+            ? '<span class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">Maintenance</span>'
+            : '<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">Booked</span>';
+
+        const guestInfo = booking && booking.guest
+            ? `<p class="text-xs text-gray-500 mt-0.5">Guest: <span class="font-medium text-gray-700">${booking.guest.name || 'N/A'}</span></p>
+               <p class="text-xs text-gray-400">Check-in: ${new Date(booking.startDate).toLocaleDateString('en-GB')} &rarr; Check-out: ${new Date(booking.endDate).toLocaleDateString('en-GB')}</p>`
+            : booking
+            ? `<p class="text-xs text-gray-400">Check-in: ${new Date(booking.startDate).toLocaleDateString('en-GB')} &rarr; Check-out: ${new Date(booking.endDate).toLocaleDateString('en-GB')}</p>`
+            : '';
+
+        return `<div class="flex items-start justify-between py-3 border-b border-gray-50 last:border-0">
+            <div>
+                <p class="text-sm font-bold text-gray-800">Room ${room.roomNumber || room.number} <span class="text-xs font-normal text-gray-500">${room.type}</span></p>
+                ${guestInfo}
+            </div>
+            <div class="ml-3 flex-shrink-0">${statusBadge}</div>
+        </div>`;
+    }).join('');
+
+    if (contentEl) contentEl.innerHTML = rows || '<p class="text-center text-gray-400 py-8">No rooms found.</p>';
+    modal.classList.remove('hidden');
+};
+
+window.closeDayModal = function() {
+    const modal = document.getElementById('dayBookingsModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+// Close modal on backdrop click
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('dayBookingsModal');
+    if (modal && e.target === modal) modal.classList.add('hidden');
+});
+
+// --- 30s Polling ---
+function startTrackerPolling() {
+    if (_trackerPollingTimer) clearInterval(_trackerPollingTimer);
+    _trackerPollingTimer = setInterval(() => {
+        const sec = document.getElementById('section-tracker');
+        if (sec && !sec.classList.contains('hidden')) {
+            fetchRoomsForTracker();
+            if (_currentTrackerView === 'calendar') fetchCalendarData();
+        }
+    }, 30000);
+}
+window._startTrackerPolling = startTrackerPolling;
 
 async function handleAddRoom(e) {
     e.preventDefault();

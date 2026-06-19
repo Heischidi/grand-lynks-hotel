@@ -685,6 +685,9 @@ function renderCalendarView(rooms, bookings, year, month) {
         }
 
         cells.appendChild(cell);
+
+        // Clickable: open day bookings modal
+        cell.addEventListener('click', () => openDayModal(cellDate, sortedRooms, bookings));
     }
 }
 
@@ -714,6 +717,76 @@ function stopTrackerPolling() {
 // Start polling when dashboard loads
 window._startTrackerPolling = startTrackerPolling;
 
+// --- Day Bookings Modal ---
+function _roomStatusOnDateCtx(room, date, bookings) {
+    const d = new Date(date); d.setHours(12,0,0,0);
+    if (room.status === 'maintenance') return 'maintenance';
+    const isBooked = (bookings||[]).some(b => {
+        if (b.roomId !== room.id) return false;
+        if (['cancelled','checked-out'].includes(b.status)) return false;
+        const start = new Date(b.startDate); start.setHours(0,0,0,0);
+        const end   = new Date(b.endDate);   end.setHours(23,59,59,999);
+        return d >= start && d <= end;
+    });
+    if (isBooked) return 'occupied';
+    const today = new Date(); today.setHours(0,0,0,0);
+    if (d <= today) {
+        const s = (room.status || '').toLowerCase();
+        if (s === 'occupied' || s === 'booked' || s === 'reserved' || s === 'checked-in' || !room.available) return 'occupied';
+    }
+    return 'available';
+}
+
+window.openDayModal = function(date, rooms, bookings) {
+    const modal      = document.getElementById('dayBookingsModal');
+    const titleEl    = document.getElementById('dayModalTitle');
+    const subtitleEl = document.getElementById('dayModalSubtitle');
+    const contentEl  = document.getElementById('dayModalContent');
+    if (!modal) return;
+
+    const dateLabel = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (titleEl)    titleEl.textContent    = dateLabel;
+    if (subtitleEl) subtitleEl.textContent = 'Room occupancy on this day';
+
+    const d = new Date(date); d.setHours(12,0,0,0);
+    const sortedR = [...(rooms||[])].sort((a,b) => (parseInt(a.roomNumber||a.number)||0) - (parseInt(b.roomNumber||b.number)||0));
+    const bkgs = bookings || _calBookings;
+
+    const rows = sortedR.map(room => {
+        const status = _roomStatusOnDateCtx(room, d, bkgs);
+        const booking = bkgs.find(b => {
+            if (b.roomId !== room.id) return false;
+            if (['cancelled','checked-out'].includes(b.status)) return false;
+            const start = new Date(b.startDate); start.setHours(0,0,0,0);
+            const end   = new Date(b.endDate);   end.setHours(23,59,59,999);
+            return d >= start && d <= end;
+        });
+        const badge = status === 'available'
+            ? '<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-bold">Available</span>'
+            : status === 'maintenance'
+            ? '<span class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">Maintenance</span>'
+            : '<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">Booked</span>';
+        const guestInfo = booking && booking.guest
+            ? `<p class="text-xs text-gray-500 mt-0.5">Guest: <span class="font-medium text-gray-700">${booking.guest.name||'N/A'}</span></p><p class="text-xs text-gray-400">Check-in: ${new Date(booking.startDate).toLocaleDateString('en-GB')} &rarr; Check-out: ${new Date(booking.endDate).toLocaleDateString('en-GB')}</p>`
+            : booking
+            ? `<p class="text-xs text-gray-400">Check-in: ${new Date(booking.startDate).toLocaleDateString('en-GB')} &rarr; Check-out: ${new Date(booking.endDate).toLocaleDateString('en-GB')}</p>`
+            : '';
+        return `<div class="flex items-start justify-between py-3 border-b border-gray-50 last:border-0"><div><p class="text-sm font-bold text-gray-800">Room ${room.roomNumber||room.number} <span class="text-xs font-normal text-gray-500">${room.type}</span></p>${guestInfo}</div><div class="ml-3 flex-shrink-0">${badge}</div></div>`;
+    }).join('');
+
+    if (contentEl) contentEl.innerHTML = rows || '<p class="text-center text-gray-400 py-8">No rooms found.</p>';
+    modal.classList.remove('hidden');
+};
+
+window.closeDayModal = function() {
+    const modal = document.getElementById('dayBookingsModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('dayBookingsModal');
+    if (modal && e.target === modal) modal.classList.add('hidden');
+});
 
 async function handleAddRoom(e) {
     e.preventDefault();
