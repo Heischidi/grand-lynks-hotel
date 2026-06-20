@@ -1538,6 +1538,7 @@ function renderGuests(guests) {
                 ${bookingCount} Booking(s)
             </td>
             <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-sm font-medium block md:table-cell">
+                <button onclick="editGuest(${guest.id})" class="text-indigo-600 hover:text-indigo-900 font-medium mr-3">Edit</button>
                 <button onclick="viewGuestHistory(${guest.id})" class="text-blue-600 hover:text-blue-900 font-medium">View History</button>
             </td>
         `;
@@ -1545,6 +1546,60 @@ function renderGuests(guests) {
     });
 }
  
+// --- EDIT GUEST LOGIC ---
+window.editGuest = function(id) {
+    const guest = window.allGuests.find(g => g.id === id);
+    if (!guest) return;
+    
+    document.getElementById('editGuestId').value = guest.id;
+    document.getElementById('editGuestName').value = guest.name || '';
+    document.getElementById('editGuestEmail').value = guest.email || '';
+    document.getElementById('editGuestPhone').value = guest.phone || '';
+    document.getElementById('editGuestIdNumber').value = guest.idNumber || '';
+    document.getElementById('editGuestAddress').value = guest.address || '';
+    document.getElementById('editGuestBlacklisted').value = guest.isBlacklisted ? "true" : "false";
+
+    openModal('editGuestModal');
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const editGuestForm = document.getElementById('editGuestForm');
+    if (editGuestForm) {
+        editGuestForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editGuestId').value;
+            const data = {
+                name: document.getElementById('editGuestName').value,
+                email: document.getElementById('editGuestEmail').value,
+                phone: document.getElementById('editGuestPhone').value,
+                idNumber: document.getElementById('editGuestIdNumber').value,
+                address: document.getElementById('editGuestAddress').value,
+                isBlacklisted: document.getElementById('editGuestBlacklisted').value === 'true'
+            };
+
+            try {
+                const response = await authFetch(`/guests/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    closeModal('editGuestModal');
+                    showToast('Guest details updated successfully.', 'success');
+                    fetchGuests(); // Refresh table
+                } else {
+                    const result = await response.json();
+                    showToast(result.error || 'Failed to update guest.', 'error');
+                }
+            } catch (error) {
+                console.error("Error updating guest:", error);
+                showToast('Error updating guest details.', 'error');
+            }
+        });
+    }
+});
+
 // --- GUEST SEARCH FILTER ---
 window.filterGuests = function () {
     if (!window.allGuests) return;
