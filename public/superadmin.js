@@ -706,12 +706,19 @@ window.openDayModal = function(date, rooms, bookings) {
     }).join('');
 
     if (contentEl) contentEl.innerHTML = rows || '<p class="text-center text-gray-400 py-8">No rooms found.</p>';
+    // Move to body so it renders above any broken nesting/stacking context, then force visibility
+    document.body.appendChild(modal);
     modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    modal.style.zIndex = '99999';
 };
 
 window.closeDayModal = function() {
     const modal = document.getElementById('dayBookingsModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = '';
+    }
 };
 
 // Close modal on backdrop click
