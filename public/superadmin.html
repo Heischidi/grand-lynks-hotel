@@ -83,24 +83,31 @@
 
             tr {
                 border: 1px solid #e5e7eb;
-                border-radius: 0.5rem;
-                margin-bottom: 1rem;
+                border-radius: 0.75rem;
+                margin-bottom: 1.25rem;
                 background-color: white;
-                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+                padding: 0.75rem;
             }
 
             td {
                 border: none;
                 border-bottom: 1px solid #f3f4f6;
-                position: relative;
-                padding-left: 50%;
+                padding: 0.75rem 0.5rem;
+                text-align: right;
+                font-size: 0.875rem;
+                display: flow-root;
             }
 
             td:last-child {
                 border-bottom: none;
             }
 
-            /* Removed hardcoded #admin-main padding, using Tailwind pt-28 instead */
+            td span.md\:hidden {
+                float: left;
+                font-weight: 600;
+                color: #4b5563;
+            }
         }
 
         /* Statistics section */
@@ -241,10 +248,27 @@
             min-width: 180px;
             text-align: center;
         }
-        @media (max-width: 640px) {
-            .cal-cell { min-height: 64px; padding: 4px 3px; }
-            .cal-day-num { font-size: 11px; }
-            .cal-chip { font-size: 8px; padding: 1px 3px; }
+        @media (max-width: 640px) { 
+            .cal-cell { min-height: 56px; padding: 2px; } 
+            .cal-day-num { font-size: 11px; margin-bottom: 2px; } 
+            .cal-chip { 
+                width: 8px; 
+                height: 8px; 
+                border-radius: 50%; 
+                padding: 0 !important; 
+                font-size: 0 !important; 
+                color: transparent !important; 
+                display: inline-block; 
+                overflow: hidden; 
+                margin: 1px;
+            } 
+            .cal-room-chips {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 2px;
+            }
+            .cal-overflow { font-size: 8px; display: block; text-align: center; margin-top: 1px; }
         }
     </style>
 </head>
@@ -286,9 +310,10 @@
     <div id="dashboard-container" class="hidden flex flex-1 relative w-full">
 
         <!-- MOBILE HEADER (Visible only on mobile) -->
-        <div class="md:hidden fixed top-4 right-4 z-[60]">
-            <button onclick="toggleSidebar()" class="bg-[#1a1a2e] shadow-lg text-gray-200 focus:outline-none flex items-center justify-center p-2 rounded-lg border border-gray-700">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#1a1a2e] text-white flex items-center justify-between px-4 z-[60] shadow-md border-b border-gray-800">
+            <h2 class="text-xl font-bold tracking-wide">Grand Lynks Superadmin</h2>
+            <button onclick="toggleSidebar()" class="text-gray-200 focus:outline-none flex items-center justify-center p-2 rounded-lg hover:bg-gray-800 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
                     </path>
                 </svg>
@@ -404,7 +429,7 @@
         </aside>
 
         <!-- MAIN CONTENT AREA -->
-        <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 md:p-8 relative w-full md:ml-72">
+        <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 pt-20 md:p-8 relative w-full md:ml-72 md:pt-8">
 
             <!-- ROOMS SECTION -->
             <section id="section-rooms" class="fade-in">
@@ -489,7 +514,7 @@
 
                 <!-- ===== GRID VIEW ===== -->
                 <div id="trackerGridView">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="roomTrackerGrid">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="roomTrackerGrid">
                         <!-- JS will populate -->
                         <div class="col-span-full text-center text-gray-500 py-10">Loading live tracker...</div>
                     </div>
@@ -777,20 +802,20 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Check-in Date & Time <span class="text-red-500">*</span></label>
-                                    <div class="flex gap-2 mt-1">
+                                    <div class="flex flex-col sm:flex-row gap-2 mt-1">
                                         <input type="date" name="startDate" required
                                             class="block w-full border border-gray-300 rounded-md shadow-sm p-2">
                                         <input type="time" name="checkInTime" required
-                                            class="block w-32 border border-gray-300 rounded-md shadow-sm p-2">
+                                            class="block w-full sm:w-32 border border-gray-300 rounded-md shadow-sm p-2">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Check-out Date & Time <span class="text-red-500">*</span></label>
-                                    <div class="flex gap-2 mt-1">
+                                    <div class="flex flex-col sm:flex-row gap-2 mt-1">
                                         <input type="date" name="endDate" required
                                             class="block w-full border border-gray-300 rounded-md shadow-sm p-2">
-                                        <input type="time" name="checkOutTime" required
-                                            class="block w-32 border border-gray-300 rounded-md shadow-sm p-2">
+                                        <input type="time" name="checkOutTime" value="12:00" readonly required
+                                            class="block w-full sm:w-32 border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 cursor-not-allowed">
                                     </div>
                                 </div>
                                 <div class="md:col-span-2">

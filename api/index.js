@@ -67,6 +67,65 @@ app.use((req, res, next) => {
   next();
 });
 
+// Automatic checkout routine for expired checked-in bookings
+async function autoCheckOutExpiredBookings() {
+  try {
+    const now = new Date();
+    // Fetch active checked-in bookings
+    const activeBookings = await prisma.booking.findMany({
+      where: {
+        status: "checked-in",
+        deletedAt: null
+      },
+      include: {
+        room: true
+      }
+    });
+
+    if (activeBookings.length === 0) return;
+
+    for (const booking of activeBookings) {
+      if (!booking.endDate) continue;
+
+      const checkoutDate = new Date(booking.endDate);
+      // Set to 12:00 PM WAT, which is 11:00 AM UTC
+      checkoutDate.setUTCHours(11, 0, 0, 0);
+
+      if (now >= checkoutDate) {
+        // Automatically transition status to checked-out
+        await prisma.booking.update({
+          where: { id: booking.id },
+          data: { status: "checked-out" }
+        });
+
+        // Revert room status to available
+        if (booking.roomId) {
+          await prisma.room.update({
+            where: { id: booking.roomId },
+            data: { status: "available" }
+          });
+        }
+        console.log(`[Auto-Checkout] Automatically checked out booking #${booking.id} (Room ${booking.room?.number || booking.roomId})`);
+      }
+    }
+  } catch (error) {
+    console.error("[Auto-Checkout] Error running automatic checkout:", error);
+  }
+}
+
+// Middleware to run auto-checkout on bookings, rooms, and stats routes
+const autoCheckoutMiddleware = async (req, res, next) => {
+  try {
+    await autoCheckOutExpiredBookings();
+  } catch (err) {
+    console.error("Error in autoCheckoutMiddleware:", err);
+  }
+  next();
+};
+
+app.use(["/rooms", "/bookings", "/check-availability", "/super/live"], autoCheckoutMiddleware);
+
+
 const { Resend } = require("resend");
 
 // Initialize Resend (Configure with RESEND_API_KEY in .env)
@@ -578,6 +637,8 @@ const validateBooking = (req, res, next) => {
   if (new Date(startDate) >= new Date(endDate)) {
     return res.status(400).json({ error: "End date must be after start date" });
   }
+  // Lock the check-out time to 12:00 PM (12:00)
+  req.body.checkOutTime = "12:00";
   next();
 };
 
@@ -1146,7 +1207,7 @@ app.post("/bookings", validateBooking, async (req, res) => {
         totalAmount,
         ...(specialRequests && { specialRequests }),
         ...(checkInTime && { checkInTime }),
-        ...(checkOutTime && { checkOutTime }),
+        checkOutTime: "12:00",
         ...(bookedBy && { bookedBy }),
       },
       include: {
@@ -1245,7 +1306,8 @@ app.put("/bookings/:id", authenticateToken, async (req, res) => {
         endDate: endDate ? new Date(endDate) : undefined,
         status,
         roomId,
-        totalAmount: totalAmount ? parseFloat(totalAmount) : undefined
+        totalAmount: totalAmount ? parseFloat(totalAmount) : undefined,
+        checkOutTime: "12:00"
       },
       include: { guest: true, room: true }
     });
