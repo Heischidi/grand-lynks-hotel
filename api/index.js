@@ -637,8 +637,8 @@ const validateBooking = (req, res, next) => {
   if (new Date(startDate) >= new Date(endDate)) {
     return res.status(400).json({ error: "End date must be after start date" });
   }
-  // Lock the check-out time to 12:00 PM (12:00)
-  req.body.checkOutTime = "12:00";
+  // Default the check-out time to 12:00 PM if not supplied
+  req.body.checkOutTime = req.body.checkOutTime || "12:00";
   next();
 };
 
@@ -1217,7 +1217,7 @@ app.post("/bookings", validateBooking, async (req, res) => {
       ? `Room: ${roomDiscount}%${manualDiscount > 0 ? `, Staff override: ${manualDiscount}%` : ''}`
       : null;
 
-    const booking = await prisma.booking.create({
+     const booking = await prisma.booking.create({
       data: {
         guestId: parseInt(guestId),
         roomId: parseInt(roomId),
@@ -1227,7 +1227,7 @@ app.post("/bookings", validateBooking, async (req, res) => {
         totalAmount,
         ...(specialRequests && { specialRequests }),
         ...(checkInTime && { checkInTime }),
-        checkOutTime: "12:00",
+        checkOutTime: checkOutTime || "12:00",
         ...(bookedBy && { bookedBy }),
       },
       include: {
