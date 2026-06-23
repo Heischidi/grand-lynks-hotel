@@ -1125,7 +1125,13 @@ function renderOrders(items) {
                         <button onclick="confirmBooking(${item.id})" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">Confirm Payment</button>
                         <button onclick="cancelBooking(${item.id})" class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200 transition">Cancel</button>
                      ` : ''}
-                     ${isBooking && item.status !== 'pending' ? `<span class="text-xs text-gray-400 capitalize">Status: ${item.status}</span>` : ''}
+                     ${isBooking && item.status === 'confirmed' ? `
+                        <button onclick="checkInBooking(${item.id})" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700 transition">Check In</button>
+                     ` : ''}
+                     ${isBooking && item.status === 'checked-in' ? `
+                        <button onclick="openCheckoutModal(${item.id})" class="bg-emerald-600 text-white px-3 py-1 rounded text-sm hover:bg-emerald-700 transition">Check Out</button>
+                     ` : ''}
+                     ${isBooking && !['pending', 'confirmed', 'checked-in'].includes(item.status) ? `<span class="text-xs text-gray-400 capitalize font-medium">Status: ${item.status}</span>` : ''}
                      ${!isBooking && (item.status === 'completed' || item.status === 'cancelled') ? '<span class="text-gray-400 text-sm">No actions available</span>' : ''}
                 </div>
             </div>
@@ -1679,6 +1685,10 @@ window.deleteTransaction = async function (id, type) {
 };
 
 window.editTransaction = async function (id, type) {
+    if (type === 'booking') {
+        window.openEditBookingModal(id);
+        return;
+    }
     const isBooking = type === 'booking';
     const typeLabel = isBooking ? 'Booking' : 'Food Order';
     
@@ -2388,3 +2398,290 @@ window.addEventListener('load', () => {
     setTimeout(forceTop, 300);
     setTimeout(forceTop, 600);
 });
+
+// ==========================================
+// CHECK IN, CHECK OUT & EDIT BOOKING SYSTEM
+// ==========================================
+
+window.checkInBooking = async function (id) {
+    if (!confirm("Are you sure you want to check in this guest?")) return;
+    
+    const response = await authFetch(`/bookings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'checked-in' })
+    });
+
+    if (response && response.ok) {
+        alert("Guest checked in successfully.");
+        if (typeof fetchOrders === 'function') fetchOrders();
+    } else {
+        alert("Failed to check in guest.");
+    }
+};
+
+window.openCheckoutModal = async function (id) {
+    try {
+        const response = await authFetch(`/bookings/${id}`);
+        if (!response || !response.ok) {
+            alert("Failed to retrieve booking details.");
+            return;
+        }
+        const booking = await response.json();
+        
+        window._currentCheckoutBooking = booking;
+
+        document.getElementById('checkoutBookingId').value = booking.id;
+        document.getElementById('checkoutGuestName').textContent = booking.guest ? booking.guest.name : 'Unknown Guest';
+        document.getElementById('checkoutRoomNum').textContent = booking.room ? booking.room.number + ' (' + booking.room.type + ')' : 'N/A';
+        document.getElementById('checkoutRoomRate').value = booking.room ? booking.room.pricePerNight : 0;
+        document.getElementById('checkoutScheduledEnd').textContent = new Date(booking.endDate).toLocaleDateString();
+        
+        const now = new Date();
+        const formattedNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        document.getElementById('checkoutActualTime').value = formattedNow;
+        document.getElementById('checkoutNotes').value = '';
+
+        calculateLateCheckoutFee();
+        window.openModal('checkoutModal');
+    } catch (error) {
+        console.error("Error opening checkout modal:", error);
+        alert("An error occurred while opening checkout: " + error.message);
+    }
+};
+
+window.calculateLateCheckoutFee = function () {
+    const booking = window._currentCheckoutBooking;
+    if (!booking) return;
+
+    const actualTimeInput = document.getElementById('checkoutActualTime').value;
+    if (!actualTimeInput) return;
+
+    const actualCheckoutTime = new Date(actualTimeInput);
+    
+    const scheduledEnd = new Date(booking.endDate);
+    const deadlineTime = new Date(scheduledEnd.getFullYear(), scheduledEnd.getMonth(), scheduledEnd.getDate(), 12, 0, 0);
+
+    const isLate = actualCheckoutTime > deadlineTime;
+
+    const lateNotice = document.getElementById('lateCheckoutNotice');
+    const earlyNotice = document.getElementById('earlyCheckoutNotice');
+    const feeInput = document.getElementById('checkoutLateFeeInput');
+    const applyCheckbox = document.getElementById('applyLateFeeCheckbox');
+
+    if (isLate) {
+        lateNotice.classList.remove('hidden');
+        earlyNotice.classList.add('hidden');
+        
+        const roomRate = parseFloat(document.getElementById('checkoutRoomRate').value) || 0;
+        const calculatedFee = roomRate * 0.5;
+        
+        feeInput.value = calculatedFee;
+        applyCheckbox.checked = true;
+        feeInput.disabled = false;
+    } else {
+        lateNotice.classList.add('hidden');
+        earlyNotice.classList.remove('hidden');
+        feeInput.value = 0;
+        applyCheckbox.checked = false;
+        feeInput.disabled = true;
+    }
+
+    updateCheckoutTotal();
+};
+
+window.toggleLateFeeCheckbox = function () {
+    const applyCheckbox = document.getElementById('applyLateFeeCheckbox');
+    const feeInput = document.getElementById('checkoutLateFeeInput');
+    
+    if (applyCheckbox.checked) {
+        const roomRate = parseFloat(document.getElementById('checkoutRoomRate').value) || 0;
+        feeInput.value = roomRate * 0.5;
+        feeInput.disabled = false;
+    } else {
+        feeInput.value = 0;
+        feeInput.disabled = true;
+    }
+    updateCheckoutTotal();
+};
+
+window.updateCheckoutTotal = function () {
+    const booking = window._currentCheckoutBooking;
+    if (!booking) return;
+
+    const originalTotal = parseFloat(booking.totalAmount) || 0;
+    const applyCheckbox = document.getElementById('applyLateFeeCheckbox');
+    const feeInput = document.getElementById('checkoutLateFeeInput');
+    
+    let lateFee = 0;
+    if (applyCheckbox && applyCheckbox.checked) {
+        lateFee = parseFloat(feeInput.value) || 0;
+    }
+
+    const newTotal = originalTotal + lateFee;
+    document.getElementById('checkoutTotalAmount').textContent = newTotal.toLocaleString();
+    
+    const notice = document.getElementById('checkoutOriginalTotalNotice');
+    if (lateFee > 0) {
+        notice.textContent = `(includes ₦${originalTotal.toLocaleString()} original + ₦${lateFee.toLocaleString()} late fee)`;
+    } else {
+        notice.textContent = '';
+    }
+};
+
+window.processCheckout = async function (event) {
+    event.preventDefault();
+    const id = document.getElementById('checkoutBookingId').value;
+    const actualCheckOutTime = document.getElementById('checkoutActualTime').value;
+    const applyCheckbox = document.getElementById('applyLateFeeCheckbox');
+    const feeInput = document.getElementById('checkoutLateFeeInput');
+    const notes = document.getElementById('checkoutNotes').value;
+    const booking = window._currentCheckoutBooking;
+
+    let lateFee = null;
+    if (applyCheckbox && applyCheckbox.checked) {
+        lateFee = parseFloat(feeInput.value) || 0;
+    }
+
+    const originalTotal = parseFloat(booking.totalAmount) || 0;
+    const newTotal = originalTotal + (lateFee || 0);
+
+    const payload = {
+        status: 'checked-out',
+        actualCheckOutTime: new Date(actualCheckOutTime).toISOString(),
+        lateCheckoutFee: lateFee,
+        checkoutNotes: notes,
+        totalAmount: newTotal
+    };
+
+    const response = await authFetch(`/bookings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+    });
+
+    if (response && response.ok) {
+        alert("Checkout completed successfully.");
+        window.closeModal('checkoutModal');
+        if (typeof fetchOrders === 'function') fetchOrders();
+    } else {
+        alert("Failed to complete checkout.");
+    }
+};
+
+window.openEditBookingModal = async function (id) {
+    try {
+        const roomsRes = await authFetch('/rooms');
+        if (!roomsRes || !roomsRes.ok) {
+            alert("Failed to load rooms list.");
+            return;
+        }
+        const rooms = await roomsRes.json();
+        
+        const roomSelect = document.getElementById('editBookingRoomSelect');
+        roomSelect.innerHTML = '';
+        rooms.forEach(room => {
+            const opt = document.createElement('option');
+            opt.value = room.id;
+            opt.textContent = `Room ${room.number} (${room.type}) - ₦${room.pricePerNight}/night`;
+            roomSelect.appendChild(opt);
+        });
+
+        const response = await authFetch(`/bookings/${id}`);
+        if (!response || !response.ok) {
+            alert("Failed to load booking details.");
+            return;
+        }
+        const booking = await response.json();
+
+        document.getElementById('editBookingId').value = booking.id;
+        document.getElementById('editBookingGuestName').value = booking.guest ? booking.guest.name : '';
+        document.getElementById('editBookingGuestPhone').value = booking.guest ? booking.guest.phone : '';
+        document.getElementById('editBookingGuestEmail').value = booking.guest ? booking.guest.email : '';
+        
+        document.getElementById('editBookingRoomSelect').value = booking.roomId;
+        document.getElementById('editBookingStatusSelect').value = booking.status;
+        
+        document.getElementById('editBookingStartDate').value = new Date(booking.startDate).toISOString().split('T')[0];
+        document.getElementById('editBookingEndDate').value = new Date(booking.endDate).toISOString().split('T')[0];
+        
+        document.getElementById('editBookingCheckInTime').value = booking.checkInTime || '';
+        document.getElementById('editBookingCheckOutTime').value = booking.checkOutTime || '12:00';
+        document.getElementById('editBookingTotalAmount').value = booking.totalAmount || 0;
+        document.getElementById('editBookingSpecialRequests').value = booking.specialRequests || '';
+
+        const checkoutFields = document.getElementById('editBookingCheckoutFields');
+        if (booking.status === 'checked-out') {
+            checkoutFields.classList.remove('hidden');
+            
+            if (booking.actualCheckOutTime) {
+                const actualDate = new Date(booking.actualCheckOutTime);
+                const formattedActual = new Date(actualDate.getTime() - actualDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                document.getElementById('editBookingActualCheckoutTime').value = formattedActual;
+            } else {
+                document.getElementById('editBookingActualCheckoutTime').value = '';
+            }
+            
+            document.getElementById('editBookingLateFee').value = booking.lateCheckoutFee || 0;
+            document.getElementById('editBookingCheckoutNotes').value = booking.checkoutNotes || '';
+        } else {
+            checkoutFields.classList.add('hidden');
+        }
+
+        document.getElementById('editBookingStatusSelect').onchange = function () {
+            if (this.value === 'checked-out') {
+                checkoutFields.classList.remove('hidden');
+                if (!document.getElementById('editBookingActualCheckoutTime').value) {
+                    const now = new Date();
+                    const formattedNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                    document.getElementById('editBookingActualCheckoutTime').value = formattedNow;
+                }
+            } else {
+                checkoutFields.classList.add('hidden');
+            }
+        };
+
+        window.openModal('editBookingModal');
+    } catch (error) {
+        console.error("Error loading edit booking modal:", error);
+        alert("An error occurred: " + error.message);
+    }
+};
+
+window.saveEditedBooking = async function (event) {
+    event.preventDefault();
+    const id = document.getElementById('editBookingId').value;
+    const status = document.getElementById('editBookingStatusSelect').value;
+
+    const payload = {
+        guestName: document.getElementById('editBookingGuestName').value,
+        guestPhone: document.getElementById('editBookingGuestPhone').value,
+        guestEmail: document.getElementById('editBookingGuestEmail').value,
+        roomId: document.getElementById('editBookingRoomSelect').value,
+        status: status,
+        startDate: document.getElementById('editBookingStartDate').value,
+        endDate: document.getElementById('editBookingEndDate').value,
+        checkInTime: document.getElementById('editBookingCheckInTime').value,
+        checkOutTime: document.getElementById('editBookingCheckOutTime').value,
+        totalAmount: parseFloat(document.getElementById('editBookingTotalAmount').value) || 0,
+        specialRequests: document.getElementById('editBookingSpecialRequests').value
+    };
+
+    if (status === 'checked-out') {
+        const actualVal = document.getElementById('editBookingActualCheckoutTime').value;
+        payload.actualCheckOutTime = actualVal ? new Date(actualVal).toISOString() : null;
+        payload.lateCheckoutFee = parseFloat(document.getElementById('editBookingLateFee').value) || 0;
+        payload.checkoutNotes = document.getElementById('editBookingCheckoutNotes').value;
+    }
+
+    const response = await authFetch(`/bookings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+    });
+
+    if (response && response.ok) {
+        alert("Booking updated successfully.");
+        window.closeModal('editBookingModal');
+        if (typeof fetchOrders === 'function') fetchOrders();
+    } else {
+        alert("Failed to update booking.");
+    }
+};

@@ -1629,6 +1629,209 @@
         </div>
     </div>
 
+    <!-- EDIT BOOKING MODAL -->
+    <div id="editBookingModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <h3 class="text-xl font-bold text-gray-900">Edit Booking</h3>
+                <button onclick="closeModal('editBookingModal')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body (Scrollable Form) -->
+            <form id="editBookingForm" onsubmit="saveEditedBooking(event)" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <input type="hidden" id="editBookingId">
+                
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400">Guest Contact Info</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Guest Name</label>
+                        <input type="text" id="editBookingGuestName" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Guest Phone</label>
+                        <input type="text" id="editBookingGuestPhone" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Guest Email</label>
+                        <input type="email" id="editBookingGuestEmail" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <hr class="border-gray-100 my-2">
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400">Booking Details</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Room Number</label>
+                        <select id="editBookingRoomSelect" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select id="editBookingStatusSelect" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="checked-in">Checked In</option>
+                            <option value="checked-out">Checked Out</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Check-in Date</label>
+                        <input type="date" id="editBookingStartDate" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Check-out Date</label>
+                        <input type="date" id="editBookingEndDate" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Check-in Time</label>
+                        <input type="text" id="editBookingCheckInTime" placeholder="e.g. 14:00" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Check-out Time</label>
+                        <input type="text" id="editBookingCheckOutTime" value="12:00" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Total Amount (₦)</label>
+                        <input type="number" id="editBookingTotalAmount" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Special Requests / Staff Notes</label>
+                        <textarea id="editBookingSpecialRequests" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                </div>
+
+                <!-- Fields for checked-out bookings -->
+                <div id="editBookingCheckoutFields" class="hidden border-t border-gray-100 pt-4 space-y-4">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400">Checkout Records</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Actual Checkout Date/Time</label>
+                            <input type="datetime-local" id="editBookingActualCheckoutTime" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Late Checkout Fee (₦)</label>
+                            <input type="number" id="editBookingLateFee" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Checkout Notes</label>
+                            <textarea id="editBookingCheckoutNotes" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer buttons -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="closeModal('editBookingModal')" class="px-5 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition shadow-md font-semibold">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CHECKOUT MODAL -->
+    <div id="checkoutModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 flex flex-col" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🔑</span>
+                    <h3 class="text-xl font-bold text-gray-900">Guest Checkout</h3>
+                </div>
+                <button onclick="closeModal('checkoutModal')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <form id="checkoutForm" onsubmit="processCheckout(event)" class="p-6 space-y-4">
+                <input type="hidden" id="checkoutBookingId">
+                <input type="hidden" id="checkoutRoomRate">
+                
+                <div class="bg-gray-50 p-4 rounded-xl space-y-2 border border-gray-100 text-sm text-gray-700">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 font-medium">Guest:</span>
+                        <span id="checkoutGuestName" class="font-semibold text-gray-900">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 font-medium">Room:</span>
+                        <span id="checkoutRoomNum" class="font-semibold text-gray-900">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 font-medium">Scheduled End:</span>
+                        <span id="checkoutScheduledEnd" class="font-semibold text-gray-900">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 font-medium">Scheduled Time:</span>
+                        <span class="font-semibold text-gray-900">12:00 PM WAT</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Actual Checkout Date/Time</label>
+                    <input type="datetime-local" id="checkoutActualTime" required onchange="calculateLateCheckoutFee()" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- Late Checkout Notice & Fee -->
+                <div id="lateCheckoutNotice" class="hidden p-4 rounded-xl border flex flex-col gap-2">
+                    <div class="flex items-center gap-2 text-red-700 font-semibold text-sm">
+                        <span>⚠️</span>
+                        <span>Late Checkout Detected</span>
+                    </div>
+                    <p class="text-xs text-red-600">This checkout is after 12:00 PM WAT on the scheduled check-out date. A 50% extra nightly charge has been calculated.</p>
+                    
+                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-red-100">
+                        <label class="flex items-center gap-2 text-sm font-medium text-red-900 cursor-pointer">
+                            <input type="checkbox" id="applyLateFeeCheckbox" checked onchange="toggleLateFeeCheckbox()" class="w-4 h-4 accent-red-600 rounded">
+                            Apply 50% Late Fee
+                        </label>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs text-gray-500">₦</span>
+                            <input type="number" id="checkoutLateFeeInput" oninput="updateCheckoutTotal()" class="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-right text-sm font-semibold">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Early/On-Time Notice -->
+                <div id="earlyCheckoutNotice" class="hidden p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2 text-green-700 text-sm">
+                    <span>✅</span>
+                    <span>On-Time or Early Checkout</span>
+                </div>
+
+                <!-- Total Review -->
+                <div class="border-t border-gray-100 pt-3 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-gray-500 block uppercase font-medium">New Total Amount</span>
+                        <div class="text-lg font-bold text-gray-900">
+                            ₦<span id="checkoutTotalAmount">-</span>
+                            <span id="checkoutOriginalTotalNotice" class="text-xs text-gray-400 font-normal ml-1"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Checkout Notes / Remarks</label>
+                    <textarea id="checkoutNotes" rows="2" placeholder="e.g. Checked out early, guest requested receipt." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+                
+                <!-- Footer buttons -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="closeModal('checkoutModal')" class="px-5 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition shadow-md font-semibold">Complete Checkout</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </body>
 
 </html>

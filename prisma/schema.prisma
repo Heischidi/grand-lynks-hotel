@@ -71,6 +71,9 @@ model Booking {
   status       String    @default("pending") // pending, confirmed, checked-in, checked-out, cancelled
   totalAmount  Float
   specialRequests String?
+  actualCheckOutTime DateTime?
+  lateCheckoutFee    Float?
+  checkoutNotes      String?
   guest        Guest     @relation(fields: [guestId], references: [id])
   room         Room      @relation(fields: [roomId], references: [id])
   payments     Payment[]

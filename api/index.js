@@ -1128,6 +1128,26 @@ app.get("/bookings", authenticateToken, async (req, res) => {
   }
 });
 
+app.get("/bookings/:id", authenticateToken, async (req, res) => {
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: parseInt(req.params.id) },
+      include: {
+        guest: true,
+        room: true,
+        payments: true,
+      },
+    });
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+    res.json(booking);
+  } catch (error) {
+    console.error("Error fetching booking details:", error);
+    res.status(500).json({ error: "Failed to fetch booking details" });
+  }
+});
+
 app.post("/bookings", validateBooking, async (req, res) => {
   try {
     const { guestId, roomId, startDate, endDate, status, specialRequests, discountPct, checkInTime, checkOutTime, bookedBy } = req.body;
@@ -1232,24 +1252,98 @@ app.post("/bookings", validateBooking, async (req, res) => {
   }
 });
 
-app.put("/bookings/:id", authenticateToken, validateBooking, async (req, res) => {
+app.put("/bookings/:id", authenticateToken, async (req, res) => {
+  const bookingId = parseInt(req.params.id);
+  const {
+    startDate,
+    endDate,
+    status,
+    roomId,
+    totalAmount,
+    specialRequests,
+    checkInTime,
+    checkOutTime,
+    guestName,
+    guestPhone,
+    guestEmail,
+    actualCheckOutTime,
+    lateCheckoutFee,
+    checkoutNotes
+  } = req.body;
+
   try {
-    const booking = await prisma.booking.update({
-      where: { id: parseInt(req.params.id) },
-      data: req.body,
-      include: {
-        guest: true,
-        room: true,
-      },
+    const currentBooking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { guest: true, room: true }
     });
-    res.json({ message: "Booking updated", booking });
+
+    if (!currentBooking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    if (guestName || guestPhone || guestEmail) {
+      await prisma.guest.update({
+        where: { id: currentBooking.guestId },
+        data: {
+          ...(guestName && { name: guestName }),
+          ...(guestPhone && { phone: guestPhone }),
+          ...(guestEmail && { email: guestEmail })
+        }
+      });
+    }
+
+    const updateData = {};
+    if (startDate) updateData.startDate = new Date(startDate);
+    if (endDate) updateData.endDate = new Date(endDate);
+    if (status) updateData.status = status;
+    if (roomId) updateData.roomId = parseInt(roomId);
+    if (totalAmount !== undefined) updateData.totalAmount = parseFloat(totalAmount);
+    if (specialRequests !== undefined) updateData.specialRequests = specialRequests;
+    if (checkInTime !== undefined) updateData.checkInTime = checkInTime;
+    if (checkOutTime !== undefined) updateData.checkOutTime = checkOutTime;
+    
+    if (actualCheckOutTime !== undefined) {
+      updateData.actualCheckOutTime = actualCheckOutTime ? new Date(actualCheckOutTime) : null;
+    }
+    if (lateCheckoutFee !== undefined) {
+      updateData.lateCheckoutFee = lateCheckoutFee ? parseFloat(lateCheckoutFee) : null;
+    }
+    if (checkoutNotes !== undefined) {
+      updateData.checkoutNotes = checkoutNotes;
+    }
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: updateData,
+      include: { guest: true, room: true }
+    });
+
+    const targetStatus = status || currentBooking.status;
+    const targetRoomId = roomId ? parseInt(roomId) : currentBooking.roomId;
+
+    if (roomId && parseInt(roomId) !== currentBooking.roomId) {
+      await prisma.room.update({
+        where: { id: currentBooking.roomId },
+        data: { status: "available" }
+      });
+    }
+
+    if (["checked-out", "completed", "cancelled"].includes(targetStatus)) {
+      await prisma.room.update({
+        where: { id: targetRoomId },
+        data: { status: "available" }
+      });
+    } else if (targetStatus === "checked-in") {
+      await prisma.room.update({
+        where: { id: targetRoomId },
+        data: { status: "occupied" }
+      });
+    }
+
+    res.json({ message: "Booking updated successfully", booking: updatedBooking });
   } catch (error) {
     console.error("Error updating booking:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Booking not found" });
-    } else {
-      res.status(500).json({ error: "Failed to update booking" });
-    }
+    res.status(500).json({ error: "Failed to update booking: " + error.message });
   }
 });
 
@@ -1290,31 +1384,6 @@ app.delete("/orders/:id", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error deleting order:', error);
     res.status(500).json({ error: 'Failed to delete order' });
-  }
-});
-
-// General update endpoint for bookings
-app.put("/bookings/:id", authenticateToken, async (req, res) => {
-  const bookingId = parseInt(req.params.id);
-  const { startDate, endDate, status, roomId, totalAmount } = req.body;
-  
-  try {
-    const updated = await prisma.booking.update({
-      where: { id: bookingId },
-      data: {
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined,
-        status,
-        roomId,
-        totalAmount: totalAmount ? parseFloat(totalAmount) : undefined,
-        checkOutTime: "12:00"
-      },
-      include: { guest: true, room: true }
-    });
-    res.json({ message: "Booking updated", booking: updated });
-  } catch (error) {
-    console.error("Error updating booking:", error);
-    res.status(500).json({ error: "Failed to update booking" });
   }
 });
 
