@@ -2373,7 +2373,7 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     const [bookings, orders, guests, rooms] = await Promise.all([
       prisma.booking.findMany({
         where: { deletedAt: null },
-        select: { totalAmount: true, status: true, createdAt: true, startDate: true, endDate: true }
+        select: { totalAmount: true, status: true, createdAt: true, startDate: true, endDate: true, guestId: true }
       }),
       prisma.order.findMany({
         where: { deletedAt: null },
@@ -2392,7 +2392,7 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
           status: true, 
           bookings: {
             where: { deletedAt: null },
-            select: { id: true, status: true, totalAmount: true, createdAt: true }
+            select: { id: true, status: true, totalAmount: true, createdAt: true, startDate: true }
           }
         }
       })
@@ -2409,26 +2409,31 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     const monthlyOrderRevenue   = Array(12).fill(0);
     const monthlyBookingCount   = Array(12).fill(0);
     const monthlyOrderCount     = Array(12).fill(0);
-    const monthlyGuestCount     = Array(12).fill(0);
+    const monthlyGuestIds       = Array.from({ length: 12 }, () => new Set());
 
-    const bookingStatusCount = { pending: 0, confirmed: 0, 'checked-in': 0, completed: 0, cancelled: 0 };
+    const bookingStatusCount = { pending: 0, confirmed: 0, 'checked-in': 0, 'checked-out': 0, completed: 0, cancelled: 0 };
     const allTimeBookingRevenue = { rooms: 0, food: 0 };
 
     bookings.forEach(b => {
-      const m = getMonth(b.createdAt);
-      if (inYear(b.createdAt, year)) {
+      const m = getMonth(b.startDate);
+      if (inYear(b.startDate, year)) {
         monthlyBookingCount[m]++;
-        if (['confirmed', 'checked-in', 'completed'].includes(b.status)) {
+        if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
           monthlyBookingRevenue[m] += b.totalAmount || 0;
+        }
+        if (b.guestId) {
+          monthlyGuestIds[m].add(b.guestId);
         }
       }
       // Status breakdown (all time)
       if (bookingStatusCount[b.status] !== undefined) bookingStatusCount[b.status]++;
       // All-time revenue
-      if (['confirmed', 'checked-in', 'completed'].includes(b.status)) {
+      if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
         allTimeBookingRevenue.rooms += b.totalAmount || 0;
       }
     });
+
+    const monthlyGuestCount = monthlyGuestIds.map(set => set.size);
 
     orders.forEach(o => {
       const m = getMonth(o.createdAt);
@@ -2443,20 +2448,13 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
       }
     });
 
-    guests.forEach(g => {
-      const m = getMonth(g.createdAt);
-      if (inYear(g.createdAt, year)) {
-        monthlyGuestCount[m]++;
-      }
-    });
-
     // --- Yearly summaries (last 5 years) ---
     const currentYear = new Date().getFullYear();
     const yearlyRevenue = [];
     for (let y = currentYear - 4; y <= currentYear; y++) {
       let rev = 0;
       bookings.forEach(b => {
-        if (inYear(b.createdAt, y) && ['confirmed', 'checked-in', 'completed'].includes(b.status)) {
+        if (inYear(b.startDate, y) && ['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
           rev += b.totalAmount || 0;
         }
       });
@@ -2502,9 +2500,9 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
       let rCount = 0;
       let rRev = 0;
       r.bookings.forEach(b => {
-        if (inYear(b.createdAt, year)) {
+        if (inYear(b.startDate, year)) {
           rCount++;
-          if (['confirmed', 'checked-in', 'completed'].includes(b.status)) {
+          if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
             rRev += b.totalAmount || 0;
           }
         }

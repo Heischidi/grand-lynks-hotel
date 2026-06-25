@@ -1935,6 +1935,7 @@ function renderHistoryItems(items) {
         pending:      'bg-yellow-100 text-yellow-700',
         confirmed:    'bg-blue-100 text-blue-700',
         'checked-in': 'bg-indigo-100 text-indigo-700',
+        'checked-out': 'bg-purple-100 text-purple-700',
         completed:    'bg-green-100 text-green-700',
         cancelled:    'bg-red-100 text-red-700',
     };
@@ -2891,6 +2892,7 @@ function renderStatistics(data) {
         pending:    '#f59e0b',
         confirmed:  '#3b82f6',
         'checked-in': '#10b981',
+        'checked-out': '#8b5cf6',
         completed:  '#6366f1',
         cancelled:  '#ef4444'
     };
