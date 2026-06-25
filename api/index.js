@@ -2449,9 +2449,8 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     });
 
     // --- Yearly summaries (last 5 years) ---
-    const currentYear = new Date().getFullYear();
     const yearlyRevenue = [];
-    for (let y = currentYear - 4; y <= currentYear; y++) {
+    for (let y = year - 4; y <= year; y++) {
       let rev = 0;
       bookings.forEach(b => {
         if (inYear(b.startDate, y) && ['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
