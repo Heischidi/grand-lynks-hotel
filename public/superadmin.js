@@ -426,13 +426,16 @@ function renderRoomTracker(rooms, bookings = []) {
         let statusIcon = '✅';
         let currentStatus = 'available';
 
-        const today = new Date(); today.setHours(12,0,0,0);
+        // Use UTC date boundaries to avoid WAT (+01:00) timezone shift issues
+        const nowUtc = new Date();
+        const todayStartUtc = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(), 0, 0, 0, 0));
+        const todayEndUtc   = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(), 23, 59, 59, 999));
         const activeBooking = bookings.find(b => {
             if (b.roomId !== room.id) return false;
             if (['cancelled', 'checked-out'].includes(b.status)) return false;
-            const start = new Date(b.startDate); start.setHours(0,0,0,0);
-            const end = new Date(b.endDate); end.setHours(23,59,59,999);
-            return today >= start && today <= end;
+            const start = new Date(b.startDate);
+            const end   = new Date(b.endDate);
+            return start <= todayEndUtc && end >= todayStartUtc;
         });
 
         if (room.status === 'maintenance') {
@@ -579,19 +582,30 @@ async function fetchCalendarData() {
 }
 
 function roomStatusOnDate(room, date, bookings) {
+    // Use UTC date-only comparison to avoid WAT (+01:00) timezone shift issues
+    // e.g. a booking stored as 2026-06-28T00:00:00Z = June 28 in UTC,
+    // but setHours(0,0,0,0) in WAT would treat it as June 27 local midnight.
     const d = new Date(date);
-    d.setHours(12, 0, 0, 0);
+    // Normalise d to UTC midnight of the same calendar day
+    const dUtc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+
     if (room.status === 'maintenance') return 'maintenance';
     const isBooked = (bookings || []).some(b => {
         if (b.roomId !== room.id) return false;
         if (['cancelled', 'checked-out'].includes(b.status)) return false;
-        const start = new Date(b.startDate); start.setHours(0,0,0,0);
-        const end   = new Date(b.endDate);   end.setHours(23,59,59,999);
-        return d >= start && d <= end;
+        const start = new Date(b.startDate);
+        const end   = new Date(b.endDate);
+        // Normalise booking bounds to UTC midnight / end-of-day
+        const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
+        const endUtc   = Date.UTC(end.getUTCFullYear(),   end.getUTCMonth(),   end.getUTCDate());
+        return dUtc >= startUtc && dUtc <= endUtc;
     });
     if (isBooked) return 'occupied';
-    const today = new Date(); today.setHours(0,0,0,0);
-    if (d <= today) {
+
+    // For today and past dates also respect the room's explicit status flag
+    const now = new Date();
+    const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    if (dUtc <= todayUtc) {
         const s = (room.status || '').toLowerCase();
         if (s === 'occupied' || s === 'booked' || s === 'reserved' || s === 'checked-in' || !room.available) return 'occupied';
     }

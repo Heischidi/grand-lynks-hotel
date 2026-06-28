@@ -712,11 +712,32 @@ app.get("/rooms", async (req, res) => {
       },
     });
 
-    // Add availability status based on bookings
-    const roomsWithAvailability = rooms.map((room) => ({
-      ...room,
-      available: room.bookings.length === 0 || room.status === "available",
-    }));
+    // A room is unavailable only if a booking covers TODAY's date.
+    // Using UTC midnight boundaries to avoid timezone-shift issues.
+    const nowUtc = new Date();
+    // Start of today in UTC (00:00:00.000Z)
+    const todayStartUtc = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(), 0, 0, 0, 0));
+    // End of today in UTC (23:59:59.999Z)
+    const todayEndUtc   = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(), 23, 59, 59, 999));
+
+    const roomsWithAvailability = rooms.map((room) => {
+      // Room is currently occupied if any active booking covers today
+      const hasActiveBookingToday = room.bookings.some((b) => {
+        const start = new Date(b.startDate);
+        const end   = new Date(b.endDate);
+        return start <= todayEndUtc && end >= todayStartUtc;
+      });
+
+      // Also respect explicit room status (maintenance / occupied set manually)
+      const isOccupiedByStatus = ["occupied", "booked", "reserved", "checked-in"].includes(
+        (room.status || "").toLowerCase()
+      );
+
+      return {
+        ...room,
+        available: !hasActiveBookingToday && !isOccupiedByStatus,
+      };
+    });
 
     res.json(roomsWithAvailability);
   } catch (error) {
