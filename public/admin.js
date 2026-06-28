@@ -566,26 +566,25 @@ async function fetchCalendarData() {
 }
 
 function roomStatusOnDate(room, date, bookings) {
-    // The calendar cells are created with new Date(year, month, day) — LOCAL time.
-    // If we use getUTCDate() on them in WAT (+01:00), midnight local = 23:00 prev-day UTC,
-    // which shifts the date back by 1 and breaks all booking matches.
-    // Solution: use LOCAL getFullYear/Month/Date for the cell comparison anchor,
-    // and UTC getters only for DB booking dates (stored as UTC ISO strings).
     const d = new Date(date);
-    const dUtc = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()); // local year/month/day → UTC stamp
+    // Use local date parts for calendar cells (created with new Date(year, month, day)),
+    // then compare against UTC-normalised booking dates from the DB.
+    const dDay   = d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate(); // YYYYMMDD local
 
     // Maintenance overrides everything
     if (room.status === 'maintenance') return 'maintenance';
 
-    // Calendar status is PURELY driven by booking date ranges
+    // Calendar status is PURELY driven by booking date ranges.
+    // Use == (not ===) for roomId comparison to handle any string/number type mismatch.
     const isBooked = (bookings || []).some(b => {
-        if (b.roomId !== room.id) return false;
+        if (b.roomId != room.id) return false;  // loose equality
         if (['cancelled', 'checked-out'].includes(b.status)) return false;
-        const start = new Date(b.startDate); // UTC ISO from DB
+        const start = new Date(b.startDate);
         const end   = new Date(b.endDate);
-        const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
-        const endUtc   = Date.UTC(end.getUTCFullYear(),   end.getUTCMonth(),   end.getUTCDate());
-        return dUtc >= startUtc && dUtc <= endUtc;
+        // Normalise both to local YYYYMMDD for a fair, timezone-agnostic comparison
+        const startDay = start.getFullYear() * 10000 + start.getMonth() * 100 + start.getDate();
+        const endDay   = end.getFullYear()   * 10000 + end.getMonth()   * 100 + end.getDate();
+        return dDay >= startDay && dDay <= endDay;
     });
 
     return isBooked ? 'occupied' : 'available';
