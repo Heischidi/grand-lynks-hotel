@@ -583,33 +583,26 @@ async function fetchCalendarData() {
 
 function roomStatusOnDate(room, date, bookings) {
     // Use UTC date-only comparison to avoid WAT (+01:00) timezone shift issues
-    // e.g. a booking stored as 2026-06-28T00:00:00Z = June 28 in UTC,
-    // but setHours(0,0,0,0) in WAT would treat it as June 27 local midnight.
     const d = new Date(date);
-    // Normalise d to UTC midnight of the same calendar day
     const dUtc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 
+    // Maintenance status overrides everything (it's an explicit admin action, not booking-based)
     if (room.status === 'maintenance') return 'maintenance';
+
+    // Calendar status is PURELY driven by booking date ranges.
+    // room.available and room.status are runtime snapshots of TODAY's state;
+    // using them for past/future days would make every day look the same.
     const isBooked = (bookings || []).some(b => {
         if (b.roomId !== room.id) return false;
         if (['cancelled', 'checked-out'].includes(b.status)) return false;
         const start = new Date(b.startDate);
         const end   = new Date(b.endDate);
-        // Normalise booking bounds to UTC midnight / end-of-day
         const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
         const endUtc   = Date.UTC(end.getUTCFullYear(),   end.getUTCMonth(),   end.getUTCDate());
         return dUtc >= startUtc && dUtc <= endUtc;
     });
-    if (isBooked) return 'occupied';
 
-    // For today and past dates also respect the room's explicit status flag
-    const now = new Date();
-    const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    if (dUtc <= todayUtc) {
-        const s = (room.status || '').toLowerCase();
-        if (s === 'occupied' || s === 'booked' || s === 'reserved' || s === 'checked-in' || !room.available) return 'occupied';
-    }
-    return 'available';
+    return isBooked ? 'occupied' : 'available';
 }
 
 function renderCalendarView(rooms, bookings, year, month) {
