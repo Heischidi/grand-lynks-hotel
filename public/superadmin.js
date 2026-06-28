@@ -582,20 +582,22 @@ async function fetchCalendarData() {
 }
 
 function roomStatusOnDate(room, date, bookings) {
-    // Use UTC date-only comparison to avoid WAT (+01:00) timezone shift issues
+    // The calendar cells are created with new Date(year, month, day) — LOCAL time.
+    // If we use getUTCDate() on them in WAT (+01:00), midnight local = 23:00 prev-day UTC,
+    // which shifts the date back by 1 and breaks all booking matches.
+    // Solution: use LOCAL getFullYear/Month/Date for the cell comparison anchor,
+    // and UTC getters only for DB booking dates (stored as UTC ISO strings).
     const d = new Date(date);
-    const dUtc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    const dUtc = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()); // local year/month/day → UTC stamp
 
-    // Maintenance status overrides everything (it's an explicit admin action, not booking-based)
+    // Maintenance overrides everything
     if (room.status === 'maintenance') return 'maintenance';
 
-    // Calendar status is PURELY driven by booking date ranges.
-    // room.available and room.status are runtime snapshots of TODAY's state;
-    // using them for past/future days would make every day look the same.
+    // Calendar status is PURELY driven by booking date ranges
     const isBooked = (bookings || []).some(b => {
         if (b.roomId !== room.id) return false;
         if (['cancelled', 'checked-out'].includes(b.status)) return false;
-        const start = new Date(b.startDate);
+        const start = new Date(b.startDate); // UTC ISO from DB
         const end   = new Date(b.endDate);
         const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
         const endUtc   = Date.UTC(end.getUTCFullYear(),   end.getUTCMonth(),   end.getUTCDate());
