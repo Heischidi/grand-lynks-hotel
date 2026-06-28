@@ -583,21 +583,18 @@ async function fetchCalendarData() {
 
 function roomStatusOnDate(room, date, bookings) {
     const d = new Date(date);
-    // Use local date parts for calendar cells (created with new Date(year, month, day)),
-    // then compare against UTC-normalised booking dates from the DB.
-    const dDay   = d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate(); // YYYYMMDD local
+    const dDay = d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate(); // YYYYMMDD local
 
     // Maintenance overrides everything
     if (room.status === 'maintenance') return 'maintenance';
 
-    // Calendar status is PURELY driven by booking date ranges.
-    // Use == (not ===) for roomId comparison to handle any string/number type mismatch.
+    // Calendar shows occupancy history — exclude ONLY cancelled bookings.
+    // checked-out = stay is complete but the room WAS booked; must still show as occupied.
     const isBooked = (bookings || []).some(b => {
-        if (b.roomId != room.id) return false;  // loose equality
-        if (['cancelled', 'checked-out'].includes(b.status)) return false;
+        if (b.roomId != room.id) return false;          // loose equality: handles string/int mismatch
+        if (b.status === 'cancelled') return false;     // only skip cancelled
         const start = new Date(b.startDate);
         const end   = new Date(b.endDate);
-        // Normalise both to local YYYYMMDD for a fair, timezone-agnostic comparison
         const startDay = start.getFullYear() * 10000 + start.getMonth() * 100 + start.getDate();
         const endDay   = end.getFullYear()   * 10000 + end.getMonth()   * 100 + end.getDate();
         return dDay >= startDay && dDay <= endDay;
