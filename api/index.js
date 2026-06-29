@@ -600,11 +600,11 @@ app.post("/auth/login", loginLimiter, async (req, res) => {
 
 // Validation middleware
 const validateRoom = (req, res, next) => {
-  const { number, type, pricePerNight } = req.body;
-  if (!number || !type || !pricePerNight) {
+  const { type, pricePerNight } = req.body;
+  if (!type || !pricePerNight) {
     return res
       .status(400)
-      .json({ error: "Missing required fields: number, type, pricePerNight" });
+      .json({ error: "Missing required fields: type, pricePerNight" });
   }
   if (typeof pricePerNight !== "number" || pricePerNight <= 0) {
     return res
@@ -752,12 +752,12 @@ app.post("/rooms", authenticateToken, upload.single('image'), async (req, res) =
     const { number, type, pricePerNight, description, amenities, discount } = req.body;
 
     // Validate manually since Multer parses body
-    if (!number || !type || !pricePerNight) {
-      return res.status(400).json({ error: "Missing required fields: number, type, pricePerNight" });
+    if (!type || !pricePerNight) {
+      return res.status(400).json({ error: "Missing required fields: type, pricePerNight" });
     }
 
     const roomData = {
-      number: parseInt(number),
+      ...(number ? { number: parseInt(number) } : {}),
       type,
       pricePerNight: parseFloat(pricePerNight),
       discount: discount !== undefined ? Math.min(100, Math.max(0, parseFloat(discount) || 0)) : 0,

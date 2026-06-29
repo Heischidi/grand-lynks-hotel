@@ -1557,7 +1557,9 @@ function renderGuests(guests) {
             </td>
             <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-sm font-medium block md:table-cell">
                 <button onclick="editGuest(${guest.id})" class="text-indigo-600 hover:text-indigo-900 font-medium mr-3">Edit</button>
-                <button onclick="viewGuestHistory(${guest.id})" class="text-blue-600 hover:text-blue-900 font-medium">View History</button>
+                <button onclick="viewGuestHistory(${guest.id})" class="text-blue-600 hover:text-blue-900 font-medium mr-3">View History</button>
+                <button onclick="deleteGuest(${guest.id}, '${guest.name.replace(/'/g, "\\'")}')"
+                    class="text-red-600 hover:text-red-900 font-medium">Delete</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -1638,6 +1640,25 @@ window.filterGuests = function () {
         countEl.textContent = query
             ? `${filtered.length} result(s) found`
             : `Showing ${filtered.length} guest(s)`;
+    }
+};
+
+// --- DELETE GUEST ---
+window.deleteGuest = async function(id, name) {
+    if (!confirm(`Are you sure you want to delete guest "${name}"?\n\nThis will soft-delete them and move their record to the Vault.`)) return;
+    
+    try {
+        const response = await authFetch(`/guests/${id}`, { method: 'DELETE' });
+        if (response && response.ok) {
+            showToast(`Guest "${name}" deleted successfully.`, 'success');
+            fetchGuests();
+        } else {
+            const err = await response.json().catch(() => ({}));
+            showToast(err.error || 'Failed to delete guest.', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting guest:', error);
+        showToast('An error occurred while deleting the guest.', 'error');
     }
 };
  

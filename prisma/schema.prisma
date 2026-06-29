@@ -22,7 +22,7 @@ model Admin {
 
 model Room {
   id            Int       @id @default(autoincrement())
-  number        Int       @unique
+  number        Int?      @unique
   type          String
   pricePerNight Float
   discount      Float     @default(0)  // percentage discount (0-100) shown to public
