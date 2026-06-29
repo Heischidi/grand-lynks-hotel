@@ -1645,18 +1645,33 @@ window.filterGuests = function () {
 
 // --- DELETE GUEST ---
 window.deleteGuest = async function(id, name) {
-    if (!confirm(`Are you sure you want to delete guest "${name}"?\n\nThis will soft-delete them and move their record to the Vault.`)) return;
-    
+    if (!confirm('Are you sure you want to delete guest "' + name + '"?\n\nThis will soft-delete them and move their record to the Vault.')) return;
+
+    // Optimistic update: remove immediately from the local list
+    const previousGuests = window.allGuests ? [...window.allGuests] : [];
+    window.allGuests = (window.allGuests || []).filter(g => g.id !== id);
+    renderGuests(window.allGuests);
+    const countEl = document.getElementById('guestResultCount');
+    if (countEl) countEl.textContent = 'Showing ' + window.allGuests.length + ' guest(s)';
+
+    // API call in background
     try {
-        const response = await authFetch(`/guests/${id}`, { method: 'DELETE' });
+        const response = await authFetch('/guests/' + id, { method: 'DELETE' });
         if (response && response.ok) {
-            showToast(`Guest "${name}" deleted successfully.`, 'success');
-            fetchGuests();
+            showToast('Guest "' + name + '" deleted successfully.', 'success');
         } else {
+            // Rollback on failure
+            window.allGuests = previousGuests;
+            renderGuests(window.allGuests);
+            if (countEl) countEl.textContent = 'Showing ' + window.allGuests.length + ' guest(s)';
             const err = await response.json().catch(() => ({}));
             showToast(err.error || 'Failed to delete guest.', 'error');
         }
     } catch (error) {
+        // Rollback on network error
+        window.allGuests = previousGuests;
+        renderGuests(window.allGuests);
+        if (countEl) countEl.textContent = 'Showing ' + window.allGuests.length + ' guest(s)';
         console.error('Error deleting guest:', error);
         showToast('An error occurred while deleting the guest.', 'error');
     }
