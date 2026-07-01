@@ -658,18 +658,21 @@ window.openDayModal = function(date, rooms, bookings) {
     if (titleEl)    titleEl.textContent    = dateLabel;
     if (subtitleEl) subtitleEl.textContent = 'Room occupancy on this day';
 
-    const d = new Date(date); d.setHours(12,0,0,0);
+    const d = new Date(date);
+    const dDay = d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate();
     const sortedRooms = [...(rooms||[])].sort((a,b) => (parseInt(a.roomNumber||a.number)||0) - (parseInt(b.roomNumber||b.number)||0));
 
     const rows = sortedRooms.map(room => {
         const status = roomStatusOnDate(room, d, bookings);
         // Find matching booking for detail
         const booking = (bookings||[]).find(b => {
-            if (b.roomId !== room.id) return false;
-            if (['cancelled','checked-out'].includes(b.status)) return false;
-            const start = new Date(b.startDate); start.setHours(0,0,0,0);
-            const end   = new Date(b.endDate);   end.setHours(23,59,59,999);
-            return d >= start && d <= end;
+            if (b.roomId != room.id) return false;
+            if (b.status === 'cancelled') return false;
+            const start = new Date(b.startDate);
+            const end   = new Date(b.endDate);
+            const startDay = start.getFullYear() * 10000 + start.getMonth() * 100 + start.getDate();
+            const endDay   = end.getFullYear()   * 10000 + end.getMonth()   * 100 + end.getDate();
+            return dDay >= startDay && dDay <= endDay;
         });
 
         const statusBadge = status === 'available'
