@@ -2257,6 +2257,25 @@ if (editMenuForm) {
 }
 document.getElementById('walkInForm').addEventListener('submit', handleWalkInSubmit);
 
+// Sync walk-in check-in and check-out dates
+const walkInStartDate = document.querySelector('#walkInForm input[name="startDate"]');
+const walkInEndDate = document.querySelector('#walkInForm input[name="endDate"]');
+if (walkInStartDate && walkInEndDate) {
+    walkInStartDate.addEventListener('change', () => {
+        if (walkInStartDate.value) {
+            const start = new Date(walkInStartDate.value);
+            if (!isNaN(start.getTime())) {
+                const nextDay = new Date(start);
+                nextDay.setDate(start.getDate() + 1);
+                const yyyy = nextDay.getFullYear();
+                const mm = String(nextDay.getMonth() + 1).padStart(2, '0');
+                const dd = String(nextDay.getDate()).padStart(2, '0');
+                walkInEndDate.value = `${yyyy}-${mm}-${dd}`;
+            }
+        }
+    });
+}
+
 // Save Settings
 const settingsForm = document.getElementById('settingsForm');
 if (settingsForm) {

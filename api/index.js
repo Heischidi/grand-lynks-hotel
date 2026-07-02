@@ -1178,6 +1178,7 @@ app.post("/bookings", validateBooking, async (req, res) => {
       where: {
         roomId: parseInt(roomId),
         status: { in: ["confirmed", "checked-in"] },
+        deletedAt: null,
         OR: [
           {
             AND: [
@@ -1300,6 +1301,52 @@ app.put("/bookings/:id", authenticateToken, async (req, res) => {
 
     if (!currentBooking) {
       return res.status(404).json({ error: "Booking not found" });
+    }
+
+    // Check for overlapping bookings if dates, room, or status changes
+    if (startDate || endDate || roomId || (status && ["confirmed", "checked-in"].includes(status))) {
+      const checkRoomId = roomId ? parseInt(roomId) : currentBooking.roomId;
+      const checkStartDate = startDate ? new Date(startDate) : currentBooking.startDate;
+      const checkEndDate = endDate ? new Date(endDate) : currentBooking.endDate;
+      const checkStatus = status || currentBooking.status;
+
+      if (["confirmed", "checked-in"].includes(checkStatus)) {
+        const overlappingBookings = await prisma.booking.findMany({
+          where: {
+            id: { not: bookingId },
+            roomId: checkRoomId,
+            status: { in: ["confirmed", "checked-in"] },
+            deletedAt: null,
+            OR: [
+              {
+                AND: [
+                  { startDate: { lte: checkStartDate } },
+                  { endDate: { gt: checkStartDate } },
+                ],
+              },
+              {
+                AND: [
+                  { startDate: { lt: checkEndDate } },
+                  { endDate: { gte: checkEndDate } },
+                ],
+              },
+              {
+                AND: [
+                  { startDate: { gte: checkStartDate } },
+                  { endDate: { lte: checkEndDate } },
+                ],
+              },
+            ],
+          },
+        });
+
+        if (overlappingBookings.length > 0) {
+          return res.status(400).json({
+            error:
+              "Room is not available for the selected dates due to overlapping bookings",
+          });
+        }
+      }
     }
 
     if (guestName || guestPhone || guestEmail) {
