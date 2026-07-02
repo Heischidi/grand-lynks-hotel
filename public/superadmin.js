@@ -1386,23 +1386,23 @@ async function fetchAvailableRoomsForWalkIn() {
     const select = document.getElementById('walkInRoomSelect');
     if (!select) return;
     
-    select.innerHTML = '<option value="">Loading available rooms...</option>';
+    select.innerHTML = '<option value="">Loading rooms...</option>';
 
     try {
         const response = await fetch(`${API_URL}/rooms`);
         if (response && response.ok) {
             const rooms = await response.json();
-            const availableRooms = rooms.filter(r => r.available);
 
-            if (availableRooms.length === 0) {
-                select.innerHTML = '<option value="">No rooms currently available</option>';
+            if (rooms.length === 0) {
+                select.innerHTML = '<option value="">No rooms found</option>';
                 return;
             }
 
             let optionsHtml = '<option value="">-- Select a Room --</option>';
-            optionsHtml += availableRooms.map(r =>
-                `<option value="${r.id}">${r.roomNumber || r.number} - ${r.type} (₦${(r.pricePerNight || r.price).toLocaleString()})</option>`
-            ).join('');
+            optionsHtml += rooms.map(r => {
+                const statusText = r.available ? '' : ' - (Occupied/Reserved Today)';
+                return `<option value="${r.id}">${r.roomNumber || r.number} - ${r.type} (₦${(r.pricePerNight || r.price).toLocaleString()})${statusText}</option>`;
+            }).join('');
             
             select.innerHTML = optionsHtml;
         } else {
