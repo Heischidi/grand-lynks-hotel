@@ -2441,7 +2441,7 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     const [bookings, orders, guests, rooms] = await Promise.all([
       prisma.booking.findMany({
         where: { deletedAt: null },
-        select: { totalAmount: true, status: true, createdAt: true, startDate: true, endDate: true, guestId: true }
+        select: { totalAmount: true, status: true, createdAt: true, startDate: true, endDate: true, guestId: true, roomId: true }
       }),
       prisma.order.findMany({
         where: { deletedAt: null },
@@ -2453,18 +2453,19 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
       }),
       prisma.room.findMany({
         where: { deletedAt: null },
-        select: { 
-          id: true, 
-          number: true, 
-          type: true, 
-          status: true, 
-          bookings: {
-            where: { deletedAt: null },
-            select: { id: true, status: true, totalAmount: true, createdAt: true, startDate: true }
-          }
-        }
+        select: { id: true, number: true, type: true, status: true }
       })
     ]);
+
+    // Build room performance map — computed from bookings array (no expensive nested join)
+    const roomPerformanceMap = {};
+    rooms.forEach(r => {
+      roomPerformanceMap[r.id] = { id: r.id, number: r.number, type: r.type, bookings: 0, revenue: 0 };
+    });
+
+    // Track today's actively occupied rooms (checked-in bookings spanning today)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const activeRoomIds = new Set();
 
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -2498,6 +2499,21 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
       // All-time revenue
       if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
         allTimeBookingRevenue.rooms += b.totalAmount || 0;
+      }
+      // Room performance for selected year
+      if (b.roomId && roomPerformanceMap[b.roomId] && inYear(b.startDate, year)) {
+        roomPerformanceMap[b.roomId].bookings++;
+        if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
+          roomPerformanceMap[b.roomId].revenue += b.totalAmount || 0;
+        }
+      }
+      // Active occupancy: checked-in bookings where today falls between startDate and endDate
+      if (b.status === 'checked-in' && b.roomId) {
+        const startStr = new Date(b.startDate).toISOString().split('T')[0];
+        const endStr   = new Date(b.endDate).toISOString().split('T')[0];
+        if (startStr <= todayStr && todayStr <= endStr) {
+          activeRoomIds.add(b.roomId);
+        }
       }
     });
 
@@ -2548,7 +2564,7 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     const ordersThisMonth   = inYear(now, year) ? monthlyOrderCount[thisMonth] : 0;
 
     const totalRooms = rooms.length;
-    const occupiedRooms = rooms.filter(r => r.bookings.length > 0).length;
+    const occupiedRooms = activeRoomIds.size; // rooms with active checked-in booking today
     const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
     // --- Top 5 months by revenue ---
@@ -2562,26 +2578,9 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     }));
     const topMonths = [...monthlyTotals].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5);
 
-    // --- Room Performance ---
-    const roomPerformance = rooms.map(r => {
-      let rCount = 0;
-      let rRev = 0;
-      r.bookings.forEach(b => {
-        if (inYear(b.startDate, year)) {
-          rCount++;
-          if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
-            rRev += b.totalAmount || 0;
-          }
-        }
-      });
-      return {
-        id: r.id,
-        number: r.number,
-        type: r.type,
-        bookings: rCount,
-        revenue: rRev
-      };
-    }).sort((a, b) => b.revenue - a.revenue);
+    // --- Room Performance (computed from bookings map, no extra query needed) ---
+    const roomPerformance = Object.values(roomPerformanceMap)
+      .sort((a, b) => b.revenue - a.revenue);
 
     res.json({
       year,
