@@ -561,8 +561,9 @@ async function createDeletedRecord(recordType, recordId, snapshot, deletedBy) {
 app.post("/auth/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
-  // Hardcoded Super Admin Login
-  if (username === "superadmin" && password === "Superadmin123%") {
+  // Super Admin Login (password stored in SUPER_ADMIN_PASSWORD env var)
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD;
+  if (username === "superadmin" && superAdminPassword && password === superAdminPassword) {
     const token = jwt.sign(
       { id: "superadmin_hardcoded", username: "superadmin", role: "superadmin" },
       SECRET_KEY,
@@ -1584,7 +1585,7 @@ app.get("/menu", async (req, res) => {
   }
 });
 
-app.post("/menu", upload.single('image'), async (req, res) => {
+app.post("/menu", authenticateToken, upload.single('image'), async (req, res) => {
   try {
     // If file uploaded, use Supabase. Otherwise check body (for URL or fallback)
     const imagePath = req.file ? await uploadToSupabase(req.file) : req.body.image;
@@ -1614,7 +1615,7 @@ app.post("/menu", upload.single('image'), async (req, res) => {
   }
 });
 
-app.put("/menu/:id", upload.single('image'), async (req, res) => {
+app.put("/menu/:id", authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const imagePath = req.file ? await uploadToSupabase(req.file) : req.body.image;
 
@@ -1648,7 +1649,7 @@ app.put("/menu/:id", upload.single('image'), async (req, res) => {
   }
 });
 
-app.delete("/menu/:id", async (req, res) => {
+app.delete("/menu/:id", authenticateToken, async (req, res) => {
   try {
     const item = await prisma.menuItem.findUnique({ where: { id: parseInt(req.params.id) } });
     if (!item) return res.status(404).json({ error: 'Menu item not found' });
@@ -1903,47 +1904,8 @@ app.post("/orders", validateOrder, async (req, res) => {
   }
 });
 
-app.put("/orders/:id", async (req, res) => {
-  try {
-    const order = await prisma.order.update({
-      where: { id: parseInt(req.params.id) },
-      data: req.body,
-      include: {
-        guest: true,
-        room: true,
-        orderItems: {
-          include: {
-            menuItem: true,
-          },
-        },
-      },
-    });
-    res.json({ message: "Order updated", order });
-  } catch (error) {
-    console.error("Error updating order:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Order not found" });
-    } else {
-      res.status(500).json({ error: "Failed to update order" });
-    }
-  }
-});
-
-app.delete("/orders/:id", async (req, res) => {
-  try {
-    await prisma.order.delete({
-      where: { id: parseInt(req.params.id) },
-    });
-    res.json({ message: "Order deleted" });
-  } catch (error) {
-    console.error("Error deleting order:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Order not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete order" });
-    }
-  }
-});
+// NOTE: Duplicate PUT /orders/:id and DELETE /orders/:id routes removed here.
+// The auth-protected versions at lines ~1459 and ~1438 handle these requests.
 
 // --- REPORTS (Dummy) ---
 app.get("/reports", (req, res) => {
@@ -2303,7 +2265,7 @@ app.get("/staff", async (req, res) => {
   }
 });
 
-app.post("/staff", async (req, res) => {
+app.post("/staff", authenticateSuperAdmin, async (req, res) => {
   try {
     const member = await prisma.staff.create({
       data: req.body,
@@ -2315,7 +2277,7 @@ app.post("/staff", async (req, res) => {
   }
 });
 
-app.put("/staff/:id", async (req, res) => {
+app.put("/staff/:id", authenticateSuperAdmin, async (req, res) => {
   try {
     const member = await prisma.staff.update({
       where: { id: parseInt(req.params.id) },
@@ -2332,7 +2294,7 @@ app.put("/staff/:id", async (req, res) => {
   }
 });
 
-app.delete("/staff/:id", async (req, res) => {
+app.delete("/staff/:id", authenticateSuperAdmin, async (req, res) => {
   try {
     await prisma.staff.delete({
       where: { id: parseInt(req.params.id) },
@@ -2348,8 +2310,10 @@ app.delete("/staff/:id", async (req, res) => {
   }
 });
 
-// --- BOOKINGS ---
-app.post("/bookings", async (req, res) => {
+// NOTE: Duplicate POST /bookings route removed — the primary route at line ~1172
+// handles all booking creation (with overlap detection, email, walk-in support).
+// --- (removed duplicate) ---
+if (false) app.post("/bookings_REMOVED_DUPLICATE", async (req, res) => {
   try {
     const { guestId, roomId, startDate, endDate, status } = req.body;
 

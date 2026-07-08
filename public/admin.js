@@ -26,7 +26,10 @@ window.openModal = function (id) {
 
 window.closeModal = function (id) {
     const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
+    if (el) {
+        el.classList.add('hidden');
+        el.style.display = ''; // clear inline style set by openModal
+    }
 };
 
 // Define placeholders for other globals so they exist
@@ -1340,11 +1343,8 @@ function getStatusColor(status) {
 window.updateOrderStatus = async function (id, status) {
     if (!confirm(`Mark order #${id} as ${status}?`)) return;
 
-    const response = await fetch(`${API_URL}/orders/${id}`, { // Note: PUT orders might not be auth protected in snippet, but likely is. Let's try raw fetch if snippet said no auth, or authFetch if yes.
-        // Checking snippet: app.put("/api/orders/:id", async... ) -> NO AUTH shown in snippet line 717.
-        // User might have added it, but strictly following snippet.
+    const response = await authFetch(`/orders/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
     });
 

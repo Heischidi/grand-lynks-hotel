@@ -26,7 +26,10 @@ window.openModal = function (id) {
 
 window.closeModal = function (id) {
     const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
+    if (el) {
+        el.classList.add('hidden');
+        el.style.display = ''; // clear inline style set by openModal
+    }
 };
 
 // Define placeholders for other globals so they exist
