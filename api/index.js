@@ -2622,8 +2622,7 @@ app.post("/assistant/chat", authenticateToken, async (req, res) => {
       prisma.booking.findMany({
         where: { deletedAt: null },
         include: { guest: true, room: true },
-        orderBy: { startDate: 'desc' },
-        take: 30
+        orderBy: { startDate: 'asc' }
       }),
       prisma.order.findMany({
         where: { deletedAt: null },
@@ -2670,11 +2669,15 @@ app.post("/assistant/chat", authenticateToken, async (req, res) => {
       .filter(b => b.status === 'checked-in' && b.room)
       .map(b => `Room ${b.room.number} occupied by ${b.guest ? b.guest.name : 'Unknown Guest'} (Dates: ${new Date(b.startDate).toISOString().split('T')[0]} to ${new Date(b.endDate).toISOString().split('T')[0]})`);
 
+    // Active and future reservations that block room booking
+    const activeAndFutureReservations = bookings.filter(b => ['confirmed', 'checked-in', 'pending'].includes(b.status));
+
     // Prepare system instructions with the real-time context
     const systemPrompt = `You are the Grand Lynks Hotel Assistant, an intelligent assistant integrated into the hotel's administrative backend.
 You have access to the real-time state of the hotel. Always respond in a professional, concise, and helpful manner. Use markdown format (bolding, bullet points, simple tables, etc.) for readability.
 
 CURRENT REAL-TIME HOTEL STATE:
+- Today's date: ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleDateString('en-US', { weekday: 'long' })})
 - Total Rooms: ${totalRooms}
 - Available/Open Rooms: ${availableRooms.length} [Room numbers: ${availableRooms.join(", ") || 'None'}]
 - Occupied/Booked Rooms: ${occupiedRooms.length} [Room numbers: ${occupiedRooms.join(", ") || 'None'}]
@@ -2686,8 +2689,8 @@ CURRENT REAL-TIME HOTEL STATE:
 - Total Registered Guests in system: ${guests.length}
 - Active Checked-In Guests:
 ${activeOccupancy.map(desc => `  * ${desc}`).join("\n") || "  * No guests currently checked in."}
-- Recent Bookings context:
-${bookings.slice(0, 10).map(b => `  * Guest ${b.guest ? b.guest.name : 'N/A'} in Room ${b.room ? b.room.number : 'N/A'} - status: ${b.status}, total: NGN ${b.totalAmount.toLocaleString()}`).join("\n")}
+- Active and Future Reservations (Calendar Blocks):
+${activeAndFutureReservations.map(b => `  * Room ${b.room ? b.room.number : 'N/A'} is booked by "${b.guest ? b.guest.name : 'N/A'}" from ${new Date(b.startDate).toISOString().split('T')[0]} to ${new Date(b.endDate).toISOString().split('T')[0]} (Status: ${b.status})`).join("\n") || "  * No upcoming/active reservations."}
 - Recent Food Orders:
 ${orders.slice(0, 5).map(o => `  * Room ${o.room ? o.room.number : 'N/A'} - status: ${o.status}, total: NGN ${o.totalAmount.toLocaleString()}`).join("\n")}
 - Restaurant Food Menu Options:
@@ -2696,7 +2699,14 @@ ${availableMenu.map(item => `    - ${item.name} (${item.category}) - NGN ${item.
   * Out of Stock/Unavailable Items:
 ${unavailableMenu.map(name => `    - ${name}`).join("\n") || "    - None"}
 
-Respond to the administrator's queries based ONLY on the data provided above. If they ask about information not in this data (e.g., specific past years not calculated), explain that you only have access to current real-time system logs and database totals. Keep responses concise and helpful.`;
+Respond to the administrator's queries based ONLY on the data provided above. 
+CRITICAL CALENDAR RULE FOR FUTURE DATE AVAILABILITY:
+- The "Available/Open Rooms" and "Occupied/Booked Rooms" lists in the PRESENT STATE only apply to the current moment (today).
+- When asked if rooms are available or booked for future dates (e.g. July 14 to 19):
+  1. Check the "Active and Future Reservations (Calendar Blocks)" list above.
+  2. A room is available for those dates if there is NO reservation for that specific room that overlaps with the requested date range.
+  3. If there is no overlapping reservation for a room, it is completely available/open for booking during those future dates. Do not limit the list of open rooms to the present-day available rooms list.
+- Keep responses concise and helpful.`;
 
     const apiKey = process.env.GEMINI_API_KEY;
 
