@@ -2617,7 +2617,7 @@ app.post("/assistant/chat", authenticateToken, async (req, res) => {
     }
 
     // 1. Gather real-time data in parallel
-    const [rooms, bookings, orders, guests, payments] = await Promise.all([
+    const [rooms, bookings, orders, guests, payments, menuItems] = await Promise.all([
       prisma.room.findMany({ where: { deletedAt: null } }),
       prisma.booking.findMany({
         where: { deletedAt: null },
@@ -2634,12 +2634,17 @@ app.post("/assistant/chat", authenticateToken, async (req, res) => {
       prisma.guest.findMany({ where: { deletedAt: null } }),
       prisma.payment.findMany({
         where: { status: 'completed' }
+      }),
+      prisma.menuItem.findMany({
+        where: { deletedAt: null }
       })
     ]);
 
     // 2. Compute aggregated metrics
     const totalRooms = rooms.length;
     const availableRooms = rooms.filter(r => r.status === 'available').map(r => r.number).sort((a,b)=>a-b);
+    const availableMenu = menuItems.filter(item => item.available);
+    const unavailableMenu = menuItems.filter(item => !item.available).map(item => item.name);
     const occupiedRooms = rooms.filter(r => r.status === 'occupied' || r.status === 'booked' || r.status === 'checked-in').map(r => r.number).sort((a,b)=>a-b);
     const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').map(r => r.number).sort((a,b)=>a-b);
 
@@ -2685,6 +2690,11 @@ ${activeOccupancy.map(desc => `  * ${desc}`).join("\n") || "  * No guests curren
 ${bookings.slice(0, 10).map(b => `  * Guest ${b.guest ? b.guest.name : 'N/A'} in Room ${b.room ? b.room.number : 'N/A'} - status: ${b.status}, total: NGN ${b.totalAmount.toLocaleString()}`).join("\n")}
 - Recent Food Orders:
 ${orders.slice(0, 5).map(o => `  * Room ${o.room ? o.room.number : 'N/A'} - status: ${o.status}, total: NGN ${o.totalAmount.toLocaleString()}`).join("\n")}
+- Restaurant Food Menu Options:
+  * Available Items:
+${availableMenu.map(item => `    - ${item.name} (${item.category}) - NGN ${item.price.toLocaleString()}${item.description ? `: ${item.description}` : ''}`).join("\n") || "    - No items available."}
+  * Out of Stock/Unavailable Items:
+${unavailableMenu.map(name => `    - ${name}`).join("\n") || "    - None"}
 
 Respond to the administrator's queries based ONLY on the data provided above. If they ask about information not in this data (e.g., specific past years not calculated), explain that you only have access to current real-time system logs and database totals. Keep responses concise and helpful.`;
 
@@ -2721,6 +2731,14 @@ ${activeOccupancy.map(desc => `* ${desc}`).join("\n") || "*No guests currently c
 #### Recent Bookings List:
 ${bookings.slice(0, 5).map(b => `* **${b.guest ? b.guest.name : 'Unknown Guest'}** (Room ${b.room ? b.room.number : 'N/A'}) - Status: *${b.status}* (NGN ${b.totalAmount.toLocaleString()})`).join("\n")}`;
       }
+      else if (cleanMsg.includes("food") || cleanMsg.includes("menu") || cleanMsg.includes("eat") || cleanMsg.includes("restaurant") || cleanMsg.includes("dish") || cleanMsg.includes("meal")) {
+        reply = `### 🍔 Restaurant Food Menu
+#### Available Items:
+${availableMenu.map(item => `* **${item.name}** (${item.category}) - NGN **${item.price.toLocaleString()}**${item.description ? ` - *${item.description}*` : ''}`).join("\n") || "*No items available.*"}
+
+#### Out of Stock / Unavailable:
+${unavailableMenu.map(name => `* ${name}`).join("\n") || "*None*"}`;
+      }
       else if (cleanMsg.includes("hello") || cleanMsg.includes("hi ") || cleanMsg.includes("hey") || cleanMsg.includes("help") || cleanMsg.includes("assistant")) {
         reply = `Hello! I am the **Grand Lynks Hotel Assistant**.
 
@@ -2730,7 +2748,8 @@ However, I can still show you real-time data! Try asking me about:
 1. **Revenue / Earnings** ("How much money have we made?")
 2. **Room availability / status** ("Which rooms are open?")
 3. **Guest information** ("Show recent guests")
-4. **General Status** (default summary)
+4. **Food menu** ("What food is available?")
+5. **General Status** (default summary)
 
 Please add \`GEMINI_API_KEY="your_api_key"\` to your \`.env\` file to unlock full, open-ended conversational AI!`;
       }
