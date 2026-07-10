@@ -2608,6 +2608,202 @@ app.get("/health", async (req, res) => {
   }
 });
 
+// --- Chatbot Assistant Endpoint ---
+app.post("/assistant/chat", authenticateToken, async (req, res) => {
+  try {
+    const { message, history } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    // 1. Gather real-time data in parallel
+    const [rooms, bookings, orders, guests, payments] = await Promise.all([
+      prisma.room.findMany({ where: { deletedAt: null } }),
+      prisma.booking.findMany({
+        where: { deletedAt: null },
+        include: { guest: true, room: true },
+        orderBy: { startDate: 'desc' },
+        take: 30
+      }),
+      prisma.order.findMany({
+        where: { deletedAt: null },
+        include: { guest: true, room: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }),
+      prisma.guest.findMany({ where: { deletedAt: null } }),
+      prisma.payment.findMany({
+        where: { status: 'completed' }
+      })
+    ]);
+
+    // 2. Compute aggregated metrics
+    const totalRooms = rooms.length;
+    const availableRooms = rooms.filter(r => r.status === 'available').map(r => r.number).sort((a,b)=>a-b);
+    const occupiedRooms = rooms.filter(r => r.status === 'occupied' || r.status === 'booked' || r.status === 'checked-in').map(r => r.number).sort((a,b)=>a-b);
+    const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').map(r => r.number).sort((a,b)=>a-b);
+
+    // Calculate revenue using same criteria as stats
+    let roomRevenue = bookings.reduce((sum, b) => {
+      if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
+        return sum + (b.totalAmount || 0);
+      }
+      return sum;
+    }, 0);
+
+    let foodRevenue = orders.reduce((sum, o) => {
+      if (['completed', 'delivered'].includes(o.status)) {
+        return sum + (o.totalAmount || 0);
+      }
+      return sum;
+    }, 0);
+
+    const totalRevenue = roomRevenue + foodRevenue;
+
+    // Active occupancy list
+    const activeOccupancy = bookings
+      .filter(b => b.status === 'checked-in' && b.room)
+      .map(b => `Room ${b.room.number} occupied by ${b.guest ? b.guest.name : 'Unknown Guest'} (Dates: ${new Date(b.startDate).toISOString().split('T')[0]} to ${new Date(b.endDate).toISOString().split('T')[0]})`);
+
+    // Prepare system instructions with the real-time context
+    const systemPrompt = `You are the Grand Lynks Hotel Assistant, an intelligent assistant integrated into the hotel's administrative backend.
+You have access to the real-time state of the hotel. Always respond in a professional, concise, and helpful manner. Use markdown format (bolding, bullet points, simple tables, etc.) for readability.
+
+CURRENT REAL-TIME HOTEL STATE:
+- Total Rooms: ${totalRooms}
+- Available/Open Rooms: ${availableRooms.length} [Room numbers: ${availableRooms.join(", ") || 'None'}]
+- Occupied/Booked Rooms: ${occupiedRooms.length} [Room numbers: ${occupiedRooms.join(", ") || 'None'}]
+- Rooms in Maintenance: ${maintenanceRooms.length} [Room numbers: ${maintenanceRooms.join(", ") || 'None'}]
+- Financial Statistics (Revenues):
+  * Total Revenue Made: NGN ${totalRevenue.toLocaleString()}
+  * Room Bookings Revenue: NGN ${roomRevenue.toLocaleString()}
+  * Food & Drinks Orders Revenue: NGN ${foodRevenue.toLocaleString()}
+- Total Registered Guests in system: ${guests.length}
+- Active Checked-In Guests:
+${activeOccupancy.map(desc => `  * ${desc}`).join("\n") || "  * No guests currently checked in."}
+- Recent Bookings context:
+${bookings.slice(0, 10).map(b => `  * Guest ${b.guest ? b.guest.name : 'N/A'} in Room ${b.room ? b.room.number : 'N/A'} - status: ${b.status}, total: NGN ${b.totalAmount.toLocaleString()}`).join("\n")}
+- Recent Food Orders:
+${orders.slice(0, 5).map(o => `  * Room ${o.room ? o.room.number : 'N/A'} - status: ${o.status}, total: NGN ${o.totalAmount.toLocaleString()}`).join("\n")}
+
+Respond to the administrator's queries based ONLY on the data provided above. If they ask about information not in this data (e.g., specific past years not calculated), explain that you only have access to current real-time system logs and database totals. Keep responses concise and helpful.`;
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      // Local smart rule-based keyword matching fallback
+      const cleanMsg = message.toLowerCase();
+      let reply = "";
+
+      if (cleanMsg.includes("revenue") || cleanMsg.includes("money") || cleanMsg.includes("earnings") || cleanMsg.includes("made") || cleanMsg.includes("financial")) {
+        reply = `### 💰 Financial Revenue Report
+* **Total Revenue**: NGN **${totalRevenue.toLocaleString()}**
+* **Room Bookings**: NGN **${roomRevenue.toLocaleString()}**
+* **Food & Beverage**: NGN **${foodRevenue.toLocaleString()}**
+
+*(Note: Room revenue includes confirmed, checked-in, checked-out, and completed bookings. Food revenue includes completed and delivered orders.)*`;
+      } 
+      else if (cleanMsg.includes("room") || cleanMsg.includes("occupied") || cleanMsg.includes("booked") || cleanMsg.includes("available") || cleanMsg.includes("maintenance") || cleanMsg.includes("open")) {
+        reply = `### 🛏️ Room Status Summary
+* **Total Rooms**: ${totalRooms}
+* **Available/Open Rooms** (${availableRooms.length}): ${availableRooms.join(", ") || "*None*"}
+* **Occupied/Booked Rooms** (${occupiedRooms.length}): ${occupiedRooms.join(", ") || "*None*"}
+* **In Maintenance** (${maintenanceRooms.length}): ${maintenanceRooms.join(", ") || "*None*"}
+
+#### Active Checked-In Guests:
+${activeOccupancy.map(desc => `* ${desc}`).join("\n") || "*No guests currently checked in.*"}`;
+      }
+      else if (cleanMsg.includes("guest") || cleanMsg.includes("visitor") || cleanMsg.includes("customer")) {
+        reply = `### 👥 Guest Statistics
+* **Total Registered Guests**: ${guests.length}
+* **Active Stays**: ${activeOccupancy.length} guests currently checked in.
+
+#### Recent Bookings List:
+${bookings.slice(0, 5).map(b => `* **${b.guest ? b.guest.name : 'Unknown Guest'}** (Room ${b.room ? b.room.number : 'N/A'}) - Status: *${b.status}* (NGN ${b.totalAmount.toLocaleString()})`).join("\n")}`;
+      }
+      else if (cleanMsg.includes("hello") || cleanMsg.includes("hi ") || cleanMsg.includes("hey") || cleanMsg.includes("help") || cleanMsg.includes("assistant")) {
+        reply = `Hello! I am the **Grand Lynks Hotel Assistant**.
+
+I am currently running in **Local-Data Fallback Mode** because no \`GEMINI_API_KEY\` is configured in the backend \`.env\` file. 
+
+However, I can still show you real-time data! Try asking me about:
+1. **Revenue / Earnings** ("How much money have we made?")
+2. **Room availability / status** ("Which rooms are open?")
+3. **Guest information** ("Show recent guests")
+4. **General Status** (default summary)
+
+Please add \`GEMINI_API_KEY="your_api_key"\` to your \`.env\` file to unlock full, open-ended conversational AI!`;
+      }
+      else {
+        // General Summary default response
+        reply = `### 📊 Real-Time Hotel Overview
+* **Total Revenue**: NGN **${totalRevenue.toLocaleString()}** (Rooms: NGN ${roomRevenue.toLocaleString()} | Food: NGN ${foodRevenue.toLocaleString()})
+* **Room Counts**:
+  * Available: **${availableRooms.length}**
+  * Occupied: **${occupiedRooms.length}**
+  * Maintenance: **${maintenanceRooms.length}**
+* **Guests**: **${guests.length}** total registered guests (**${activeOccupancy.length}** currently checked-in).
+
+*Please configure \`GEMINI_API_KEY\` in your \`.env\` file for full conversational AI capabilities.*`;
+      }
+
+      return res.json({ response: reply, isLocalFallback: true });
+    }
+
+    // Call Gemini 2.5 Flash API
+    const contents = [];
+    
+    // Add past history if present
+    if (Array.isArray(history)) {
+      history.forEach(item => {
+        const role = item.role === 'assistant' ? 'model' : 'user';
+        contents.push({
+          role,
+          parts: [{ text: item.content }]
+        });
+      });
+    }
+
+    // Add current user message
+    contents.push({
+      role: 'user',
+      parts: [{ text: message }]
+    });
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    
+    const response = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents,
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 800
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API Error details:", errorText);
+      throw new Error(`Gemini API responded with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I apologize, but I could not formulate a response.";
+
+    res.json({ response: replyText, isLocalFallback: false });
+
+  } catch (error) {
+    console.error("Error in assistant chat handler:", error);
+    res.status(500).json({ error: "Internal server error in Chatbot Assistant" });
+  }
+});
+
 // --- Start server ---
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;

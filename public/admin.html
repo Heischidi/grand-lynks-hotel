@@ -1063,6 +1063,11 @@
         script.src = `admin.js?v=${new Date().getTime()}`;
         document.body.appendChild(script);
     </script>
+    <script>
+        const assistantScript = document.createElement('script');
+        assistantScript.src = `assistant.js?v=${new Date().getTime()}`;
+        document.body.appendChild(assistantScript);
+    </script>
 
     <!-- GUEST HISTORY MODAL -->
     <div id="guestHistoryModal"
