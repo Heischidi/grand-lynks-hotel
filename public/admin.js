@@ -582,8 +582,8 @@ function roomStatusOnDate(room, date, bookings) {
         if (b.status === 'cancelled') return false;     // only skip cancelled
         const start = new Date(b.startDate);
         const end   = new Date(b.endDate);
-        const startDay = start.getFullYear() * 10000 + start.getMonth() * 100 + start.getDate();
-        const endDay   = end.getFullYear()   * 10000 + end.getMonth()   * 100 + end.getDate();
+        const startDay = start.getUTCFullYear() * 10000 + start.getUTCMonth() * 100 + start.getUTCDate();
+        const endDay   = end.getUTCFullYear()   * 10000 + end.getUTCMonth()   * 100 + end.getUTCDate();
         return dDay >= startDay && dDay <= endDay;
     });
 
@@ -667,16 +667,21 @@ window.openDayModal = function(date, rooms, bookings) {
 
     const rows = sortedRooms.map(room => {
         const status = roomStatusOnDate(room, d, bookings);
-        // Find matching booking for detail
-        const booking = (bookings||[]).find(b => {
+        // Find matching bookings for detail
+        const matchingBookings = (bookings||[]).filter(b => {
             if (b.roomId != room.id) return false;
             if (b.status === 'cancelled') return false;
             const start = new Date(b.startDate);
             const end   = new Date(b.endDate);
-            const startDay = start.getFullYear() * 10000 + start.getMonth() * 100 + start.getDate();
-            const endDay   = end.getFullYear()   * 10000 + end.getMonth()   * 100 + end.getDate();
+            const startDay = start.getUTCFullYear() * 10000 + start.getUTCMonth() * 100 + start.getUTCDate();
+            const endDay   = end.getUTCFullYear()   * 10000 + end.getUTCMonth()   * 100 + end.getUTCDate();
             return dDay >= startDay && dDay <= endDay;
         });
+
+        // Prioritize active bookings (checked-in, confirmed, pending) over checked-out
+        const statusPriority = { 'checked-in': 1, 'confirmed': 2, 'pending': 3, 'checked-out': 4 };
+        matchingBookings.sort((a, b) => (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99));
+        const booking = matchingBookings[0];
 
         const statusBadge = status === 'available'
             ? '<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-bold">Available</span>'
