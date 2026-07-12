@@ -1234,7 +1234,7 @@ body.admin-page {
 }
 
 /* Mobile adjustments */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .navbar {
     padding: 0 15px;
   }
@@ -1342,7 +1342,7 @@ body.admin-page {
   }
 
   /* Mobile menu dark background */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .nav-links {
       background: rgba(30, 30, 30, 0.98);
       border-right: 1px solid #333;
@@ -1619,6 +1619,12 @@ body.order-page {
   flex: 1 1 calc(50% - 10px);
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 600px) {
+  .form-group {
+    flex-basis: 100%;
+  }
 }
 
 .form-group.full-width {

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -310,7 +310,7 @@
     <div id="dashboard-container" class="hidden flex flex-1 relative w-full">
 
         <!-- MOBILE HEADER (Visible only on mobile) -->
-        <div class="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#1a1a2e] text-white flex items-center justify-between px-4 z-[60] shadow-md border-b border-gray-800">
+        <div class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#1a1a2e] text-white flex items-center justify-between px-4 z-[60] shadow-md border-b border-gray-800">
             <h2 class="text-xl font-bold tracking-wide">Grand Lynks Superadmin</h2>
             <button onclick="toggleSidebar()" class="text-gray-200 focus:outline-none flex items-center justify-center p-2 rounded-lg hover:bg-gray-800 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,16 +322,16 @@
 
         <!-- SIDEBAR OVERLAY (Mobile only) -->
         <div id="sidebar-overlay" onclick="toggleSidebar()"
-            class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden md:hidden transition-opacity duration-300 opacity-0">
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden lg:hidden transition-opacity duration-300 opacity-0">
         </div>
 
         <!-- SIDEBAR -->
         <aside id="sidebar"
-            class="fixed inset-y-0 left-0 z-[80] w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out md:fixed md:translate-x-0">
+            class="fixed inset-y-0 left-0 z-[80] w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out lg:fixed lg:translate-x-0">
             <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
                 <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Grand Lynks</h2>
                 <!-- Close button for mobile -->
-                <button onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                         </path>
@@ -436,7 +436,7 @@
         </aside>
 
         <!-- MAIN CONTENT AREA -->
-        <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 pt-20 md:p-8 relative w-full md:ml-72 md:pt-8">
+        <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 pt-20 lg:p-8 relative w-full lg:ml-72 lg:pt-8">
 
             <!-- ROOMS SECTION -->
             <section id="section-rooms" class="fade-in">

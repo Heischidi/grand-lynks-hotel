@@ -1,4 +1,4 @@
-﻿// Configuration
+// Configuration
 const API_URL = window.APP_CONFIG?.API_URL || 'http://localhost:5000/api';
 
 console.log('Admin JS starting execution...');
@@ -115,7 +115,7 @@ window.toggleSidebar = function () {
 }
 
 window.closeSidebarOnMobile = function () {
-    if (window.innerWidth < 768) { // Tailwind md breakpoint
+    if (window.innerWidth < 1024) { // Tailwind lg breakpoint
         const sidebar = document.getElementById('sidebar');
         if (!sidebar.classList.contains('-translate-x-full')) {
             window.toggleSidebar();

@@ -70,20 +70,39 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <div class="flex items-center">
-          <h1 class="text-2xl font-playfair font-bold text-green-800">
+          <a href="index.html" class="text-2xl font-playfair font-bold text-green-800 hover:opacity-80 transition-opacity">
             🏨 Grand Lynks
-          </h1>
+          </a>
         </div>
         <div class="hidden md:flex space-x-8">
-          <a href="#" class="text-gray-700 hover:text-green-600 transition-colors">Home</a>
-          <a href="#" class="text-green-600 font-medium">Spa</a>
-          <a href="#" class="text-gray-700 hover:text-green-600 transition-colors">Rooms</a>
-          <a href="#" class="text-gray-700 hover:text-green-600 transition-colors">Dining</a>
-          <a href="#" class="text-gray-700 hover:text-green-600 transition-colors">Contact</a>
+          <a href="index.html" class="text-gray-700 hover:text-green-600 transition-colors">Home</a>
+          <a href="spa.html" class="text-green-600 font-medium">Spa</a>
+          <a href="rooms.html" class="text-gray-700 hover:text-green-600 transition-colors">Rooms</a>
+          <a href="order.html" class="text-gray-700 hover:text-green-600 transition-colors">Dining</a>
+          <a href="contact.html" class="text-gray-700 hover:text-green-600 transition-colors">Contact</a>
         </div>
-        <button class="bg-green-600 text-white px-6 py-2 rounded-full hover:bg-green-700 transition-colors">
-          Book Now
-        </button>
+        <div class="flex items-center space-x-4">
+          <a href="booking.html" class="hidden sm:inline-block bg-green-600 text-white px-6 py-2 rounded-full hover:bg-green-700 transition-colors">
+            Book Now
+          </a>
+          <!-- Mobile Menu Button -->
+          <button id="mobileMenuBtn" class="md:hidden text-gray-700 hover:text-green-600 focus:outline-none flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile Menu Dropdown -->
+    <div id="mobileMenuDropdown" class="hidden md:hidden bg-white border-t border-gray-100">
+      <div class="px-4 pt-2 pb-4 space-y-1">
+        <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">Home</a>
+        <a href="spa.html" class="block px-3 py-2 rounded-md text-base font-medium text-green-600 bg-green-50">Spa</a>
+        <a href="rooms.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">Rooms</a>
+        <a href="order.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">Dining</a>
+        <a href="contact.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">Contact</a>
+        <a href="booking.html" class="block w-full text-center px-4 py-2 mt-2 rounded-md text-base font-medium text-white bg-green-600 hover:bg-green-700">Book Now</a>
       </div>
     </div>
   </nav>
@@ -501,6 +520,15 @@
   <script>
     // Add smooth scrolling and fade-in animations
     document.addEventListener("DOMContentLoaded", function () {
+      // Mobile menu toggle
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const mobileMenuDropdown = document.getElementById("mobileMenuDropdown");
+      if (mobileMenuBtn && mobileMenuDropdown) {
+        mobileMenuBtn.addEventListener("click", function () {
+          mobileMenuDropdown.classList.toggle("hidden");
+        });
+      }
+
       // Animate elements on scroll
       const observerOptions = {
         threshold: 0.1,

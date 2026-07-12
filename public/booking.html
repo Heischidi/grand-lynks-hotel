@@ -162,16 +162,9 @@
   </main>
 
   <!-- ===== PRE-PAYMENT NOTICE MODAL ===== -->
-  <div id="paymentNoticeBackdrop" style="
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75);
-    z-index:100000; align-items:center; justify-content:center; padding:16px;
-  ">
+  <div id="paymentNoticeBackdrop" class="payment-notice-backdrop">
     <!-- Step 1: Notice -->
-    <div id="paymentNoticeStep1" style="
-      background:#1a1a2e; border:1px solid #8b1d30; border-radius:12px;
-      max-width:520px; width:100%; padding:36px 32px; color:#fff;
-      box-shadow:0 20px 60px rgba(0,0,0,0.6); position:relative;
-    ">
+    <div id="paymentNoticeStep1" class="payment-notice-modal">
       <div style="text-align:center; margin-bottom:20px;">
         <span style="font-size:2.4rem;">⚠️</span>
       </div>
@@ -179,8 +172,7 @@
         style="text-align:center; color:#e8b84b; margin:0 0 18px; font-size:1.3rem; font-family:'Playfair Display',serif;">
         Important Notice
       </h2>
-      <div
-        style="background:rgba(139,29,48,0.15); border:1px solid rgba(139,29,48,0.4); border-radius:8px; padding:18px 20px; line-height:1.75; font-size:0.97rem; color:#ddd;">
+      <div class="payment-notice-info">
         <p style="margin:0 0 12px;">
           To guarantee your room reservation, <strong style="color:#ffffff;">payment is required in advance</strong>.
           By paying online, we ensure that your room is held exclusively for you.
@@ -193,25 +185,14 @@
       <p style="text-align:center; margin-top:16px; font-size:0.88rem; color:#aaa;">
         Thank you for understanding.
       </p>
-      <div style="display:flex; gap:12px; margin-top:24px; justify-content:center;">
-        <button onclick="document.getElementById('paymentNoticeBackdrop').style.display='none';" style="
-          padding:11px 24px; border-radius:6px; border:1px solid #555;
-          background:transparent; color:#ccc; cursor:pointer; font-size:0.95rem;
-        ">Cancel</button>
-        <button id="proceedToAccountBtn" style="
-          padding:11px 28px; border-radius:6px; border:none;
-          background:#8b1d30; color:#fff; cursor:pointer; font-size:0.95rem;
-          font-weight:600; letter-spacing:0.3px;
-        ">I Understand, Proceed →</button>
+      <div class="payment-notice-buttons">
+        <button onclick="document.getElementById('paymentNoticeBackdrop').style.display='none';" class="payment-notice-btn payment-notice-btn-cancel">Cancel</button>
+        <button id="proceedToAccountBtn" class="payment-notice-btn payment-notice-btn-proceed">I Understand, Proceed →</button>
       </div>
     </div>
 
     <!-- Step 2: Account Details -->
-    <div id="paymentNoticeStep2" style="display:none;
-      background:#1a1a2e; border:1px solid #8b1d30; border-radius:12px;
-      max-width:520px; width:100%; padding:36px 32px; color:#fff;
-      box-shadow:0 20px 60px rgba(0,0,0,0.6); position:relative;
-    ">
+    <div id="paymentNoticeStep2" class="payment-notice-modal" style="display:none;">
       <div style="text-align:center; margin-bottom:20px;">
         <span style="font-size:2.4rem;">🏦</span>
       </div>
@@ -222,9 +203,8 @@
       <p style="text-align:center; color:#ccc; font-size:0.93rem; margin-bottom:20px;">
         Please transfer the total amount to the account below and start your description with your name.
       </p>
-      <div
-        style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:20px 24px;">
-        <table style="width:100%; border-collapse:collapse; font-size:0.97rem;">
+      <div class="payment-notice-table-container">
+        <table class="payment-notice-table">
           <tr>
             <td style="padding:8px 0; color:#aaa; width:44%;">Bank Name</td>
             <td style="padding:8px 0; color:#fff; font-weight:600;">Moniepoint</td>
@@ -256,19 +236,12 @@
         After completing your transfer, click the button below to confirm your booking. A confirmation email will be
         sent to you.
       </p>
-      <div style="display:flex; gap:12px; margin-top:22px; justify-content:center;">
+      <div class="payment-notice-buttons">
         <button onclick="
           document.getElementById('paymentNoticeStep2').style.display='none';
           document.getElementById('paymentNoticeStep1').style.display='block';
-        " style="
-          padding:11px 20px; border-radius:6px; border:1px solid #555;
-          background:transparent; color:#ccc; cursor:pointer; font-size:0.92rem;
-        ">← Back</button>
-        <button id="confirmTransferBtn" style="
-          padding:11px 28px; border-radius:6px; border:none;
-          background:#2e7d32; color:#fff; cursor:pointer; font-size:0.95rem;
-          font-weight:600;
-        ">✅ I've Made the Transfer — Confirm Booking</button>
+        " class="payment-notice-btn payment-notice-btn-cancel">← Back</button>
+        <button id="confirmTransferBtn" class="payment-notice-btn payment-notice-btn-confirm">✅ I've Made the Transfer — Confirm Booking</button>
       </div>
     </div>
   </div>

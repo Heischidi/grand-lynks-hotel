@@ -159,7 +159,7 @@
 
 
   <!-- Cart Sidebar -->
-  <div id="cartSidebar" class="cart-slide fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto">
+  <div id="cartSidebar" class="cart-slide fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 overflow-y-auto">
     <div class="p-6 border-b border-gray-200">
       <div class="flex justify-between items-center">
         <h2 class="text-2xl font-playfair font-bold">Your Order</h2>
@@ -804,9 +804,9 @@
     <!-- Step 1: Payment Notice -->
     <div id="orderPaymentStep1" style="
       background:#1a1a2e; border:1px solid #b45309; border-radius:12px;
-      max-width:520px; width:100%; padding:36px 32px; color:#fff;
+      max-width:520px; width:90%; padding:36px 32px; color:#fff;
       box-shadow:0 20px 60px rgba(0,0,0,0.7);
-    ">
+    " class="box-sizing: border-box;">
       <div style="text-align:center; margin-bottom:16px;"><span style="font-size:2.4rem;">⚠️</span></div>
       <h2
         style="text-align:center; color:#fbbf24; margin:0 0 16px; font-size:1.25rem; font-family:'Playfair Display',serif;">
@@ -822,24 +822,18 @@
         </p>
       </div>
       <p style="text-align:center; margin-top:14px; font-size:0.87rem; color:#aaa;">Thank you for understanding.</p>
-      <div style="display:flex; gap:12px; margin-top:22px; justify-content:center;">
-        <button id="orderCancelBtn" style="
-          padding:11px 22px; border-radius:6px; border:1px solid #555;
-          background:transparent; color:#ccc; cursor:pointer; font-size:0.93rem;
-        ">Cancel</button>
-        <button id="orderProceedBtn" style="
-          padding:11px 26px; border-radius:6px; border:none;
-          background:#b45309; color:#fff; cursor:pointer; font-size:0.93rem; font-weight:600;
-        ">I Understand, Proceed →</button>
+      <div class="flex flex-col sm:flex-row gap-3 mt-6 justify-center w-full">
+        <button id="orderCancelBtn" class="px-5 py-2.5 rounded-lg border border-gray-600 bg-transparent text-gray-300 cursor-pointer text-sm font-semibold w-full sm:w-auto hover:bg-white/5 transition-colors">Cancel</button>
+        <button id="orderProceedBtn" class="px-5 py-2.5 rounded-lg border-none bg-amber-700 text-white cursor-pointer text-sm font-bold w-full sm:w-auto hover:bg-amber-600 transition-colors">I Understand, Proceed →</button>
       </div>
     </div>
 
     <!-- Step 2: Kitchen & Bar Account Details -->
     <div id="orderPaymentStep2" style="display:none;
       background:#1a1a2e; border:1px solid #b45309; border-radius:12px;
-      max-width:520px; width:100%; padding:36px 32px; color:#fff;
+      max-width:520px; width:90%; padding:36px 32px; color:#fff;
       box-shadow:0 20px 60px rgba(0,0,0,0.7);
-    ">
+    " class="box-sizing: border-box;">
       <div style="text-align:center; margin-bottom:16px;"><span style="font-size:2.4rem;">🍽️</span></div>
       <h2
         style="text-align:center; color:#fbbf24; margin:0 0 16px; font-size:1.25rem; font-family:'Playfair Display',serif;">
@@ -855,10 +849,8 @@
             <td style="padding:8px 0; color:#fff; font-weight:600;">Moniepoint</td>
           </tr>
           <tr>
-            <td style="padding:8px 0; color:#aaa;">Account Name</td>
-            <td style="padding:8px 0; color:#888;">Account Name</td>
-            <td style="padding:8px 0; color:#fff; font-weight:600;">Grand Lynks Homes &amp; Apartments LTD- Kitchen and
-              Bar</td>
+            <td style="padding:8px 0; color:#aaa; width:40%;">Account Name</td>
+            <td style="padding:8px 0; color:#fff; font-weight:600;">Grand Lynks Homes &amp; Apartments LTD - Kitchen &amp; Bar</td>
           </tr>
           <tr>
             <td style="padding:8px 0; color:#888;">Account Number</td>
@@ -882,15 +874,9 @@
       <p style="font-size:0.82rem; color:#888; margin-top:12px; text-align:center;">
         After paying, click confirm below. Your order will be sent to the kitchen immediately.
       </p>
-      <div style="display:flex; gap:12px; margin-top:20px; justify-content:center;">
-        <button id="orderBackBtn" style="
-          padding:11px 18px; border-radius:6px; border:1px solid #555;
-          background:transparent; color:#ccc; cursor:pointer; font-size:0.91rem;
-        ">← Back</button>
-        <button id="orderConfirmBtn" style="
-          padding:11px 26px; border-radius:6px; border:none;
-          background:#15803d; color:#fff; cursor:pointer; font-size:0.93rem; font-weight:600;
-        ">✅ I've Paid — Confirm Order</button>
+      <div class="flex flex-col sm:flex-row gap-3 mt-6 justify-center w-full">
+        <button id="orderBackBtn" class="px-5 py-2.5 rounded-lg border border-gray-600 bg-transparent text-gray-300 cursor-pointer text-sm font-semibold w-full sm:w-auto hover:bg-white/5 transition-colors">← Back</button>
+        <button id="orderConfirmBtn" class="px-5 py-2.5 rounded-lg border-none bg-green-700 text-white cursor-pointer text-sm font-bold w-full sm:w-auto hover:bg-green-600 transition-colors">✅ I've Paid — Confirm Order</button>
       </div>
     </div>
   </div>
