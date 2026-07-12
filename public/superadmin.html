@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -395,7 +395,14 @@
                             <span class="mr-3">⚙️</span> Settings
                         </button>
                     </li>
+                    
                     <li>
+                        <button onclick="switchTab('finance'); closeSidebarOnMobile()" id="nav-finance"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-emerald-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">💰</span> Financial
+                        </button>
+                    </li>
+<li>
                         <button onclick="switchTab('vault'); closeSidebarOnMobile()" id="nav-vault"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-red-50 text-red-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">🔐</span> Vault / Deleted
@@ -1162,6 +1169,344 @@
                 </div>
             </section>
 
+        
+        <!-- ===== FINANCE / EXPENDITURE SECTION ===== -->
+        <section id="section-finance" class="hidden fade-in relative">
+
+            <!-- PIN GATE OVERLAY -->
+            <div id="financePinGate" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-50/95 backdrop-blur-sm rounded-xl">
+                <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4 border border-gray-100">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">🔒</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-900">Financial Access</h2>
+                        <p class="text-sm text-gray-500 mt-1">Enter your PIN to view financial data</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <input type="password" id="financePinInput" maxlength="8" placeholder="Enter PIN"
+                                class="w-full px-4 py-3 text-center text-2xl tracking-widest border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:outline-none transition-colors font-mono"
+                                onkeydown="if(event.key==='Enter') verifyFinancePin()">
+                        </div>
+                        <div id="financePinError" class="text-red-500 text-sm text-center hidden">Incorrect PIN. Please try again.</div>
+                        <button onclick="verifyFinancePin()" id="financePinBtn"
+                            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold transition-colors shadow-md">
+                            Unlock Financial Page
+                        </button>
+                        <p class="text-xs text-center text-gray-400">Default PIN: <span class="font-mono">0000</span> — change it after first login</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FINANCE CONTENT (shown after PIN unlocked) -->
+            <div id="financeContent" class="hidden">
+
+                <!-- TOP BAR -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Financial Overview</h2>
+                        <p class="text-sm text-gray-500 mt-0.5">Income, expenses, and profit tracking</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Date Filters -->
+                        <input type="date" id="finFromDate" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" onchange="loadFinancePage()">
+                        <span class="text-gray-400 text-sm">to</span>
+                        <input type="date" id="finToDate" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" onchange="loadFinancePage()">
+                        <button onclick="clearFinanceFilters()" class="text-xs text-red-500 hover:text-red-700 border border-red-200 px-3 py-1.5 rounded-lg transition">✕ Clear</button>
+                        <button onclick="changeFinancePin()" class="ml-2 text-xs text-gray-500 hover:text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                            🔑 Change PIN
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI CARDS -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Income</p>
+                        <p class="text-2xl font-black text-emerald-600" id="kpiTotalIncome">₦0</p>
+                        <p class="text-xs text-gray-400 mt-1" id="kpiIncomeBreakdown">—</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Expenses</p>
+                        <p class="text-2xl font-black text-red-500" id="kpiTotalExpenses">₦0</p>
+                        <p class="text-xs text-gray-400 mt-1" id="kpiExpensesCount">0 records</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Net Profit / Loss</p>
+                        <p class="text-2xl font-black" id="kpiNetPL">₦0</p>
+                        <p class="text-xs text-gray-400 mt-1" id="kpiNetPLLabel">—</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Bookings / Orders</p>
+                        <p class="text-2xl font-black text-blue-600" id="kpiBookingsOrders">0 / 0</p>
+                        <p class="text-xs text-gray-400 mt-1">Rooms / F&amp;B</p>
+                    </div>
+                </div>
+
+                <!-- CHARTS ROW -->
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+                    <div class="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <h3 class="font-semibold text-gray-700 mb-3 text-sm">Monthly Income vs Expenses</h3>
+                        <div style="height:240px"><canvas id="financeBarChart"></canvas></div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <h3 class="font-semibold text-gray-700 mb-3 text-sm">Expense Breakdown</h3>
+                        <div style="height:240px"><canvas id="financeDonutChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- BASELINE COST REPORT (shown after 4 weeks of data) -->
+                <div id="baselineCard" class="hidden mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-5">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <h3 class="font-bold text-indigo-800 text-sm">📊 Baseline Cost Report</h3>
+                            <p class="text-xs text-indigo-600 mt-0.5" id="baselineSubtitle">Based on historical data</p>
+                        </div>
+                        <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded-full">Auto-generated</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3" id="baselineCategoryGrid"></div>
+                    <div class="flex flex-wrap gap-4 pt-3 border-t border-indigo-200">
+                        <div><p class="text-xs text-gray-500">Est. Monthly Running Cost</p><p class="font-bold text-indigo-800 text-lg" id="baselineMonthlyCost">—</p></div>
+                        <div><p class="text-xs text-gray-500">Avg. Guests/Month</p><p class="font-bold text-indigo-800 text-lg" id="baselineAvgGuests">—</p></div>
+                    </div>
+                </div>
+
+                <!-- INCOME SECTIONS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Booking Income -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-gray-700 text-sm flex items-center gap-2">🛏️ Room Booking Income <span class="text-xs text-gray-400 font-normal">(auto)</span></h3>
+                            <span class="text-emerald-600 font-bold" id="incomeBookingTotal">₦0</span>
+                        </div>
+                        <p class="text-xs text-gray-400">Pulled automatically from confirmed & checked-out room bookings.</p>
+                        <p class="text-sm font-medium text-gray-600 mt-2"><span id="incomeBookingCount">0</span> qualifying bookings in selected period</p>
+                    </div>
+                    <!-- F&B Income -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-gray-700 text-sm flex items-center gap-2">🍽️ Food &amp; Drink Income <span class="text-xs text-gray-400 font-normal">(auto)</span></h3>
+                            <span class="text-emerald-600 font-bold" id="incomeOrderTotal">₦0</span>
+                        </div>
+                        <p class="text-xs text-gray-400">Pulled automatically from delivered/completed food &amp; drink orders.</p>
+                        <p class="text-sm font-medium text-gray-600 mt-2"><span id="incomeOrderCount">0</span> qualifying orders in selected period</p>
+                    </div>
+                </div>
+
+                <!-- OTHER INCOME -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="font-semibold text-gray-700">Other Income</h3>
+                            <p class="text-xs text-gray-400 mt-0.5">Late checkout, smoking fees, damages, laundry, miscellaneous</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-emerald-600 font-bold text-lg" id="otherIncomeTotal">₦0</span>
+                            <button onclick="openModal('otherIncomeModal')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">+ Add</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead><tr class="border-b border-gray-100">
+                                <th class="pb-2 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                                <th class="pb-2 text-left text-xs font-semibold text-gray-500 uppercase">Source</th>
+                                <th class="pb-2 text-left text-xs font-semibold text-gray-500 uppercase">Guest Ref</th>
+                                <th class="pb-2 text-right text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                                <th class="pb-2 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                            </tr></thead>
+                            <tbody id="otherIncomeTableBody">
+                                <tr><td colspan="5" class="py-4 text-center text-gray-400 text-xs">No other income recorded yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- EXPENSES -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="font-semibold text-gray-700">Expenses</h3>
+                            <p class="text-xs text-gray-400 mt-0.5">Salaries, fuel, utilities, supplies, and all other costs</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-red-500 font-bold text-lg" id="expensesTotal">₦0</span>
+                            <button onclick="openModal('expenseModal')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">+ Add Expense</button>
+                        </div>
+                    </div>
+                    <!-- Category filter -->
+                    <div class="mb-3">
+                        <select id="expenseCategoryFilter" onchange="loadExpenses()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300">
+                            <option value="">All Categories</option>
+                            <option>Salaries</option><option>Fuel</option><option>Generator</option>
+                            <option>Utilities</option><option>Internet</option><option>Renovations</option>
+                            <option>Repairs &amp; Maintenance</option><option>Cleaning Supplies</option>
+                            <option>Kitchen/Bar Stock</option><option>Staff Incentives</option>
+                            <option>Taxes/Levies</option><option>Marketing</option>
+                            <option>Transportation</option><option>Laundry</option><option>Others</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead><tr class="border-b border-gray-100">
+                                <th class="pb-2 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                                <th class="pb-2 text-left text-xs font-semibold text-gray-500 uppercase">Category</th>
+                                <th class="pb-2 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
+                                <th class="pb-2 text-left text-xs font-semibold text-gray-500 uppercase">Method</th>
+                                <th class="pb-2 text-right text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                                <th class="pb-2 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                            </tr></thead>
+                            <tbody id="expensesTableBody">
+                                <tr><td colspan="6" class="py-4 text-center text-gray-400 text-xs">No expenses recorded yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SUMMARIES -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                    <!-- Monthly Summary -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-gray-700 text-sm">Monthly Summary</h3>
+                            <select id="monthlySummaryYear" onchange="loadMonthlySummary()" class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none"></select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-xs">
+                                <thead><tr class="border-b border-gray-100 text-gray-500 uppercase">
+                                    <th class="pb-1.5 text-left">Month</th>
+                                    <th class="pb-1.5 text-right">Income</th>
+                                    <th class="pb-1.5 text-right">Expenses</th>
+                                    <th class="pb-1.5 text-right">Net P/L</th>
+                                </tr></thead>
+                                <tbody id="monthlySummaryBody"><tr><td colspan="4" class="py-3 text-center text-gray-400">Loading…</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Yearly Summary -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <h3 class="font-semibold text-gray-700 text-sm mb-3">Yearly Summary</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-xs">
+                                <thead><tr class="border-b border-gray-100 text-gray-500 uppercase">
+                                    <th class="pb-1.5 text-left">Year</th>
+                                    <th class="pb-1.5 text-right">Income</th>
+                                    <th class="pb-1.5 text-right">Expenses</th>
+                                    <th class="pb-1.5 text-right">Net P/L</th>
+                                </tr></thead>
+                                <tbody id="yearlySummaryBody"><tr><td colspan="4" class="py-3 text-center text-gray-400">Loading…</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /financeContent -->
+        </section>
+
+        <!-- ===== FINANCE MODALS ===== -->
+
+        <!-- Add/Edit Other Income Modal -->
+        <div id="otherIncomeModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+                <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800" id="otherIncomeModalTitle">Add Other Income</h3>
+                    <button onclick="closeModal('otherIncomeModal')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+                <form id="otherIncomeForm" onsubmit="handleSaveOtherIncome(event)" class="p-6 space-y-4">
+                    <input type="hidden" id="editOtherIncomeId">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Source *</label>
+                            <select id="oiSource" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                <option value="">-- Select Source --</option>
+                                <option>Late Checkout Fee</option><option>Smoking Fee</option>
+                                <option>Damages</option><option>Laundry</option><option>Miscellaneous</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₦) *</label>
+                            <input type="number" id="oiAmount" min="0" step="0.01" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                            <input type="date" id="oiDate" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Guest / Booking Reference</label>
+                            <input type="text" id="oiGuestRef" placeholder="e.g. John Doe / #GL-45" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description / Notes</label>
+                            <textarea id="oiDescription" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                        <button type="button" onclick="closeModal('otherIncomeModal')" class="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition shadow-sm">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add/Edit Expense Modal -->
+        <div id="expenseModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
+                    <h3 class="text-lg font-bold text-gray-800" id="expenseModalTitle">Add Expense</h3>
+                    <button onclick="closeModal('expenseModal')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+                <form id="expenseForm" onsubmit="handleSaveExpense(event)" enctype="multipart/form-data" class="p-6 space-y-4">
+                    <input type="hidden" id="editExpenseId">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                            <select id="expCategory" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white">
+                                <option value="">-- Select Category --</option>
+                                <option>Salaries</option><option>Fuel</option><option>Generator</option>
+                                <option>Utilities</option><option>Internet</option><option>Renovations</option>
+                                <option>Repairs &amp; Maintenance</option><option>Cleaning Supplies</option>
+                                <option>Kitchen/Bar Stock</option><option>Staff Incentives</option>
+                                <option>Taxes/Levies</option><option>Marketing</option>
+                                <option>Transportation</option><option>Laundry</option><option>Others</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₦) *</label>
+                            <input type="number" id="expAmount" min="0" step="0.01" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                            <input type="date" id="expDate" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                            <input type="text" id="expDescription" required placeholder="Brief description of the expense" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
+                            <select id="expPaymentMethod" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white">
+                                <option value="">-- Select Method --</option>
+                                <option>Cash</option><option>Bank Transfer</option><option>POS</option><option>Cheque</option><option>Mobile Payment</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Receipt (optional photo/PDF)</label>
+                            <input type="file" id="expReceipt" accept="image/*,application/pdf" class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:text-sm file:font-medium hover:file:bg-gray-200 transition">
+                            <a id="existingReceiptLink" href="#" target="_blank" class="hidden text-xs text-blue-600 underline mt-1 inline-block">View existing receipt</a>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea id="expNotes" rows="2" placeholder="Any additional notes…" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                        <button type="button" onclick="closeModal('expenseModal')" class="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition shadow-sm">Save Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         </main>
     </div>
 
@@ -1841,3 +2186,4 @@
 </body>
 
 </html>
+

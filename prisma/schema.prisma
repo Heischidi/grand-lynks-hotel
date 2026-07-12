@@ -274,3 +274,37 @@ model HousekeepingTask {
 
   @@map("housekeeping_tasks")
 }
+
+// ============================================================
+// FINANCIAL MODULE — Expenses & Other Income
+// ============================================================
+
+model Expense {
+  id            Int       @id @default(autoincrement())
+  category      String    // Salaries, Fuel, Generator, Utilities, Internet, etc.
+  amount        Float
+  description   String
+  date          DateTime
+  paymentMethod String    // Cash, Transfer, POS, Cheque
+  receiptUrl    String?   // optional Supabase Storage URL
+  notes         String?
+  recordedBy    String    // superadmin username
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("expenses")
+}
+
+model OtherIncome {
+  id            Int       @id @default(autoincrement())
+  source        String    // Late Checkout Fee, Smoking Fee, Damages, Laundry, Miscellaneous
+  amount        Float
+  description   String?
+  date          DateTime
+  guestRef      String?   // optional guest name / booking reference
+  recordedBy    String    // superadmin username
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("other_income")
+}

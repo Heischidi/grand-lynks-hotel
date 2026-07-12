@@ -1,4 +1,4 @@
-// Configuration
+﻿// Configuration
 const API_URL = window.APP_CONFIG?.API_URL || 'http://localhost:5000/api';
 
 console.log('Admin JS starting execution...');
@@ -134,7 +134,8 @@ const sections = {
     settings: document.getElementById('section-settings'),
     statistics: document.getElementById('section-statistics'),
     vault: document.getElementById('section-vault'),
-    tracker: document.getElementById('section-tracker')
+    tracker: document.getElementById('section-tracker'),
+    finance: document.getElementById('section-finance')
 };
 
 // --- AUTHENTICATION ---
@@ -151,6 +152,7 @@ function init() {
     sections.statistics = document.getElementById('section-statistics');
     sections.vault = document.getElementById('section-vault');
     sections.tracker = document.getElementById('section-tracker');
+    sections.finance = document.getElementById('section-finance');
 
     const token = localStorage.getItem('adminToken');
     const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
@@ -293,6 +295,7 @@ function switchTab(tabName) {
         if (tabName === 'statistics') fetchStatistics();
         if (tabName === 'vault') fetchVaultRecords();
         if (tabName === 'tracker') fetchRoomsForTracker();
+        if (tabName === 'finance') window.initFinanceTab();
     }
 }
 
@@ -3400,4 +3403,400 @@ window.saveEditedBooking = async function (event) {
         alert("Failed to update booking.");
     }
 };
+
+
+// =============================================================================
+// FINANCIAL MODULE — PIN Gate, KPIs, Charts, Expenses, Other Income, Summaries
+// =============================================================================
+
+let _financeUnlocked = false;
+let _financeBarChart = null;
+let _financeDonutChart = null;
+let _financeCurrentExpenses = [];
+let _financeCurrentOtherIncome = [];
+
+// ---- PIN GATE ----
+
+window.verifyFinancePin = async function() {
+    const pin = document.getElementById('financePinInput').value;
+    const errEl = document.getElementById('financePinError');
+    const btn = document.getElementById('financePinBtn');
+    if (!pin) { errEl.textContent = 'Please enter your PIN.'; errEl.classList.remove('hidden'); return; }
+    errEl.classList.add('hidden');
+    btn.textContent = 'Verifying…'; btn.disabled = true;
+    try {
+        const res = await authFetch('/finance/verify-pin', { method: 'POST', body: JSON.stringify({ pin }) });
+        if (!res) { btn.textContent = 'Unlock Financial Page'; btn.disabled = false; return; }
+        const data = await res.json();
+        if (data.ok) {
+            _financeUnlocked = true;
+            document.getElementById('financePinGate').classList.add('hidden');
+            document.getElementById('financeContent').classList.remove('hidden');
+            document.getElementById('financePinInput').value = '';
+            loadFinancePage();
+        } else {
+            errEl.textContent = 'Incorrect PIN. Please try again.';
+            errEl.classList.remove('hidden');
+            document.getElementById('financePinInput').value = '';
+            document.getElementById('financePinInput').focus();
+        }
+    } catch(e) {
+        errEl.textContent = 'Connection error. Try again.';
+        errEl.classList.remove('hidden');
+    }
+    btn.textContent = 'Unlock Financial Page'; btn.disabled = false;
+};
+
+window.changeFinancePin = async function() {
+    const oldPin = prompt('Enter your CURRENT PIN:');
+    if (!oldPin) return;
+    const newPin = prompt('Enter your NEW PIN (min 4 digits):');
+    if (!newPin || newPin.length < 4) { alert('New PIN must be at least 4 digits.'); return; }
+    const confirmPin = prompt('Confirm NEW PIN:');
+    if (newPin !== confirmPin) { alert('PINs do not match.'); return; }
+    try {
+        const res = await authFetch('/finance/change-pin', { method: 'PUT', body: JSON.stringify({ oldPin, newPin }) });
+        if (!res) return;
+        const data = await res.json();
+        if (res.ok) { alert('✅ PIN changed successfully! Use your new PIN next time.'); }
+        else { alert('❌ ' + (data.error || 'Failed to change PIN')); }
+    } catch(e) { alert('Connection error.'); }
+};
+
+// ---- LOAD PAGE ----
+
+window.loadFinancePage = async function() {
+    if (!_financeUnlocked) return;
+    const from = document.getElementById('finFromDate').value;
+    const to   = document.getElementById('finToDate').value;
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to)   params.set('to', to);
+    const qStr = params.toString() ? '?' + params.toString() : '';
+
+    await Promise.all([
+        loadFinanceSummary(qStr),
+        loadExpenses(),
+        loadOtherIncome(),
+        loadMonthlySummary(),
+        loadYearlySummary(),
+        loadBaseline()
+    ]);
+};
+
+window.clearFinanceFilters = function() {
+    document.getElementById('finFromDate').value = '';
+    document.getElementById('finToDate').value = '';
+    loadFinancePage();
+};
+
+// ---- SUMMARY + KPIs ----
+
+async function loadFinanceSummary(qStr = '') {
+    const res = await authFetch('/finance/summary' + qStr);
+    if (!res || !res.ok) return;
+    const d = await res.json();
+
+    const fmt = v => '₦' + Math.abs(v).toLocaleString();
+    document.getElementById('kpiTotalIncome').textContent = fmt(d.totalIncome);
+    document.getElementById('kpiIncomeBreakdown').textContent = `Rooms ₦${(d.bookingIncome||0).toLocaleString()} | F&B ₦${(d.orderIncome||0).toLocaleString()} | Other ₦${(d.otherIncomeTotal||0).toLocaleString()}`;
+    document.getElementById('kpiTotalExpenses').textContent = fmt(d.totalExpenses);
+    document.getElementById('kpiExpensesCount').textContent = 'All recorded expenses';
+    const netEl = document.getElementById('kpiNetPL');
+    const netVal = d.netProfitLoss || 0;
+    netEl.textContent = (netVal < 0 ? '-' : '') + fmt(netVal);
+    netEl.className = 'text-2xl font-black ' + (netVal >= 0 ? 'text-emerald-600' : 'text-red-500');
+    document.getElementById('kpiNetPLLabel').textContent = netVal >= 0 ? '✅ Profitable period' : '⚠️ Loss this period';
+    document.getElementById('kpiBookingsOrders').textContent = `${d.bookingCount || 0} / ${d.orderCount || 0}`;
+
+    document.getElementById('incomeBookingTotal').textContent = fmt(d.bookingIncome||0);
+    document.getElementById('incomeBookingCount').textContent = d.bookingCount || 0;
+    document.getElementById('incomeOrderTotal').textContent = fmt(d.orderIncome||0);
+    document.getElementById('incomeOrderCount').textContent = d.orderCount || 0;
+    document.getElementById('expensesTotal').textContent = fmt(d.totalExpenses||0);
+    document.getElementById('otherIncomeTotal').textContent = fmt(d.otherIncomeTotal||0);
+
+    renderDonutChart(d.expenseByCategory || {});
+}
+
+// ---- CHARTS ----
+
+function renderDonutChart(expByCategory) {
+    const ctx = document.getElementById('financeDonutChart');
+    if (!ctx) return;
+    if (_financeDonutChart) { _financeDonutChart.destroy(); }
+    const labels = Object.keys(expByCategory);
+    const values = Object.values(expByCategory);
+    if (labels.length === 0) { ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height); return; }
+    const colors = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#6366f1','#84cc16','#0ea5e9','#a855f7','#d946ef','#64748b'];
+    _financeDonutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length), borderWidth: 2, borderColor: '#fff' }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } } }
+    });
+}
+
+function renderBarChart(months) {
+    const ctx = document.getElementById('financeBarChart');
+    if (!ctx) return;
+    if (_financeBarChart) { _financeBarChart.destroy(); }
+    const labels = months.map(m => m.label.slice(0,3));
+    _financeBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Income', data: months.map(m => m.totalIncome), backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 },
+                { label: 'Expenses', data: months.map(m => m.expenses), backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } }, scales: { y: { beginAtZero: true, ticks: { callback: v => '₦' + v.toLocaleString(), font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
+    });
+}
+
+// ---- EXPENSES ----
+
+window.loadExpenses = async function() {
+    const from = document.getElementById('finFromDate').value;
+    const to   = document.getElementById('finToDate').value;
+    const cat  = document.getElementById('expenseCategoryFilter').value;
+    const params = new URLSearchParams();
+    if (from) params.set('from', from); if (to) params.set('to', to); if (cat) params.set('category', cat);
+    const res = await authFetch('/finance/expenses' + (params.toString() ? '?' + params.toString() : ''));
+    if (!res || !res.ok) return;
+    _financeCurrentExpenses = await res.json();
+    renderExpenses(_financeCurrentExpenses);
+};
+
+function renderExpenses(expenses) {
+    const tbody = document.getElementById('expensesTableBody');
+    if (!expenses.length) { tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-gray-400 text-xs">No expenses in this period.</td></tr>'; return; }
+    const catColors = { Salaries:'bg-blue-100 text-blue-700', Fuel:'bg-orange-100 text-orange-700', Generator:'bg-yellow-100 text-yellow-700', Utilities:'bg-cyan-100 text-cyan-700', Internet:'bg-indigo-100 text-indigo-700', Renovations:'bg-purple-100 text-purple-700', Others:'bg-gray-100 text-gray-700' };
+    tbody.innerHTML = expenses.map(e => {
+        const catClass = catColors[e.category] || 'bg-gray-100 text-gray-700';
+        const receiptBtn = e.receiptUrl ? `<a href="${e.receiptUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-xs underline mr-1">📎</a>` : '';
+        return `<tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+            <td class="py-2.5 pr-3 text-xs text-gray-500">${new Date(e.date).toLocaleDateString('en-GB')}</td>
+            <td class="py-2.5 pr-3"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${catClass}">${e.category}</span></td>
+            <td class="py-2.5 pr-3 text-xs text-gray-700 max-w-[180px] truncate" title="${e.description}">${e.description}</td>
+            <td class="py-2.5 pr-3 text-xs text-gray-500">${e.paymentMethod}</td>
+            <td class="py-2.5 text-right font-semibold text-red-600 text-sm">₦${(e.amount||0).toLocaleString()}</td>
+            <td class="py-2.5 text-right text-xs whitespace-nowrap">${receiptBtn}<button onclick="openEditExpense(${e.id})" class="text-blue-600 hover:text-blue-800 mr-2">Edit</button><button onclick="deleteExpense(${e.id})" class="text-red-500 hover:text-red-700">Del</button></td>
+        </tr>`;
+    }).join('');
+}
+
+window.openEditExpense = function(id) {
+    const exp = _financeCurrentExpenses.find(e => e.id === id);
+    if (!exp) return;
+    document.getElementById('expenseModalTitle').textContent = 'Edit Expense';
+    document.getElementById('editExpenseId').value = exp.id;
+    document.getElementById('expCategory').value = exp.category;
+    document.getElementById('expAmount').value = exp.amount;
+    document.getElementById('expDate').value = exp.date ? exp.date.slice(0,10) : '';
+    document.getElementById('expDescription').value = exp.description || '';
+    document.getElementById('expPaymentMethod').value = exp.paymentMethod || '';
+    document.getElementById('expNotes').value = exp.notes || '';
+    const receiptLink = document.getElementById('existingReceiptLink');
+    if (exp.receiptUrl) { receiptLink.href = exp.receiptUrl; receiptLink.classList.remove('hidden'); } else { receiptLink.classList.add('hidden'); }
+    openModal('expenseModal');
+};
+
+window.handleSaveExpense = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('editExpenseId').value;
+    const formData = new FormData();
+    formData.append('category', document.getElementById('expCategory').value);
+    formData.append('amount', document.getElementById('expAmount').value);
+    formData.append('date', document.getElementById('expDate').value);
+    formData.append('description', document.getElementById('expDescription').value);
+    formData.append('paymentMethod', document.getElementById('expPaymentMethod').value);
+    formData.append('notes', document.getElementById('expNotes').value);
+    const receiptFile = document.getElementById('expReceipt').files[0];
+    if (receiptFile) formData.append('receipt', receiptFile);
+
+    const token = localStorage.getItem('adminToken');
+    const url = id ? `${API_URL}/finance/expenses/${id}` : `${API_URL}/finance/expenses`;
+    const method = id ? 'PUT' : 'POST';
+    try {
+        const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+        if (res && res.ok) {
+            closeModal('expenseModal');
+            document.getElementById('expenseForm').reset();
+            document.getElementById('editExpenseId').value = '';
+            document.getElementById('expenseModalTitle').textContent = 'Add Expense';
+            document.getElementById('existingReceiptLink').classList.add('hidden');
+            await loadFinancePage();
+        } else {
+            const d = await res.json().catch(()=>({}));
+            alert('Error: ' + (d.error || 'Failed to save expense'));
+        }
+    } catch(err) { alert('Connection error'); }
+};
+
+window.deleteExpense = async function(id) {
+    if (!confirm('Delete this expense? This cannot be undone.')) return;
+    const res = await authFetch(`/finance/expenses/${id}`, { method: 'DELETE' });
+    if (res && res.ok) { await loadFinancePage(); }
+    else { alert('Failed to delete expense'); }
+};
+
+// ---- OTHER INCOME ----
+
+window.loadOtherIncome = async function() {
+    const from = document.getElementById('finFromDate').value;
+    const to   = document.getElementById('finToDate').value;
+    const params = new URLSearchParams();
+    if (from) params.set('from', from); if (to) params.set('to', to);
+    const res = await authFetch('/finance/other-income' + (params.toString() ? '?' + params.toString() : ''));
+    if (!res || !res.ok) return;
+    _financeCurrentOtherIncome = await res.json();
+    renderOtherIncome(_financeCurrentOtherIncome);
+};
+
+function renderOtherIncome(items) {
+    const tbody = document.getElementById('otherIncomeTableBody');
+    if (!items.length) { tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-400 text-xs">No other income recorded yet.</td></tr>'; return; }
+    tbody.innerHTML = items.map(i => `<tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+        <td class="py-2.5 pr-3 text-xs text-gray-500">${new Date(i.date).toLocaleDateString('en-GB')}</td>
+        <td class="py-2.5 pr-3"><span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">${i.source}</span></td>
+        <td class="py-2.5 pr-3 text-xs text-gray-500">${i.guestRef || '—'}</td>
+        <td class="py-2.5 text-right font-semibold text-emerald-600 text-sm">₦${(i.amount||0).toLocaleString()}</td>
+        <td class="py-2.5 text-right text-xs whitespace-nowrap"><button onclick="openEditOtherIncome(${i.id})" class="text-blue-600 hover:text-blue-800 mr-2">Edit</button><button onclick="deleteOtherIncome(${i.id})" class="text-red-500 hover:text-red-700">Del</button></td>
+    </tr>`).join('');
+}
+
+window.openEditOtherIncome = function(id) {
+    const item = _financeCurrentOtherIncome.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('otherIncomeModalTitle').textContent = 'Edit Other Income';
+    document.getElementById('editOtherIncomeId').value = item.id;
+    document.getElementById('oiSource').value = item.source;
+    document.getElementById('oiAmount').value = item.amount;
+    document.getElementById('oiDate').value = item.date ? item.date.slice(0,10) : '';
+    document.getElementById('oiGuestRef').value = item.guestRef || '';
+    document.getElementById('oiDescription').value = item.description || '';
+    openModal('otherIncomeModal');
+};
+
+window.handleSaveOtherIncome = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('editOtherIncomeId').value;
+    const body = {
+        source: document.getElementById('oiSource').value,
+        amount: document.getElementById('oiAmount').value,
+        date: document.getElementById('oiDate').value,
+        guestRef: document.getElementById('oiGuestRef').value,
+        description: document.getElementById('oiDescription').value
+    };
+    const url = id ? `/finance/other-income/${id}` : '/finance/other-income';
+    const method = id ? 'PUT' : 'POST';
+    const res = await authFetch(url, { method, body: JSON.stringify(body) });
+    if (res && res.ok) {
+        closeModal('otherIncomeModal');
+        document.getElementById('otherIncomeForm').reset();
+        document.getElementById('editOtherIncomeId').value = '';
+        document.getElementById('otherIncomeModalTitle').textContent = 'Add Other Income';
+        await loadFinancePage();
+    } else {
+        const d = await res.json().catch(()=>({}));
+        alert('Error: ' + (d.error || 'Failed to save'));
+    }
+};
+
+window.deleteOtherIncome = async function(id) {
+    if (!confirm('Delete this income record?')) return;
+    const res = await authFetch(`/finance/other-income/${id}`, { method: 'DELETE' });
+    if (res && res.ok) { await loadFinancePage(); }
+    else { alert('Failed to delete'); }
+};
+
+// ---- MONTHLY SUMMARY ----
+
+window.loadMonthlySummary = async function() {
+    const yearSel = document.getElementById('monthlySummaryYear');
+    const year = yearSel ? yearSel.value : new Date().getFullYear();
+    const res = await authFetch(`/finance/monthly-summary?year=${year}`);
+    if (!res || !res.ok) return;
+    const data = await res.json();
+    renderBarChart(data.months);
+    const tbody = document.getElementById('monthlySummaryBody');
+    tbody.innerHTML = data.months.filter(m => m.totalIncome > 0 || m.expenses > 0).map(m => {
+        const net = m.netProfitLoss;
+        const netClass = net >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold';
+        return `<tr class="border-b border-gray-50 hover:bg-gray-50">
+            <td class="py-2 pr-2 font-medium text-gray-700">${m.label.slice(0,3)}</td>
+            <td class="py-2 text-right text-emerald-600">₦${(m.totalIncome||0).toLocaleString()}</td>
+            <td class="py-2 text-right text-red-500">₦${(m.expenses||0).toLocaleString()}</td>
+            <td class="py-2 text-right ${netClass}">${net < 0 ? '-' : ''}₦${Math.abs(net).toLocaleString()}</td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="4" class="py-3 text-center text-gray-400 text-xs">No data for this year.</td></tr>';
+};
+
+function populateMonthlySummaryYears() {
+    const sel = document.getElementById('monthlySummaryYear');
+    if (!sel) return;
+    sel.innerHTML = '';
+    const cur = new Date().getFullYear();
+    for (let y = cur; y >= cur - 5; y--) {
+        const opt = document.createElement('option');
+        opt.value = y; opt.textContent = y;
+        sel.appendChild(opt);
+    }
+}
+
+// ---- YEARLY SUMMARY ----
+
+async function loadYearlySummary() {
+    const res = await authFetch('/finance/yearly-summary');
+    if (!res || !res.ok) return;
+    const data = await res.json();
+    const tbody = document.getElementById('yearlySummaryBody');
+    if (!data.years || data.years.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="py-3 text-center text-gray-400 text-xs">No yearly data yet.</td></tr>'; return; }
+    tbody.innerHTML = data.years.reverse().map(y => {
+        const net = y.netProfitLoss;
+        const netClass = net >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold';
+        return `<tr class="border-b border-gray-50 hover:bg-gray-50">
+            <td class="py-2 pr-2 font-bold text-gray-800">${y.year}</td>
+            <td class="py-2 text-right text-emerald-600">₦${(y.totalIncome||0).toLocaleString()}</td>
+            <td class="py-2 text-right text-red-500">₦${(y.totalExpenses||0).toLocaleString()}</td>
+            <td class="py-2 text-right ${netClass}">${net < 0 ? '-' : ''}₦${Math.abs(net).toLocaleString()}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ---- BASELINE ----
+
+async function loadBaseline() {
+    const res = await authFetch('/finance/baseline');
+    if (!res || !res.ok) return;
+    const data = await res.json();
+    const card = document.getElementById('baselineCard');
+    if (!data.ready) { card.classList.add('hidden'); return; }
+    card.classList.remove('hidden');
+    document.getElementById('baselineSubtitle').textContent = `Based on ${data.monthsOfData} month(s) of data (${data.weeksOfData} weeks)`;
+    document.getElementById('baselineMonthlyCost').textContent = '₦' + (data.estimatedMonthlyCost||0).toLocaleString();
+    document.getElementById('baselineAvgGuests').textContent = data.avgGuestsPerMonth || '—';
+    const grid = document.getElementById('baselineCategoryGrid');
+    const entries = Object.entries(data.categoryAverages || {});
+    grid.innerHTML = entries.map(([cat, avg]) => `
+        <div class="bg-white rounded-lg p-3 border border-indigo-100">
+            <p class="text-xs text-gray-500 font-medium truncate">${cat}</p>
+            <p class="text-sm font-bold text-indigo-800 mt-0.5">₦${avg.toLocaleString()}<span class="text-xs font-normal text-gray-400">/mo</span></p>
+        </div>`).join('') || '<p class="text-xs text-gray-400 col-span-3">No expense categories yet.</p>';
+}
+
+// ---- INIT FINANCE TAB ----
+
+window.initFinanceTab = function() {
+    populateMonthlySummaryYears();
+    // Reset gate on every tab switch
+    _financeUnlocked = false;
+    document.getElementById('financePinGate').classList.remove('hidden');
+    document.getElementById('financeContent').classList.add('hidden');
+    document.getElementById('financePinInput').value = '';
+    document.getElementById('financePinError').classList.add('hidden');
+    setTimeout(() => document.getElementById('financePinInput').focus(), 100);
+};
+
 

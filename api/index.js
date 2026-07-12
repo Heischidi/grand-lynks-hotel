@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const helmet = require("helmet");
@@ -2833,6 +2833,9 @@ Please add \`GEMINI_API_KEY="your_api_key"\` to your \`.env\` file to unlock ful
   }
 });
 
+
+const registerFinanceRoutes = require('./financeRoutes.js')
+registerFinanceRoutes(app, prisma, authenticateSuperAdmin, bcrypt, multer, uploadToSupabase)
 // --- Start server ---
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
@@ -2842,3 +2845,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
