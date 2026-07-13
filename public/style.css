@@ -168,6 +168,20 @@ select:focus {
   }
 }
 
+/* Ensure all interactive elements meet 44px minimum tap target on mobile */
+@media (max-width: 768px) {
+  .btn,
+  .nav-links a,
+  button,
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 /* Transparent floating navbar */
 .header {
   position: absolute;
@@ -269,6 +283,19 @@ select:focus {
   background: rgba(255, 255, 255, 0.4);
 }
 
+/* Hero CTA button group — stack on mobile */
+.hero-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.hero-btns .btn {
+  margin: 0 !important;
+}
+
 /* Mobile hero text adjustments */
 @media (max-width: 768px) {
   .hero-overlay .hero-text {
@@ -283,12 +310,24 @@ select:focus {
 
   .hero-overlay .hero-text p {
     font-size: 1rem;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
   }
 
   .hero-overlay .btn {
     padding: 12px 20px;
     font-size: 0.9rem;
+  }
+
+  .hero-btns {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hero-btns .btn {
+    width: 90%;
+    max-width: 280px;
+    text-align: center;
   }
 }
 
@@ -302,8 +341,9 @@ select:focus {
   }
 
   .hero-overlay .btn {
-    padding: 10px 18px;
+    padding: 12px 18px;
     font-size: 0.85rem;
+    min-height: 44px;
   }
 }
 
@@ -950,6 +990,14 @@ select:focus {
   min-height: 100vh;
 }
 
+/* iOS Safari does not support background-attachment: fixed on body children.
+   Switch to scroll on mobile to prevent broken/blank background. */
+@media (max-width: 1024px) {
+  .booking-page {
+    background-attachment: scroll;
+  }
+}
+
 .booking-page::before {
   content: "";
   position: absolute;
@@ -1158,6 +1206,9 @@ body.admin-page {
   /* Use dark text from root */
   letter-spacing: 1px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100vw - 80px); /* prevent overflow past hamburger */
 }
 
 /* Nav links */
@@ -1277,12 +1328,21 @@ body.admin-page {
 
 @media (max-width: 480px) {
   .logo {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   .nav-links a {
     font-size: 1rem;
     width: 180px;
+  }
+
+  /* Larger hamburger tap target on small phones */
+  .mobile-menu-toggle {
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    align-items: center;
   }
 }
 
@@ -1567,11 +1627,34 @@ body.order-page {
   margin: 5% auto;
   padding: 20px 30px;
   border: 1px solid #888;
-  width: 80%;
+  width: 90%;
   max-width: 700px;
   border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   animation: slide-down 0.5s ease-out;
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    width: 98%;
+    padding: 16px 14px;
+    margin: 10% auto;
+    border-radius: 8px;
+  }
+
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 @keyframes slide-down {
