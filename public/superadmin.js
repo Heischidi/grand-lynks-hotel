@@ -600,8 +600,15 @@ function roomStatusOnDate(room, date, bookings) {
         if (b.roomId != room.id) return false;          // loose equality: handles string/int mismatch
         if (b.status === 'cancelled') return false;     // only skip cancelled
         const start = new Date(b.startDate);
-        const end   = new Date(b.endDate);
         const startDay = start.getUTCFullYear() * 10000 + start.getUTCMonth() * 100 + start.getUTCDate();
+        
+        if (b.status === 'checked-out') {
+            const checkoutDate = b.actualCheckOutTime ? new Date(b.actualCheckOutTime) : new Date(b.endDate);
+            const checkoutDay = checkoutDate.getUTCFullYear() * 10000 + checkoutDate.getUTCMonth() * 100 + checkoutDate.getUTCDate();
+            return dDay >= startDay && dDay < checkoutDay;
+        }
+
+        const end   = new Date(b.endDate);
         const endDay   = end.getUTCFullYear()   * 10000 + end.getUTCMonth()   * 100 + end.getUTCDate();
         return dDay >= startDay && dDay <= endDay;
     });
@@ -691,8 +698,15 @@ window.openDayModal = function(date, rooms, bookings) {
             if (b.roomId != room.id) return false;
             if (b.status === 'cancelled') return false;
             const start = new Date(b.startDate);
-            const end   = new Date(b.endDate);
             const startDay = start.getUTCFullYear() * 10000 + start.getUTCMonth() * 100 + start.getUTCDate();
+
+            if (b.status === 'checked-out') {
+                const checkoutDate = b.actualCheckOutTime ? new Date(b.actualCheckOutTime) : new Date(b.endDate);
+                const checkoutDay = checkoutDate.getUTCFullYear() * 10000 + checkoutDate.getUTCMonth() * 100 + checkoutDate.getUTCDate();
+                return dDay >= startDay && dDay < checkoutDay;
+            }
+
+            const end   = new Date(b.endDate);
             const endDay   = end.getUTCFullYear()   * 10000 + end.getUTCMonth()   * 100 + end.getUTCDate();
             return dDay >= startDay && dDay <= endDay;
         });
