@@ -3492,6 +3492,7 @@ window.changeFinancePin = async function() {
 
 window.loadFinancePage = async function() {
     if (!_financeUnlocked) return;
+    populateCategoryDropdowns(_financeCurrentExpenses || []);
     const from = document.getElementById('finFromDate').value;
     const to   = document.getElementById('finToDate').value;
     const params = new URLSearchParams();
@@ -3581,6 +3582,112 @@ function renderBarChart(months) {
 
 // ---- EXPENSES ----
 
+const PREDEFINED_CATEGORIES = [
+    'Requisition/Acquisition',
+    'Taxes/Levies/Statutory',
+    'Internet/Subscriptions',
+    'Website',
+    'Airtime/Data',
+    'DStv/Gotv/Free TV',
+    'Loan Repayment',
+    'Honorarium/Charity, etc',
+    'Maintenance Auto',
+    'Fuelling',
+    'Salaries',
+    'Generator',
+    'Utilities',
+    'Renovations',
+    'Repairs & Maintenance',
+    'Cleaning Supplies',
+    'Kitchen/Bar Stock',
+    'Staff Incentives',
+    'Marketing',
+    'Transportation',
+    'Laundry',
+    'Others'
+];
+
+function getCustomCategories() {
+    try {
+        const stored = localStorage.getItem('custom_expense_categories');
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveCustomCategory(category) {
+    if (!category) return;
+    const custom = getCustomCategories();
+    if (!custom.includes(category) && !PREDEFINED_CATEGORIES.includes(category)) {
+        custom.push(category);
+        localStorage.setItem('custom_expense_categories', JSON.stringify(custom));
+    }
+}
+
+function populateCategoryDropdowns(expenses = []) {
+    const filterSelect = document.getElementById('expenseCategoryFilter');
+    const formSelect = document.getElementById('expCategory');
+    if (!filterSelect || !formSelect) return;
+
+    const selectedFilter = filterSelect.value;
+    const selectedForm = formSelect.value;
+
+    const custom = getCustomCategories();
+    const categoriesSet = new Set([...PREDEFINED_CATEGORIES, ...custom]);
+
+    expenses.forEach(e => {
+        if (e.category) {
+            categoriesSet.add(e.category);
+        }
+    });
+
+    const uniqueCategories = Array.from(categoriesSet);
+
+    // Populate filter dropdown
+    filterSelect.innerHTML = '<option value="">All Categories</option>';
+    uniqueCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.textContent = cat;
+        opt.value = cat;
+        filterSelect.appendChild(opt);
+    });
+
+    // Populate form dropdown
+    formSelect.innerHTML = '<option value="">-- Select Category --</option>';
+    uniqueCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.textContent = cat;
+        opt.value = cat;
+        formSelect.appendChild(opt);
+    });
+
+    // Add "+ Add New Category..."
+    const addOpt = document.createElement('option');
+    addOpt.textContent = '➕ Add New Category...';
+    addOpt.value = '__ADD_NEW__';
+    formSelect.appendChild(addOpt);
+
+    filterSelect.value = selectedFilter;
+    if (formSelect.querySelector(`option[value="${selectedForm}"]`)) {
+        formSelect.value = selectedForm;
+    }
+}
+
+window.handleCategorySelectChange = function(selectEl) {
+    if (selectEl.value === '__ADD_NEW__') {
+        const newCat = prompt('Enter the name of the new category:');
+        if (newCat && newCat.trim()) {
+            const trimmed = newCat.trim();
+            saveCustomCategory(trimmed);
+            populateCategoryDropdowns(_financeCurrentExpenses || []);
+            selectEl.value = trimmed;
+        } else {
+            selectEl.value = '';
+        }
+    }
+};
+
 window.loadExpenses = async function() {
     const from = document.getElementById('finFromDate').value;
     const to   = document.getElementById('finToDate').value;
@@ -3590,6 +3697,7 @@ window.loadExpenses = async function() {
     const res = await authFetch('/finance/expenses' + (params.toString() ? '?' + params.toString() : ''));
     if (!res || !res.ok) return;
     _financeCurrentExpenses = await res.json();
+    populateCategoryDropdowns(_financeCurrentExpenses);
     renderExpenses(_financeCurrentExpenses);
 };
 

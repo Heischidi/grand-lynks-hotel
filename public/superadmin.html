@@ -1533,7 +1533,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div class="col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-                            <select id="expCategory" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white">
+                            <select id="expCategory" required onchange="handleCategorySelectChange(this)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white">
                                 <option value="">-- Select Category --</option>
                                 <option>Requisition/Acquisition</option>
                                 <option>Taxes/Levies/Statutory</option>
