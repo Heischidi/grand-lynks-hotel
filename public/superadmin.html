@@ -1532,7 +1532,10 @@
                     <input type="hidden" id="editExpenseId">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Category *</label>
+                                <button type="button" onclick="promptAddNewCategory()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold">+ Add New Category</button>
+                            </div>
                             <select id="expCategory" required onchange="handleCategorySelectChange(this)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white">
                                 <option value="">-- Select Category --</option>
                                 <option>Requisition/Acquisition</option>

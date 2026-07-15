@@ -3688,6 +3688,16 @@ window.handleCategorySelectChange = function(selectEl) {
     }
 };
 
+window.promptAddNewCategory = function() {
+    const newCat = prompt('Enter the name of the new category:');
+    if (newCat && newCat.trim()) {
+        const trimmed = newCat.trim();
+        saveCustomCategory(trimmed);
+        populateCategoryDropdowns(_financeCurrentExpenses || []);
+        document.getElementById('expCategory').value = trimmed;
+    }
+};
+
 window.loadExpenses = async function() {
     const from = document.getElementById('finFromDate').value;
     const to   = document.getElementById('finToDate').value;
