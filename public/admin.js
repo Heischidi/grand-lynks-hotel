@@ -572,7 +572,18 @@ function roomStatusOnDate(room, date, bookings) {
     const d = new Date(date);
     const dDay = d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate(); // YYYYMMDD local
 
-    // Maintenance overrides everything
+    // Check if date is today to prioritize manual/live status updates from the tracker
+    const today = new Date();
+    const todayDay = today.getFullYear() * 10000 + today.getMonth() * 100 + today.getDate();
+
+    if (dDay === todayDay) {
+        if (room.status === 'maintenance') return 'maintenance';
+        if (room.status === 'occupied' || room.status === 'booked' || room.status === 'checked-in' || room.status === 'reserved') {
+            return 'occupied';
+        }
+    }
+
+    // Maintenance overrides everything for general calendar history
     if (room.status === 'maintenance') return 'maintenance';
 
     // Calendar shows occupancy history — exclude ONLY cancelled bookings.

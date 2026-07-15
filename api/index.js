@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const helmet = require("helmet");
@@ -95,7 +95,10 @@ async function autoCheckOutExpiredBookings() {
         // Automatically transition status to checked-out
         await prisma.booking.update({
           where: { id: booking.id },
-          data: { status: "checked-out" }
+          data: { 
+            status: "checked-out",
+            actualCheckOutTime: new Date()
+          }
         });
 
         // Revert room status to available
@@ -834,7 +837,24 @@ app.put("/rooms/:id", authenticateToken, upload.single('image'), async (req, res
     }
 
     if (description !== undefined) updateData.description = description;
-    if (status) updateData.status = status;
+    if (status) {
+      updateData.status = status;
+      // If manually marking as available (Free), check out any active checked-in bookings for this room
+      if (status === 'available') {
+        const roomId = parseInt(req.params.id);
+        await prisma.booking.updateMany({
+          where: {
+            roomId: roomId,
+            status: 'checked-in',
+            deletedAt: null
+          },
+          data: {
+            status: 'checked-out',
+            actualCheckOutTime: new Date()
+          }
+        });
+      }
+    }
 
     if (imagePath) {
       updateData.images = JSON.stringify([imagePath]);
