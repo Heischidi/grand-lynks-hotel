@@ -3596,7 +3596,25 @@ window.loadExpenses = async function() {
 function renderExpenses(expenses) {
     const tbody = document.getElementById('expensesTableBody');
     if (!expenses.length) { tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-gray-400 text-xs">No expenses in this period.</td></tr>'; return; }
-    const catColors = { Salaries:'bg-blue-100 text-blue-700', Fuel:'bg-orange-100 text-orange-700', Generator:'bg-yellow-100 text-yellow-700', Utilities:'bg-cyan-100 text-cyan-700', Internet:'bg-indigo-100 text-indigo-700', Renovations:'bg-purple-100 text-purple-700', Others:'bg-gray-100 text-gray-700' };
+    const catColors = { 
+        Salaries:'bg-blue-100 text-blue-700', 
+        Fuel:'bg-orange-100 text-orange-700', 
+        Generator:'bg-yellow-100 text-yellow-700', 
+        Utilities:'bg-cyan-100 text-cyan-700', 
+        Internet:'bg-indigo-100 text-indigo-700', 
+        Renovations:'bg-purple-100 text-purple-700', 
+        'Requisition/Acquisition':'bg-emerald-100 text-emerald-700',
+        'Taxes/Levies/Statutory':'bg-red-100 text-red-700',
+        'Internet/Subscriptions':'bg-indigo-100 text-indigo-700',
+        Website:'bg-teal-100 text-teal-700',
+        'Airtime/Data':'bg-pink-100 text-pink-700',
+        'DStv/Gotv/Free TV':'bg-violet-100 text-violet-700',
+        'Loan Repayment':'bg-amber-100 text-amber-700',
+        'Honorarium/Charity, etc':'bg-fuchsia-100 text-fuchsia-700',
+        'Maintenance Auto':'bg-rose-100 text-rose-700',
+        Fuelling:'bg-orange-100 text-orange-700',
+        Others:'bg-gray-100 text-gray-700' 
+    };
     tbody.innerHTML = expenses.map(e => {
         const catClass = catColors[e.category] || 'bg-gray-100 text-gray-700';
         const receiptBtn = e.receiptUrl ? `<a href="${e.receiptUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-xs underline mr-1">📎</a>` : '';
