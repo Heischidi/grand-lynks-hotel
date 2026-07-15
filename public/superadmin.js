@@ -3695,6 +3695,8 @@ window.promptAddNewCategory = function() {
         saveCustomCategory(trimmed);
         populateCategoryDropdowns(_financeCurrentExpenses || []);
         document.getElementById('expCategory').value = trimmed;
+        document.getElementById('expenseCategoryFilter').value = trimmed;
+        loadExpenses();
     }
 };
 
