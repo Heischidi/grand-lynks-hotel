@@ -3488,6 +3488,16 @@ window.changeFinancePin = async function() {
     } catch(e) { alert('Connection error.'); }
 };
 
+function formatUTCDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '—';
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year = d.getUTCFullYear();
+    return `${day}/${month}/${year}`;
+}
+
 // ---- LOAD PAGE ----
 
 window.loadFinancePage = async function() {
@@ -3739,7 +3749,7 @@ function renderExpenses(expenses) {
         const catClass = catColors[e.category] || 'bg-gray-100 text-gray-700';
         const receiptBtn = e.receiptUrl ? `<a href="${e.receiptUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-xs underline mr-1">📎</a>` : '';
         return `<tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-            <td class="py-2.5 pr-3 text-xs text-gray-500">${new Date(e.date).toLocaleDateString('en-GB')}</td>
+            <td class="py-2.5 pr-3 text-xs text-gray-500">${formatUTCDate(e.date)}</td>
             <td class="py-2.5 pr-3"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${catClass}">${e.category}</span></td>
             <td class="py-2.5 pr-3 text-xs text-gray-700 max-w-[180px] truncate" title="${e.description}">${e.description}</td>
             <td class="py-2.5 pr-3 text-xs text-gray-500">${e.paymentMethod}</td>
@@ -3821,7 +3831,7 @@ function renderOtherIncome(items) {
     const tbody = document.getElementById('otherIncomeTableBody');
     if (!items.length) { tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-400 text-xs">No other income recorded yet.</td></tr>'; return; }
     tbody.innerHTML = items.map(i => `<tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-        <td class="py-2.5 pr-3 text-xs text-gray-500">${new Date(i.date).toLocaleDateString('en-GB')}</td>
+        <td class="py-2.5 pr-3 text-xs text-gray-500">${formatUTCDate(i.date)}</td>
         <td class="py-2.5 pr-3"><span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">${i.source}</span></td>
         <td class="py-2.5 pr-3 text-xs text-gray-500">${i.guestRef || '—'}</td>
         <td class="py-2.5 text-right font-semibold text-emerald-600 text-sm">₦${(i.amount||0).toLocaleString()}</td>

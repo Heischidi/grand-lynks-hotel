@@ -62,21 +62,21 @@ module.exports = function registerFinanceRoutes(app, prisma, authenticateSuperAd
       let dateFilter = {};
       if (from || to) {
         if (from) dateFilter.gte = new Date(from);
-        if (to) { const t = new Date(to); t.setHours(23, 59, 59, 999); dateFilter.lte = t; }
+        if (to) { const t = new Date(to); t.setUTCHours(23, 59, 59, 999); dateFilter.lte = t; }
       } else if (month && year) {
         const m = parseInt(month) - 1; const y = parseInt(year);
-        dateFilter = { gte: new Date(y, m, 1), lt: new Date(y, m + 1, 1) };
+        dateFilter = { gte: new Date(Date.UTC(y, m, 1)), lt: new Date(Date.UTC(y, m + 1, 1)) };
       } else if (year) {
         const y = parseInt(year);
-        dateFilter = { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) };
+        dateFilter = { gte: new Date(Date.UTC(y, 0, 1)), lt: new Date(Date.UTC(y + 1, 0, 1)) };
       }
       const hasDF = Object.keys(dateFilter).length > 0;
-      const bookingWhere = { deletedAt: null, status: { in: ['confirmed', 'checked-in', 'checked-out', 'completed'] }, ...(hasDF ? { createdAt: dateFilter } : {}) };
+      const bookingWhere = { deletedAt: null, status: { in: ['confirmed', 'checked-in', 'checked-out', 'completed'] }, ...(hasDF ? { startDate: dateFilter } : {}) };
       const orderWhere   = { deletedAt: null, status: { in: ['delivered', 'completed', 'ready'] },                  ...(hasDF ? { createdAt: dateFilter } : {}) };
       const finWhere     = hasDF ? { date: dateFilter } : {};
 
       const [bookings, orders, expenses, otherIncome] = await Promise.all([
-        prisma.booking.findMany({ where: bookingWhere, select: { totalAmount: true, createdAt: true } }),
+        prisma.booking.findMany({ where: bookingWhere, select: { totalAmount: true, startDate: true } }),
         prisma.order.findMany({ where: orderWhere, select: { totalAmount: true, createdAt: true } }),
         prisma.expense.findMany({ where: finWhere, orderBy: { date: 'desc' } }),
         prisma.otherIncome.findMany({ where: finWhere, orderBy: { date: 'desc' } })
@@ -101,22 +101,22 @@ module.exports = function registerFinanceRoutes(app, prisma, authenticateSuperAd
   // GET /finance/monthly-summary
   app.get('/finance/monthly-summary', authenticateSuperAdmin, async (req, res) => {
     try {
-      const year = parseInt(req.query.year) || new Date().getFullYear();
-      const gte = new Date(year, 0, 1); const lt = new Date(year + 1, 0, 1);
+      const year = parseInt(req.query.year) || new Date().getUTCFullYear();
+      const gte = new Date(Date.UTC(year, 0, 1)); const lt = new Date(Date.UTC(year + 1, 0, 1));
       const [bookings, orders, expenses, otherIncome] = await Promise.all([
-        prisma.booking.findMany({ where: { deletedAt: null, status: { in: ['confirmed','checked-in','checked-out','completed'] }, createdAt: { gte, lt } }, select: { totalAmount: true, createdAt: true } }),
+        prisma.booking.findMany({ where: { deletedAt: null, status: { in: ['confirmed','checked-in','checked-out','completed'] }, startDate: { gte, lt } }, select: { totalAmount: true, startDate: true } }),
         prisma.order.findMany({ where: { deletedAt: null, status: { in: ['delivered','completed','ready'] }, createdAt: { gte, lt } }, select: { totalAmount: true, createdAt: true } }),
         prisma.expense.findMany({ where: { date: { gte, lt } }, select: { amount: true, date: true } }),
         prisma.otherIncome.findMany({ where: { date: { gte, lt } }, select: { amount: true, date: true } })
       ]);
       const months = Array.from({ length: 12 }, (_, i) => ({
-        month: i + 1, label: new Date(year, i, 1).toLocaleString('default', { month: 'long' }),
+        month: i + 1, label: new Date(Date.UTC(year, i, 1)).toLocaleString('default', { month: 'long', timeZone: 'UTC' }),
         bookingIncome: 0, orderIncome: 0, otherIncome: 0, expenses: 0
       }));
-      bookings.forEach(b   => { months[new Date(b.createdAt).getMonth()].bookingIncome += b.totalAmount || 0; });
-      orders.forEach(o     => { months[new Date(o.createdAt).getMonth()].orderIncome   += o.totalAmount || 0; });
-      expenses.forEach(e   => { months[new Date(e.date).getMonth()].expenses           += e.amount || 0; });
-      otherIncome.forEach(i=> { months[new Date(i.date).getMonth()].otherIncome        += i.amount || 0; });
+      bookings.forEach(b   => { months[new Date(b.startDate).getUTCMonth()].bookingIncome += b.totalAmount || 0; });
+      orders.forEach(o     => { months[new Date(o.createdAt).getUTCMonth()].orderIncome   += o.totalAmount || 0; });
+      expenses.forEach(e   => { months[new Date(e.date).getUTCMonth()].expenses           += e.amount || 0; });
+      otherIncome.forEach(i=> { months[new Date(i.date).getUTCMonth()].otherIncome        += i.amount || 0; });
       months.forEach(m => { m.totalIncome = m.bookingIncome + m.orderIncome + m.otherIncome; m.netProfitLoss = m.totalIncome - m.expenses; });
       res.json({ year, months });
     } catch (err) {
@@ -129,19 +129,19 @@ module.exports = function registerFinanceRoutes(app, prisma, authenticateSuperAd
   app.get('/finance/yearly-summary', authenticateSuperAdmin, async (req, res) => {
     try {
       const [fb, fe, fi] = await Promise.all([
-        prisma.booking.findFirst({ orderBy: { createdAt: 'asc' }, select: { createdAt: true } }),
+        prisma.booking.findFirst({ orderBy: { startDate: 'asc' }, select: { startDate: true } }),
         prisma.expense.findFirst({ orderBy: { date: 'asc' }, select: { date: true } }),
         prisma.otherIncome.findFirst({ orderBy: { date: 'asc' }, select: { date: true } })
       ]);
-      const dates = [fb?.createdAt, fe?.date, fi?.date].filter(Boolean);
+      const dates = [fb?.startDate, fe?.date, fi?.date].filter(Boolean);
       if (dates.length === 0) return res.json({ years: [] });
-      const startYear = Math.min(...dates.map(d => new Date(d).getFullYear()));
-      const currentYear = new Date().getFullYear();
+      const startYear = Math.min(...dates.map(d => new Date(d).getUTCFullYear()));
+      const currentYear = new Date().getUTCFullYear();
       const years = [];
       for (let y = startYear; y <= currentYear; y++) {
-        const gte = new Date(y, 0, 1); const lt = new Date(y + 1, 0, 1);
+        const gte = new Date(Date.UTC(y, 0, 1)); const lt = new Date(Date.UTC(y + 1, 0, 1));
         const [b, o, e, oi] = await Promise.all([
-          prisma.booking.aggregate({ where: { deletedAt: null, status: { in: ['confirmed','checked-in','checked-out','completed'] }, createdAt: { gte, lt } }, _sum: { totalAmount: true } }),
+          prisma.booking.aggregate({ where: { deletedAt: null, status: { in: ['confirmed','checked-in','checked-out','completed'] }, startDate: { gte, lt } }, _sum: { totalAmount: true } }),
           prisma.order.aggregate({ where: { deletedAt: null, status: { in: ['delivered','completed','ready'] }, createdAt: { gte, lt } }, _sum: { totalAmount: true } }),
           prisma.expense.aggregate({ where: { date: { gte, lt } }, _sum: { amount: true } }),
           prisma.otherIncome.aggregate({ where: { date: { gte, lt } }, _sum: { amount: true } })
@@ -172,7 +172,7 @@ module.exports = function registerFinanceRoutes(app, prisma, authenticateSuperAd
       const categoryAverages = {};
       Object.entries(catTotals).forEach(([cat, total]) => { categoryAverages[cat] = Math.round(total / monthsOfData); });
       const estimatedMonthlyCost = Object.values(categoryAverages).reduce((s, v) => s + v, 0);
-      const bookings = await prisma.booking.findMany({ where: { deletedAt: null, status: { in: ['confirmed','checked-in','checked-out','completed'] }, createdAt: { gte: new Date(firstExpense.date) } }, select: { createdAt: true } });
+      const bookings = await prisma.booking.findMany({ where: { deletedAt: null, status: { in: ['confirmed','checked-in','checked-out','completed'] }, startDate: { gte: new Date(firstExpense.date) } }, select: { startDate: true } });
       const avgGuestsPerMonth = Math.round(bookings.length / monthsOfData);
       res.json({ ready: true, weeksOfData: Math.round(weeksOfData), monthsOfData: Math.round(monthsOfData), categoryAverages, estimatedMonthlyCost, avgGuestsPerMonth });
     } catch (err) {
@@ -190,7 +190,7 @@ module.exports = function registerFinanceRoutes(app, prisma, authenticateSuperAd
     try {
       const { from, to, category } = req.query;
       const where = {};
-      if (from || to) { where.date = {}; if (from) where.date.gte = new Date(from); if (to) { const t = new Date(to); t.setHours(23,59,59,999); where.date.lte = t; } }
+      if (from || to) { where.date = {}; if (from) where.date.gte = new Date(from); if (to) { const t = new Date(to); t.setUTCHours(23,59,59,999); where.date.lte = t; } }
       if (category) where.category = category;
       res.json(await prisma.expense.findMany({ where, orderBy: { date: 'desc' } }));
     } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
@@ -230,7 +230,7 @@ module.exports = function registerFinanceRoutes(app, prisma, authenticateSuperAd
     try {
       const { from, to } = req.query;
       const where = {};
-      if (from || to) { where.date = {}; if (from) where.date.gte = new Date(from); if (to) { const t = new Date(to); t.setHours(23,59,59,999); where.date.lte = t; } }
+      if (from || to) { where.date = {}; if (from) where.date.gte = new Date(from); if (to) { const t = new Date(to); t.setUTCHours(23,59,59,999); where.date.lte = t; } }
       res.json(await prisma.otherIncome.findMany({ where, orderBy: { date: 'desc' } }));
     } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
   });

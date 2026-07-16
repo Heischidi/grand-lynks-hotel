@@ -2454,8 +2454,8 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
     // Helper: is a date in target year?
-    const inYear = (d, y) => new Date(d).getFullYear() === y;
-    const getMonth = (d) => new Date(d).getMonth(); // 0-indexed
+    const inYear = (d, y) => new Date(d).getUTCFullYear() === y;
+    const getMonth = (d) => new Date(d).getUTCMonth(); // 0-indexed
 
     // --- Monthly aggregates for selected year ---
     const monthlyBookingRevenue = Array(12).fill(0);
@@ -2535,8 +2535,8 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
 
     // --- KPI Summaries ---
     const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
+    const thisMonth = now.getUTCMonth();
+    const thisYear = now.getUTCFullYear();
 
     const revenueThisMonth =
       (inYear(now, year) ? monthlyBookingRevenue[thisMonth] + monthlyOrderRevenue[thisMonth] : 0);
