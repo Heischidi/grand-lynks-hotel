@@ -306,7 +306,7 @@ function renderRooms(rooms) {
     tbody.innerHTML = '';
 
     if (rooms.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center">No rooms found. Add one!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">No rooms found.</td></tr>';
         return;
     }
 
@@ -344,10 +344,6 @@ function renderRooms(rooms) {
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${room.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                     ${room.available ? 'Available' : 'Booked'}
                 </span>
-            </td>
-            <td data-label="Actions" class="px-3 py-2 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium block md:table-cell">
-                <button onclick="openEditRoomModal(${room.id})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
-                <button onclick="deleteRoom(${room.id})" class="text-red-600 hover:text-red-900">Delete</button>
             </td>
         `;
         tbody.appendChild(tr);
