@@ -1180,8 +1180,28 @@
 
                     <!-- Room Performance Table -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mt-4">
-                        <h3 class="text-sm font-semibold text-gray-700 mb-4">Room Performance — <span id="roomPerformanceYearLabel" class="text-indigo-600"></span></h3>
-                        <p class="text-xs text-gray-400 mb-4">Total bookings and revenue generated per room in the selected year.</p>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-semibold text-gray-700">Room Performance — <span id="roomPerformanceYearLabel" class="text-indigo-600"></span></h3>
+                            <div class="flex items-center gap-2">
+                                <label for="roomPerformanceMonthSelect" class="text-xs text-gray-400">Month:</label>
+                                <select id="roomPerformanceMonthSelect" onchange="renderRoomPerformanceTable()" class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none bg-white">
+                                    <option value="all">All Months</option>
+                                    <option value="0">January</option>
+                                    <option value="1">February</option>
+                                    <option value="2">March</option>
+                                    <option value="3">April</option>
+                                    <option value="4">May</option>
+                                    <option value="5">June</option>
+                                    <option value="6">July</option>
+                                    <option value="7">August</option>
+                                    <option value="8">September</option>
+                                    <option value="9">October</option>
+                                    <option value="10">November</option>
+                                    <option value="11">December</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-4">Bookings and revenue generated per room in the selected period.</p>
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs md:min-w-[600px]">
                                 <thead>
@@ -1385,6 +1405,43 @@
                     </div>
                 </div>
 
+                <!-- SUMMARIES -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                    <!-- Monthly Summary -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-gray-700 text-sm">Monthly Summary</h3>
+                            <select id="monthlySummaryYear" onchange="loadMonthlySummary()" class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none"></select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-xs">
+                                <thead><tr class="border-b border-gray-100 text-gray-500 uppercase">
+                                    <th class="pb-1.5 text-left">Month</th>
+                                    <th class="pb-1.5 text-right">Income</th>
+                                    <th class="pb-1.5 text-right">Expenses</th>
+                                    <th class="pb-1.5 text-right">Net P/L</th>
+                                </tr></thead>
+                                <tbody id="monthlySummaryBody"><tr><td colspan="4" class="py-3 text-center text-gray-400">Loading…</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Yearly Summary -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <h3 class="font-semibold text-gray-700 text-sm mb-3">Yearly Summary</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-xs">
+                                <thead><tr class="border-b border-gray-100 text-gray-500 uppercase">
+                                    <th class="pb-1.5 text-left">Year</th>
+                                    <th class="pb-1.5 text-right">Income</th>
+                                    <th class="pb-1.5 text-right">Expenses</th>
+                                    <th class="pb-1.5 text-right">Net P/L</th>
+                                </tr></thead>
+                                <tbody id="yearlySummaryBody"><tr><td colspan="4" class="py-3 text-center text-gray-400">Loading…</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- EXPENSES -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
@@ -1434,43 +1491,6 @@
                                 <tr><td colspan="6" class="py-4 text-center text-gray-400 text-xs">No expenses recorded yet.</td></tr>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                <!-- SUMMARIES -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                    <!-- Monthly Summary -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="font-semibold text-gray-700 text-sm">Monthly Summary</h3>
-                            <select id="monthlySummaryYear" onchange="loadMonthlySummary()" class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none"></select>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full text-xs">
-                                <thead><tr class="border-b border-gray-100 text-gray-500 uppercase">
-                                    <th class="pb-1.5 text-left">Month</th>
-                                    <th class="pb-1.5 text-right">Income</th>
-                                    <th class="pb-1.5 text-right">Expenses</th>
-                                    <th class="pb-1.5 text-right">Net P/L</th>
-                                </tr></thead>
-                                <tbody id="monthlySummaryBody"><tr><td colspan="4" class="py-3 text-center text-gray-400">Loading…</td></tr></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <!-- Yearly Summary -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                        <h3 class="font-semibold text-gray-700 text-sm mb-3">Yearly Summary</h3>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full text-xs">
-                                <thead><tr class="border-b border-gray-100 text-gray-500 uppercase">
-                                    <th class="pb-1.5 text-left">Year</th>
-                                    <th class="pb-1.5 text-right">Income</th>
-                                    <th class="pb-1.5 text-right">Expenses</th>
-                                    <th class="pb-1.5 text-right">Net P/L</th>
-                                </tr></thead>
-                                <tbody id="yearlySummaryBody"><tr><td colspan="4" class="py-3 text-center text-gray-400">Loading…</td></tr></tbody>
-                            </table>
-                        </div>
                     </div>
                 </div>
 

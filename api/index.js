@@ -2447,6 +2447,15 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
       roomPerformanceMap[r.id] = { id: r.id, number: r.number, type: r.type, bookings: 0, revenue: 0 };
     });
 
+    // Build room monthly performance maps (array of 12 maps, one for each month)
+    const roomMonthlyPerformance = Array.from({ length: 12 }, () => {
+      const monthMap = {};
+      rooms.forEach(r => {
+        monthMap[r.id] = { id: r.id, number: r.number, type: r.type, bookings: 0, revenue: 0 };
+      });
+      return monthMap;
+    });
+
     // Track today's actively occupied rooms (checked-in bookings spanning today)
     const todayStr = new Date().toISOString().split('T')[0];
     const activeRoomIds = new Set();
@@ -2489,6 +2498,15 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
         roomPerformanceMap[b.roomId].bookings++;
         if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
           roomPerformanceMap[b.roomId].revenue += b.totalAmount || 0;
+        }
+      }
+      // Room monthly performance for selected year
+      if (b.roomId && inYear(b.startDate, year)) {
+        if (roomMonthlyPerformance[m] && roomMonthlyPerformance[m][b.roomId]) {
+          roomMonthlyPerformance[m][b.roomId].bookings++;
+          if (['confirmed', 'checked-in', 'checked-out', 'completed'].includes(b.status)) {
+            roomMonthlyPerformance[m][b.roomId].revenue += b.totalAmount || 0;
+          }
         }
       }
       // Active occupancy: checked-in bookings where today falls between startDate and endDate
@@ -2566,6 +2584,10 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
     const roomPerformance = Object.values(roomPerformanceMap)
       .sort((a, b) => b.revenue - a.revenue);
 
+    const formattedRoomMonthlyPerformance = roomMonthlyPerformance.map(monthMap =>
+      Object.values(monthMap).sort((a, b) => b.revenue - a.revenue)
+    );
+
     res.json({
       year,
       months,
@@ -2592,7 +2614,8 @@ app.get("/statistics", authenticateSuperAdmin, async (req, res) => {
         occupiedRooms,
         occupancyRate
       },
-      roomPerformance
+      roomPerformance,
+      roomMonthlyPerformance: formattedRoomMonthlyPerformance
     });
   } catch (error) {
     console.error("Error fetching statistics:", error);

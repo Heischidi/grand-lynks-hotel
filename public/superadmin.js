@@ -2819,6 +2819,7 @@ window.handlePinSubmit = async function(e) {
 
 // Cache for Chart.js instances so we can destroy & recreate on refresh
 const _charts = {};
+let _statisticsData = null;
 
 function destroyChart(key) {
     if (_charts[key]) {
@@ -2867,10 +2868,11 @@ async function fetchStatistics() {
 }
 
 function renderStatistics(data) {
+    _statisticsData = data;
     const { kpi, months, monthlyBookingRevenue, monthlyOrderRevenue,
             monthlyBookingCount, monthlyOrderCount, monthlyGuestCount,
             monthlyTotals, topMonths, bookingStatusCount,
-            revenueBySource, yearlyRevenue, year, roomPerformance } = data;
+            revenueBySource, yearlyRevenue, year } = data;
 
     // ---- KPI Cards ----
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -3113,20 +3115,39 @@ function renderStatistics(data) {
     }
 
     // ---- Room Performance Table ----
-    const rpBody = document.getElementById('roomPerformanceTableBody');
-    if (rpBody && roomPerformance) {
-        rpBody.innerHTML = roomPerformance.map((r, i) => {
-            return `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="py-2 pr-4 font-medium text-gray-700">Room ${r.number}</td>
-                    <td class="py-2 px-2 text-gray-600">${r.type || 'Standard'}</td>
-                    <td class="py-2 px-2 text-right text-gray-600">${r.bookings || '<span class="text-gray-300">0</span>'}</td>
-                    <td class="py-2 pl-2 text-right font-semibold ${r.revenue > 0 ? 'text-indigo-600' : 'text-gray-300'}">${r.revenue > 0 ? fmtCurrencyFull(r.revenue) : '—'}</td>
-                </tr>
-            `;
-        }).join('') || '<tr><td colspan="4" class="py-4 text-center text-gray-400">No room performance data</td></tr>';
-    }
+    const select = document.getElementById('roomPerformanceMonthSelect');
+    if (select) select.value = 'all';
+    renderRoomPerformanceTable();
 }
+
+window.renderRoomPerformanceTable = function() {
+    const rpBody = document.getElementById('roomPerformanceTableBody');
+    if (!rpBody || !_statisticsData) return;
+
+    const select = document.getElementById('roomPerformanceMonthSelect');
+    const selectedVal = select ? select.value : 'all';
+
+    let roomsData = [];
+    if (selectedVal === 'all') {
+        roomsData = _statisticsData.roomPerformance || [];
+    } else {
+        const mIdx = parseInt(selectedVal);
+        if (_statisticsData.roomMonthlyPerformance && _statisticsData.roomMonthlyPerformance[mIdx]) {
+            roomsData = _statisticsData.roomMonthlyPerformance[mIdx];
+        }
+    }
+
+    rpBody.innerHTML = roomsData.map((r, i) => {
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="py-2 pr-4 font-medium text-gray-700">Room ${r.number}</td>
+                <td class="py-2 px-2 text-gray-600">${r.type || 'Standard'}</td>
+                <td class="py-2 px-2 text-right text-gray-600">${r.bookings || '<span class="text-gray-300">0</span>'}</td>
+                <td class="py-2 pl-2 text-right font-semibold ${r.revenue > 0 ? 'text-indigo-600' : 'text-gray-300'}">${r.revenue > 0 ? fmtCurrencyFull(r.revenue) : '—'}</td>
+            </tr>
+        `;
+    }).join('') || '<tr><td colspan="4" class="py-4 text-center text-gray-400">No room performance data for this period</td></tr>';
+};
 
 // Initialize year input when Statistics section first loads
 document.addEventListener('DOMContentLoaded', () => {
