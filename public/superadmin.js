@@ -3994,3 +3994,436 @@ window.initFinanceTab = function() {
 };
 
 
+
+
+// ===== PRINT / REPORT MODULE =====
+
+let currentPrintPeriod = 'monthly';
+
+window.openPrintModal = function(sectionId) {
+    document.getElementById('printSectionId').value = sectionId;
+    
+    // Setup title
+    const nameMap = {
+        'section-rooms': 'Rooms',
+        'section-tracker': 'Live Tracker',
+        'section-menu': 'Food Menu',
+        'section-orders': 'Orders',
+        'section-guests': 'Guest Directory',
+        'section-reviews': 'Reviews',
+        'section-settings': 'Settings',
+        'section-statistics': 'Statistics',
+        'section-vault': 'Vault',
+        'section-finance': 'Finance'
+    };
+    document.getElementById('printModalSectionName').textContent = nameMap[sectionId] || 'Report';
+
+    // Set defaults (current month/year)
+    const now = new Date();
+    document.getElementById('printMonthSelect').value = now.getMonth();
+    document.getElementById('printYearForMonth').value = now.getFullYear();
+    document.getElementById('printYearOnly').value = now.getFullYear();
+    document.getElementById('printCustomFrom').value = '';
+    document.getElementById('printCustomTo').value = '';
+
+    // Show/hide period group based on section
+    const periodSections = ['section-orders', 'section-reviews', 'section-statistics', 'section-finance', 'section-vault'];
+    if (periodSections.includes(sectionId)) {
+        document.getElementById('printPeriodGroup').classList.remove('hidden');
+        document.getElementById('printSnapshotGroup').classList.add('hidden');
+        setPrintPeriod('monthly');
+    } else {
+        document.getElementById('printPeriodGroup').classList.add('hidden');
+        document.getElementById('printSnapshotGroup').classList.remove('hidden');
+    }
+
+    window.openModal('printOptionsModal');
+};
+
+window.closePrintModal = function() {
+    window.closeModal('printOptionsModal');
+};
+
+window.setPrintPeriod = function(period) {
+    currentPrintPeriod = period;
+    
+    // Update button styles
+    const activeClass = 'border-blue-600 bg-blue-50 text-blue-700'.split(' ');
+    const inactiveClass = 'border-gray-200 text-gray-600 hover:bg-gray-50'.split(' ');
+    
+    ['monthly', 'yearly', 'custom'].forEach(p => {
+        const btn = document.getElementById('printBtn' + p.charAt(0).toUpperCase() + p.slice(1));
+        if (p === period) {
+            btn.classList.add(...activeClass);
+            btn.classList.remove(...inactiveClass);
+        } else {
+            btn.classList.remove(...activeClass);
+            btn.classList.add(...inactiveClass);
+        }
+    });
+
+    // Show appropriate selectors
+    document.getElementById('printMonthlySelectors').classList.toggle('hidden', period !== 'monthly');
+    document.getElementById('printYearlySelectors').classList.toggle('hidden', period !== 'yearly');
+    document.getElementById('printCustomSelectors').classList.toggle('hidden', period !== 'custom');
+};
+
+window.generateAndPrint = async function() {
+    const sectionId = document.getElementById('printSectionId').value;
+    const btn = document.querySelector('#printOptionsModal button.bg-blue-600');
+    const spinner = document.getElementById('printLoadingSpinner');
+    
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+
+    try {
+        let fromDate, toDate;
+        if (!document.getElementById('printPeriodGroup').classList.contains('hidden')) {
+            if (currentPrintPeriod === 'monthly') {
+                const m = parseInt(document.getElementById('printMonthSelect').value);
+                const y = parseInt(document.getElementById('printYearForMonth').value);
+                fromDate = new Date(y, m, 1).toISOString().split('T')[0];
+                toDate = new Date(y, m + 1, 0).toISOString().split('T')[0];
+            } else if (currentPrintPeriod === 'yearly') {
+                const y = parseInt(document.getElementById('printYearOnly').value);
+                fromDate = new Date(y, 0, 1).toISOString().split('T')[0];
+                toDate = new Date(y, 11, 31).toISOString().split('T')[0];
+            } else if (currentPrintPeriod === 'custom') {
+                fromDate = document.getElementById('printCustomFrom').value;
+                toDate = document.getElementById('printCustomTo').value;
+                if (!fromDate || !toDate) {
+                    alert('Please select both from and to dates.');
+                    return;
+                }
+            }
+        }
+
+        const reportHtml = await buildReportHtml(sectionId, fromDate, toDate);
+        const printFrame = document.getElementById('printFrame');
+        printFrame.innerHTML = reportHtml;
+        
+        // Let browser render
+        setTimeout(() => {
+            window.print();
+        }, 300);
+
+    } catch (err) {
+        console.error('Print error:', err);
+        alert('Failed to generate report: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        closePrintModal();
+    }
+};
+
+async function buildReportHtml(sectionId, fromDate, toDate) {
+    const titleMap = {
+        'section-rooms': 'Room Management Snapshot',
+        'section-tracker': 'Live Tracker Snapshot',
+        'section-menu': 'Food & Beverage Menu',
+        'section-orders': 'Orders & Bookings Report',
+        'section-guests': 'Guest Directory Snapshot',
+        'section-reviews': 'Reviews Report',
+        'section-settings': 'Settings Snapshot',
+        'section-statistics': 'Statistics & Analytics Report',
+        'section-vault': 'Deleted Records Vault',
+        'section-finance': 'Financial Overview Report'
+    };
+    
+    let subtitle = '';
+    if (fromDate && toDate) {
+        subtitle = `Period: ${fromDate} to ${toDate}`;
+    } else {
+        subtitle = `Snapshot as of ${new Date().toLocaleString()}`;
+    }
+
+    const header = `
+        <div style="text-align:center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">
+            <h1 style="margin:0; font-size: 24px;">GRAND LYNKS HOMES & APARTMENTS</h1>
+            <p style="margin:5px 0 0 0; font-size: 12px; color: #666;">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja</p>
+            <h2 style="margin:15px 0 5px 0; font-size: 18px;">${titleMap[sectionId]}</h2>
+            <p style="margin:0; font-size: 12px; color: #666;">${subtitle}</p>
+        </div>
+    `;
+
+    const footer = `
+        <div style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 10px; font-size: 10px; color: #888; text-align: center;">
+            Grand Lynks Hotel — Confidential — Printed on ${new Date().toLocaleString()}
+        </div>
+    `;
+
+    let content = '';
+
+    // Route to builders based on section
+    if (sectionId === 'section-rooms') content = buildRoomsPrint();
+    else if (sectionId === 'section-menu') content = buildMenuPrint();
+    else if (sectionId === 'section-guests') content = buildGuestsPrint();
+    else if (sectionId === 'section-settings') content = buildSettingsPrint();
+    else if (sectionId === 'section-tracker') content = buildTrackerPrint();
+    else if (sectionId === 'section-orders') content = await buildOrdersPrint(fromDate, toDate);
+    else if (sectionId === 'section-reviews') content = await buildReviewsPrint(fromDate, toDate);
+    else if (sectionId === 'section-vault') content = await buildVaultPrint(fromDate, toDate);
+    else if (sectionId === 'section-finance') content = await buildFinancePrint(fromDate, toDate);
+    else if (sectionId === 'section-statistics') content = await buildStatisticsPrint(fromDate, toDate);
+    else content = '<p>Report not implemented for this section yet.</p>';
+
+    return `<div style="font-family: sans-serif; color: #000;">${header}${content}${footer}</div>`;
+}
+
+// Helper to generate simple HTML table
+function generateTableHtml(headers, rows) {
+    if (!rows || rows.length === 0) return '<p>No data available for this period.</p>';
+    const thead = headers.map(h => `<th style="padding: 8px; border-bottom: 1px solid #000; text-align: left;">${h}</th>`).join('');
+    const tbody = rows.map(r => 
+        `<tr>${r.map(cell => `<td style="padding: 8px; border-bottom: 1px solid #eee;">${cell}</td>`).join('')}</tr>`
+    ).join('');
+    return `
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+            <thead><tr>${thead}</tr></thead>
+            <tbody>${tbody}</tbody>
+        </table>
+    `;
+}
+
+function buildRoomsPrint() {
+    if (!window.currentRooms) return '<p>No data loaded.</p>';
+    const headers = ['Room #', 'Type', 'Price/Night', 'Status'];
+    const rows = window.currentRooms.map(r => [
+        r.number || 'N/A', 
+        r.type, 
+        '₦' + (r.pricePerNight||0).toLocaleString(), 
+        r.status
+    ]);
+    return generateTableHtml(headers, rows);
+}
+
+function buildMenuPrint() {
+    if (!window.currentMenuItems) return '<p>No data loaded.</p>';
+    const headers = ['Item', 'Category', 'Price', 'Available'];
+    const rows = window.currentMenuItems.map(m => [
+        m.name, 
+        m.category, 
+        '₦' + (m.price||0).toLocaleString(), 
+        m.available ? 'Yes' : 'No'
+    ]);
+    return generateTableHtml(headers, rows);
+}
+
+function buildGuestsPrint() {
+    if (!window.currentGuests) return '<p>No data loaded.</p>';
+    const headers = ['Name', 'Email', 'Phone', 'Total Stays', 'Blacklisted'];
+    const rows = window.currentGuests.map(g => [
+        g.name, 
+        g.email, 
+        g.phone, 
+        g.totalStays || 0,
+        g.blacklisted ? 'Yes' : 'No'
+    ]);
+    return generateTableHtml(headers, rows);
+}
+
+function buildSettingsPrint() {
+    // Basic dump of settings from inputs
+    return `
+        <div style="font-size:12px;">
+            <p><strong>Admin Username:</strong> ${document.getElementById('settingUsername')?.value || ''}</p>
+            <p><strong>Room Discount:</strong> ${document.getElementById('settingRoomDiscount')?.value || 0}%</p>
+            <p><strong>Food Discount:</strong> ${document.getElementById('settingFoodDiscount')?.value || 0}%</p>
+        </div>
+    `;
+}
+
+function buildTrackerPrint() {
+    const dateInput = document.getElementById('trackerDate')?.value || new Date().toISOString().split('T')[0];
+    return `<p>Snapshot of live tracker for date: ${dateInput}. To print the full visual grid, please use standard browser print (Ctrl+P) directly on the dashboard.</p>`;
+}
+
+async function buildOrdersPrint(from, to) {
+    const q = (from && to) ? `?startDate=${from}&endDate=${to}` : '';
+    const res = await authFetch('/reports/orders' + q); // Or whatever endpoints exist. If no specific endpoint, we pull /bookings and /orders and filter manually if API doesn't support.
+    // Let's use the actual endpoints.
+    // We know /orders?startDate=... exists, /bookings?startDate=... exists? Actually, the client might not have date filters for these endpoints. 
+    // Let's just fetch all and filter in JS to be safe, or just pull the tables from the DOM if we don't want to re-invent.
+    // Actually, pulling from the DOM is the safest and easiest for a "Snapshot" but client requested monthly/yearly.
+    // Let's use authFetch directly.
+    
+    // Bookings
+    let bookingsHtml = '<h3>Bookings</h3>';
+    try {
+        const bRes = await authFetch(`/bookings`);
+        const bData = await bRes.json();
+        const filteredB = bData.filter(b => {
+            if(!from || !to) return true;
+            const bd = new Date(b.createdAt).toISOString().split('T')[0];
+            return bd >= from && bd <= to;
+        });
+        const bHeaders = ['Guest', 'Room', 'Check-in', 'Check-out', 'Total (₦)', 'Status'];
+        const bRows = filteredB.map(b => [
+            b.guestName || b.guest?.name || 'N/A',
+            b.room?.number || b.roomType || 'N/A',
+            new Date(b.checkIn).toLocaleDateString(),
+            new Date(b.checkOut).toLocaleDateString(),
+            (b.totalAmount||0).toLocaleString(),
+            b.status
+        ]);
+        bookingsHtml += generateTableHtml(bHeaders, bRows);
+    } catch(e) { bookingsHtml += '<p>Error loading bookings.</p>'; }
+
+    // Orders
+    let ordersHtml = '<h3>Food Orders</h3>';
+    try {
+        const oRes = await authFetch(`/orders`);
+        const oData = await oRes.json();
+        const filteredO = oData.filter(o => {
+            if(!from || !to) return true;
+            const od = new Date(o.createdAt).toISOString().split('T')[0];
+            return od >= from && od <= to;
+        });
+        const oHeaders = ['Order ID', 'Guest/Ref', 'Items', 'Total (₦)', 'Status'];
+        const oRows = filteredO.map(o => [
+            o._id.substring(0,6),
+            o.booking?.guestName || o.walkInName || 'N/A',
+            o.items?.length || 0,
+            (o.totalAmount||0).toLocaleString(),
+            o.status
+        ]);
+        ordersHtml += generateTableHtml(oHeaders, oRows);
+    } catch(e) { ordersHtml += '<p>Error loading orders.</p>'; }
+
+    return bookingsHtml + ordersHtml;
+}
+
+async function buildReviewsPrint(from, to) {
+    try {
+        const res = await authFetch(`/reviews/public`);
+        const data = await res.json();
+        const filtered = data.filter(r => {
+            if(!from || !to) return true;
+            const rd = new Date(r.createdAt).toISOString().split('T')[0];
+            return rd >= from && rd <= to;
+        });
+        const headers = ['Guest', 'Rating', 'Review', 'Date'];
+        const rows = filtered.map(r => [
+            r.guestName || 'Anonymous',
+            r.rating + ' / 5',
+            r.text,
+            new Date(r.createdAt).toLocaleDateString()
+        ]);
+        return generateTableHtml(headers, rows);
+    } catch(e) { return '<p>Error loading reviews.</p>'; }
+}
+
+async function buildVaultPrint(from, to) {
+    try {
+        const res = await authFetch('/vault');
+        const data = await res.json();
+        const filtered = data.filter(v => {
+            if(!from || !to) return true;
+            const vd = new Date(v.deletedAt).toISOString().split('T')[0];
+            return vd >= from && vd <= to;
+        });
+        const headers = ['Type', 'Details', 'Deleted By', 'Date'];
+        const rows = filtered.map(v => [
+            v.recordType,
+            v.details || 'N/A',
+            v.deletedBy?.username || 'System',
+            new Date(v.deletedAt).toLocaleString()
+        ]);
+        return generateTableHtml(headers, rows);
+    } catch(e) { return '<p>Error loading vault.</p>'; }
+}
+
+async function buildFinancePrint(from, to) {
+    try {
+        // Finance Summary API accepts from and to
+        const q = (from && to) ? `?from=${from}&to=${to}` : '';
+        const res = await authFetch('/finance/summary' + q);
+        if(!res.ok) throw new Error('API failed');
+        const data = await res.json();
+        
+        let html = `
+            <div style="display:flex; justify-content: space-between; margin-bottom: 20px;">
+                <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
+                    <strong>Total Income:</strong> ₦${(data.income.total||0).toLocaleString()}
+                </div>
+                <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
+                    <strong>Total Expenses:</strong> ₦${(data.expenses.total||0).toLocaleString()}
+                </div>
+                <div style="padding:10px; border:1px solid #ccc; flex:1; background: ${data.netProfitLoss >= 0 ? '#e6ffe6' : '#ffe6e6'}">
+                    <strong>Net P/L:</strong> ₦${(data.netProfitLoss||0).toLocaleString()}
+                </div>
+            </div>
+        `;
+
+        // Expenses breakdown
+        html += '<h3>Expenses List</h3>';
+        const eHeaders = ['Date', 'Category', 'Description', 'Method', 'Amount'];
+        const eRows = (data.expenses.list || []).map(e => [
+            new Date(e.date).toLocaleDateString(),
+            e.category,
+            e.description || 'N/A',
+            e.paymentMethod,
+            '₦' + (e.amount||0).toLocaleString()
+        ]);
+        html += generateTableHtml(eHeaders, eRows);
+
+        // Other Income List
+        if (data.income.otherIncomeList && data.income.otherIncomeList.length > 0) {
+            html += '<h3>Other Income List</h3>';
+            const oHeaders = ['Date', 'Source', 'Ref', 'Amount'];
+            const oRows = data.income.otherIncomeList.map(o => [
+                new Date(o.date).toLocaleDateString(),
+                o.source,
+                o.guestRef || 'N/A',
+                '₦' + (o.amount||0).toLocaleString()
+            ]);
+            html += generateTableHtml(oHeaders, oRows);
+        }
+
+        return html;
+    } catch(e) {
+        return '<p>Error loading finance data. Ensure you have unlocked the finance tab.</p>';
+    }
+}
+
+async function buildStatisticsPrint(from, to) {
+    try {
+        const q = (from && to) ? `?from=${from}&to=${to}` : '';
+        const res = await authFetch('/statistics/dashboard' + q);
+        if(!res.ok) throw new Error('API failed');
+        const data = await res.json();
+        
+        let html = `
+            <div style="display:flex; justify-content: space-between; margin-bottom: 20px;">
+                <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
+                    <strong>Total Revenue:</strong> ₦${(data.revenue.total||0).toLocaleString()}
+                </div>
+                <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
+                    <strong>Occupancy Rate:</strong> ${Math.round(data.occupancy.rate)}%
+                </div>
+                <div style="padding:10px; border:1px solid #ccc; flex:1;">
+                    <strong>Total Guests:</strong> ${data.guests.total}
+                </div>
+            </div>
+        `;
+
+        if (data.topMonths && data.topMonths.length > 0) {
+            html += '<h3>Top Performing Months</h3>';
+            const tHeaders = ['Month', 'Rooms', 'Food', 'Total'];
+            const tRows = data.topMonths.map(t => [
+                t.monthStr,
+                '₦' + t.rooms.toLocaleString(),
+                '₦' + t.food.toLocaleString(),
+                '₦' + t.total.toLocaleString()
+            ]);
+            html += generateTableHtml(tHeaders, tRows);
+        }
+
+        return html;
+    } catch(e) {
+        return '<p>Error loading statistics.</p>';
+    }
+}
+
+// ===== END PRINT / REPORT MODULE =====
