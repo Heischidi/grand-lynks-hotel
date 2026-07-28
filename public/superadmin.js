@@ -4415,27 +4415,27 @@ async function buildStatisticsPrint(from, to) {
                     <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
                         <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Revenue This Year</th>
                         <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Occupancy Rate</th>
-                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Active Rooms</th>
+                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Occupied Rooms</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #15803d; font-size: 16px;">₦${(data.kpi.revenueThisYear||0).toLocaleString()}</td>
                         <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 16px;">${Math.round(data.kpi.occupancyRate || 0)}%</td>
-                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 16px;">${data.kpi.activeRooms || 0} / ${data.kpi.totalRooms || 0}</td>
+                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 16px;">${data.kpi.occupiedRooms || 0} / ${data.kpi.totalRooms || 0}</td>
                     </tr>
                 </tbody>
             </table>
         `;
 
         if (data.topMonths && data.topMonths.length > 0) {
-            html += '<h3>Top Performing Months</h3>';
-            const tHeaders = ['Month', 'Rooms', 'Food', 'Total'];
+            html += '<h3 style="margin-top: 30px;">Top Performing Months</h3>';
+            const tHeaders = ['Month', 'Rooms Revenue', 'Food Revenue', 'Total Revenue'];
             const tRows = data.topMonths.map(t => [
-                t.monthStr,
-                '₦' + t.rooms.toLocaleString(),
-                '₦' + t.food.toLocaleString(),
-                '₦' + t.total.toLocaleString()
+                t.month,
+                '₦' + (t.bookingRevenue||0).toLocaleString(),
+                '₦' + (t.orderRevenue||0).toLocaleString(),
+                '₦' + (t.totalRevenue||0).toLocaleString()
             ]);
             html += generateTableHtml(tHeaders, tRows);
         }
