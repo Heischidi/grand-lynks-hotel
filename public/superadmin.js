@@ -4343,7 +4343,8 @@ async function buildFinancePrint(from, to) {
             authFetch('/finance/other-income' + q)
         ]);
 
-        if(!sumRes.ok || !expRes.ok || !incRes.ok) throw new Error('API failed');
+        if(!sumRes || !expRes || !incRes) throw new Error('One or more API requests failed (Network or Auth error)');
+        if(!sumRes.ok || !expRes.ok || !incRes.ok) throw new Error('API returned an error status (possibly missing superadmin token)');
 
         const summaryData = await sumRes.json();
         const expensesList = await expRes.json();
@@ -4390,7 +4391,7 @@ async function buildFinancePrint(from, to) {
 
         return html;
     } catch(e) {
-        return '<p>Error loading finance data. Ensure you have unlocked the finance tab.</p>';
+        return `<p style="color:red; font-weight:bold;">Error loading finance data: ${e.message}</p><p>Ensure you have unlocked the finance tab and try again.</p>`;
     }
 }
 

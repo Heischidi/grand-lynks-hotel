@@ -522,7 +522,7 @@
             <!-- ROOMS SECTION -->
             <section id="section-rooms" class="fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:sticky md:top-0 md:z-30 md:bg-gray-50/95 md:backdrop-blur-sm md:-mx-6 md:px-6 md:py-4 md:mb-2 md:border-b md:border-gray-200">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Room Management</h2>
+                    <div class="flex justify-between items-center w-full"><h2 class="text-xl md:text-2xl font-bold text-gray-800">Room Management</h2><button onclick="openPrintModal('section-rooms')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button></div>
                     <button onclick="openModal('roomModal')"
                         class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95 w-full sm:w-auto">
                         + Add Room
@@ -569,7 +569,7 @@
                 <!-- Header Row -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
                     <div>
-                        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Live Room Tracker</h2>
+                        <div class="flex justify-between items-center w-full"><h2 class="text-xl md:text-2xl font-bold text-gray-800">Live Room Tracker</h2><button onclick="openPrintModal('section-tracker')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button></div>
                         <p class="text-sm text-gray-500 mt-0.5">Real-time status of all hotel rooms</p>
                     </div>
                     <div class="flex items-center gap-2">
@@ -651,7 +651,7 @@
             <!-- GUEST DIRECTORY SECTION -->
             <section id="section-guests" class="hidden fade-in">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Guest Directory</h2>
+                    <h2 class="text-2xl font-bold text-gray-800">Guest Directory</h2><button onclick="openPrintModal('section-guests')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button>
                     <button onclick="fetchGuests()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                         ↻ Refresh
                     </button>
@@ -692,7 +692,7 @@
             <!-- MENU SECTION -->
             <section id="section-menu" class="hidden fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:sticky md:top-0 md:z-30 md:bg-gray-50/95 md:backdrop-blur-sm md:-mx-6 md:px-6 md:py-4 md:mb-2 md:border-b md:border-gray-200">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Food & Beverages</h2>
+                    <div class="flex justify-between items-center w-full"><h2 class="text-xl md:text-2xl font-bold text-gray-800">Food & Beverages</h2><button onclick="openPrintModal('section-menu')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button></div>
                     <button onclick="openModal('menuModal')"
                         class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95 w-full sm:w-auto">
                         + Add Item
@@ -736,7 +736,7 @@
             <!-- ORDERS SECTION -->
             <section id="section-orders" class="hidden fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Order Management</h2>
+                    <div class="flex justify-between items-center w-full"><h2 class="text-xl md:text-2xl font-bold text-gray-800">Order Management</h2><button onclick="openPrintModal('section-orders')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button></div>
                     <div class="flex space-x-2 w-full sm:w-auto">
                         <button onclick="fetchOrders()" class="flex-1 sm:flex-none bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                             ↻ Refresh
@@ -798,21 +798,7 @@
                         <div class="flex items-center gap-2 flex-1 flex-wrap">
                             <label class="text-xs font-medium text-gray-500 whitespace-nowrap">📅 Date range:</label>
                             <div class="flex items-center gap-2 flex-wrap">
-                        <button onclick="openPrintModal('section-guests')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
-                            🖨️ Print
-                        </button>
-                        <button onclick="openPrintModal('section-orders')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
-                            🖨️ Print
-                        </button>
-                        <button onclick="openPrintModal('section-menu')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
-                            🖨️ Print
-                        </button>
-                        <button onclick="openPrintModal('section-tracker')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
-                            🖨️ Print
-                        </button>
-                        <button onclick="openPrintModal('section-rooms')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
-                            🖨️ Print
-                        </button>
+
                                 <div class="flex items-center gap-1">
                                     <span class="text-xs text-gray-400">From</span>
                                     <input id="dateFrom" type="date"
@@ -973,7 +959,7 @@
             <!-- REVIEWS SECTION -->
             <section id="section-reviews" class="hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Review Management</h2>
+                    <h2 class="text-2xl font-bold text-gray-800">Review Management</h2><button onclick="openPrintModal('section-reviews')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button>
                     <button onclick="fetchAdminReviews()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                         ↻ Refresh
                     </button>
@@ -987,7 +973,7 @@
             <!-- SETTINGS SECTION -->
             <section id="section-settings" class="fade-in hidden">
                 <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Dynamic Settings</h2>
+                    <h2 class="text-2xl font-bold text-gray-800">Dynamic Settings</h2><button onclick="openPrintModal('section-settings')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button>
                     <p class="text-gray-500 text-sm mt-1">Configure global application variables for public orders.</p>
                 </div>
 
@@ -1066,12 +1052,7 @@
                         <button onclick="openPrintModal('section-statistics')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
                             🖨️ Print
                         </button>
-                        <button onclick="openPrintModal('section-settings')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
-                            🖨️ Print
-                        </button>
-                        <button onclick="openPrintModal('section-reviews')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
-                            🖨️ Print
-                        </button>
+
                         <!-- Year picker -->
                         <div class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
                             <label class="text-xs font-medium text-gray-500">Year:</label>
@@ -1266,7 +1247,7 @@
             <!-- VAULT SECTION -->
             <section id="section-vault" class="hidden fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Deleted Records Vault</h2>
+                    <div class="flex justify-between items-center w-full"><h2 class="text-xl md:text-2xl font-bold text-gray-800">Deleted Records Vault</h2><button onclick="openPrintModal('section-vault')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button></div>
                     <div class="flex space-x-2">
                         <button onclick="fetchVaultRecords()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                             ↻ Refresh
@@ -1337,9 +1318,7 @@
                         <button onclick="openPrintModal('section-finance')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
                             🖨️ Print
                         </button>
-                        <button onclick="openPrintModal('section-vault')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">
-                            🖨️ Print
-                        </button>
+
                         <!-- Date Filters -->
                         <input type="date" id="finFromDate" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" onchange="loadFinancePage()">
                         <span class="text-gray-400 text-sm">to</span>
