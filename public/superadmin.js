@@ -4351,17 +4351,22 @@ async function buildFinancePrint(from, to) {
         const otherIncomeList = await incRes.json();
         
         let html = `
-            <div style="display:flex; justify-content: space-between; margin-bottom: 20px;">
-                <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
-                    <strong>Total Income:</strong> ₦${(summaryData.totalIncome||0).toLocaleString()}
-                </div>
-                <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
-                    <strong>Total Expenses:</strong> ₦${(summaryData.totalExpenses||0).toLocaleString()}
-                </div>
-                <div style="padding:10px; border:1px solid #ccc; flex:1; background: ${summaryData.netProfitLoss >= 0 ? '#e6ffe6' : '#ffe6e6'}">
-                    <strong>Net P/L:</strong> ₦${(summaryData.netProfitLoss||0).toLocaleString()}
-                </div>
-            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Total Income</th>
+                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Total Expenses</th>
+                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Net P/L</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #15803d; font-size: 16px;">₦${(summaryData.totalIncome||0).toLocaleString()}</td>
+                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #b91c1c; font-size: 16px;">₦${(summaryData.totalExpenses||0).toLocaleString()}</td>
+                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 16px; ${summaryData.netProfitLoss >= 0 ? 'color: #15803d; background: #f0fdf4;' : 'color: #b91c1c; background: #fef2f2;'}">₦${(summaryData.netProfitLoss||0).toLocaleString()}</td>
+                    </tr>
+                </tbody>
+            </table>
         `;
 
         // Expenses breakdown
@@ -4397,23 +4402,30 @@ async function buildFinancePrint(from, to) {
 
 async function buildStatisticsPrint(from, to) {
     try {
-        const q = (from && to) ? `?from=${from}&to=${to}` : '';
-        const res = await authFetch('/statistics/dashboard' + q);
+        const yearInput = document.getElementById('statsYearInput');
+        const year = yearInput ? parseInt(yearInput.value) || new Date().getFullYear() : new Date().getFullYear();
+        const res = await authFetch(`/statistics?year=${year}`);
         if(!res.ok) throw new Error('API failed');
         const data = await res.json();
         
         let html = `
-            <div style="display:flex; justify-content: space-between; margin-bottom: 20px;">
-                <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
-                    <strong>Total Revenue:</strong> ₦${(data.revenue.total||0).toLocaleString()}
-                </div>
-                <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
-                    <strong>Occupancy Rate:</strong> ${Math.round(data.occupancy.rate)}%
-                </div>
-                <div style="padding:10px; border:1px solid #ccc; flex:1;">
-                    <strong>Total Guests:</strong> ${data.guests.total}
-                </div>
-            </div>
+            <h3 style="margin-top: 0;">Overview for ${year}</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Revenue This Year</th>
+                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Occupancy Rate</th>
+                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Active Rooms</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #15803d; font-size: 16px;">₦${(data.kpi.revenueThisYear||0).toLocaleString()}</td>
+                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 16px;">${Math.round(data.kpi.occupancyRate || 0)}%</td>
+                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 16px;">${data.kpi.activeRooms || 0} / ${data.kpi.totalRooms || 0}</td>
+                    </tr>
+                </tbody>
+            </table>
         `;
 
         if (data.topMonths && data.topMonths.length > 0) {
@@ -4430,7 +4442,7 @@ async function buildStatisticsPrint(from, to) {
 
         return html;
     } catch(e) {
-        return '<p>Error loading statistics.</p>';
+        return `<p style="color:red; font-weight:bold;">Error loading statistics data: ${e.message}</p>`;
     }
 }
 
