@@ -4336,22 +4336,29 @@ async function buildVaultPrint(from, to) {
 
 async function buildFinancePrint(from, to) {
     try {
-        // Finance Summary API accepts from and to
         const q = (from && to) ? `?from=${from}&to=${to}` : '';
-        const res = await authFetch('/finance/summary' + q);
-        if(!res.ok) throw new Error('API failed');
-        const data = await res.json();
+        const [sumRes, expRes, incRes] = await Promise.all([
+            authFetch('/finance/summary' + q),
+            authFetch('/finance/expenses' + q),
+            authFetch('/finance/other-income' + q)
+        ]);
+
+        if(!sumRes.ok || !expRes.ok || !incRes.ok) throw new Error('API failed');
+
+        const summaryData = await sumRes.json();
+        const expensesList = await expRes.json();
+        const otherIncomeList = await incRes.json();
         
         let html = `
             <div style="display:flex; justify-content: space-between; margin-bottom: 20px;">
                 <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
-                    <strong>Total Income:</strong> ₦${(data.income.total||0).toLocaleString()}
+                    <strong>Total Income:</strong> ₦${(summaryData.totalIncome||0).toLocaleString()}
                 </div>
                 <div style="padding:10px; border:1px solid #ccc; flex:1; margin-right:10px;">
-                    <strong>Total Expenses:</strong> ₦${(data.expenses.total||0).toLocaleString()}
+                    <strong>Total Expenses:</strong> ₦${(summaryData.totalExpenses||0).toLocaleString()}
                 </div>
-                <div style="padding:10px; border:1px solid #ccc; flex:1; background: ${data.netProfitLoss >= 0 ? '#e6ffe6' : '#ffe6e6'}">
-                    <strong>Net P/L:</strong> ₦${(data.netProfitLoss||0).toLocaleString()}
+                <div style="padding:10px; border:1px solid #ccc; flex:1; background: ${summaryData.netProfitLoss >= 0 ? '#e6ffe6' : '#ffe6e6'}">
+                    <strong>Net P/L:</strong> ₦${(summaryData.netProfitLoss||0).toLocaleString()}
                 </div>
             </div>
         `;
@@ -4359,7 +4366,7 @@ async function buildFinancePrint(from, to) {
         // Expenses breakdown
         html += '<h3>Expenses List</h3>';
         const eHeaders = ['Date', 'Category', 'Description', 'Method', 'Amount'];
-        const eRows = (data.expenses.list || []).map(e => [
+        const eRows = (expensesList || []).map(e => [
             new Date(e.date).toLocaleDateString(),
             e.category,
             e.description || 'N/A',
@@ -4369,10 +4376,10 @@ async function buildFinancePrint(from, to) {
         html += generateTableHtml(eHeaders, eRows);
 
         // Other Income List
-        if (data.income.otherIncomeList && data.income.otherIncomeList.length > 0) {
+        if (otherIncomeList && otherIncomeList.length > 0) {
             html += '<h3>Other Income List</h3>';
             const oHeaders = ['Date', 'Source', 'Ref', 'Amount'];
-            const oRows = data.income.otherIncomeList.map(o => [
+            const oRows = otherIncomeList.map(o => [
                 new Date(o.date).toLocaleDateString(),
                 o.source,
                 o.guestRef || 'N/A',
