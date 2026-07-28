@@ -175,6 +175,8 @@
         let rawPrice = room.price || room.pricePerNight || room.rate;
         if (typeof rawPrice === 'string') rawPrice = parseFloat(rawPrice.replace(/,/g, ''));
         const priceValue = Number(rawPrice) || 0;
+        const discount = Number(room.discount) || 0;
+        const effectivePrice = discount > 0 ? Math.round(priceValue * (1 - discount / 100)) : priceValue;
 
         let statusColorClass = 'color: #10b981; background: #d1fae5; border-color: #34d399;'; // Green
         let displayStatus = 'Available';
@@ -214,10 +216,11 @@
         }
 
         const roomNumberHTML = '';
+        const safeDesc = (room.description || "Comfortable and elegant.").replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
         // Pass formatted price or 0 to modal
         container.innerHTML += `
-            <div class="room-card" onclick="showRoomPreview('${roomType}', '${imgSrc}', ${priceValue}, '${room.description || "Comfortable and elegant."}', ${room.id}, this)" data-amenities='${rawAmenitiesData.replace(/'/g, "&apos;")}'>
+            <div class="room-card" onclick="showRoomPreview('${roomType}', '${imgSrc}', ${effectivePrice}, '${safeDesc}', ${room.id}, this, ${discount}, ${priceValue})" data-amenities='${rawAmenitiesData.replace(/'/g, "&apos;")}'>
               <div style="position: relative;">
                 <img loading="lazy" src="${imgSrc}" alt="${roomType}">
                 <div style="position: absolute; top: 12px; right: 12px; padding: 4px 10px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; border: 1px solid transparent; ${statusColorClass} box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -228,9 +231,14 @@
                 <h3>${roomType} ${roomNumberHTML}</h3>
                 <p>${room.description || "Comfortable and elegant."}</p>
                 ${amenitiesHTML}
-                <p class="room-price"><strong>₦${priceValue ? priceValue.toLocaleString() : "Contact for Price"}</strong> per night</p>
+                <p class="room-price">
+                    ${discount > 0 
+                        ? `<span style="text-decoration: line-through; color: #9ca3af; font-size: 0.85em; font-weight: normal;">₦${priceValue.toLocaleString()}</span> <strong style="color: #15803d;">₦${effectivePrice.toLocaleString()}</strong> <span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px; font-weight: bold;">${discount}% OFF</span>`
+                        : `<strong>₦${priceValue ? priceValue.toLocaleString() : "Contact for Price"}</strong>`
+                    } per night
+                </p>
                 <!-- Check availability button removed -->
-                <a href="booking.html?room=${encodeURIComponent(roomType)}&price=${priceValue}&roomId=${room.id}" 
+                <a href="booking.html?room=${encodeURIComponent(roomType)}&price=${effectivePrice}&roomId=${room.id}" 
                    class="btn" onclick="event.stopPropagation()">Book Now</a>
               </div>
             </div>
@@ -280,7 +288,7 @@
       });
 
     // Room preview modal functionality
-    function showRoomPreview(roomType, imgSrc, price, description, roomId, cardElement) {
+    function showRoomPreview(roomType, imgSrc, price, description, roomId, cardElement, discount = 0, originalPrice = 0) {
       let amenitiesHTML = "";
       if (cardElement) {
          try {
@@ -303,7 +311,12 @@
                 <h2>${roomType}</h2>
                 <p class="preview-description">${description}</p>
                 ${amenitiesHTML}
-                <p class="preview-price">₦${price ? price.toLocaleString() : "Contact for Price"} per night</p>
+                <p class="preview-price">
+                    ${discount > 0 
+                        ? `<span style="text-decoration: line-through; color: #9ca3af; font-size: 0.85em; font-weight: normal;">₦${originalPrice.toLocaleString()}</span> <strong style="color: #15803d;">₦${price.toLocaleString()}</strong> <span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px; font-weight: bold;">${discount}% OFF</span>`
+                        : `<strong>₦${price ? price.toLocaleString() : "Contact for Price"}</strong>`
+                    } per night
+                </p>
                 <div class="preview-actions">
                   <!-- Check availability button removed -->
                   <a href="booking.html?room=${encodeURIComponent(roomType)}&price=${price}&roomId=${roomId}" class="btn btn-primary">Book Now</a>
