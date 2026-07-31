@@ -291,7 +291,7 @@ function switchTab(tabName) {
         if (tabName === 'walkin') fetchAvailableRoomsForWalkIn();
         if (tabName === 'guests' && (!window.allGuests || window.allGuests.length === 0)) fetchGuests();
         if (tabName === 'reviews') fetchAdminReviews();
-        if (tabName === 'settings') fetchSettings();
+        if (tabName === 'settings' && !window._settingsLoaded) { fetchSettings(); window._settingsLoaded = true; }
         if (tabName === 'statistics') fetchStatistics();
         if (tabName === 'vault') fetchVaultRecords();
         if (tabName === 'tracker') fetchRoomsForTracker();
