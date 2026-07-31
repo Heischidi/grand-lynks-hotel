@@ -4053,6 +4053,31 @@ window.openPrintModal = function(sectionId) {
         document.getElementById('printSnapshotGroup').classList.remove('hidden');
     }
 
+    // Show / hide Finance category filter
+    const catGroup = document.getElementById('printFinanceCategoryGroup');
+    const catSelect = document.getElementById('printFinanceCategorySelect');
+    if (sectionId === 'section-finance') {
+        catGroup.classList.remove('hidden');
+        catSelect.value = ''; // reset to "All Categories"
+
+        // Sync any extra categories that exist in the live expense filter on the page
+        const liveFilter = document.getElementById('expenseCategoryFilter');
+        if (liveFilter) {
+            const existingOptions = new Set(Array.from(catSelect.options).map(o => o.value));
+            Array.from(liveFilter.options).forEach(opt => {
+                if (opt.value && !existingOptions.has(opt.value)) {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = opt.value;
+                    newOpt.textContent = opt.textContent;
+                    catSelect.appendChild(newOpt);
+                }
+            });
+        }
+    } else {
+        catGroup.classList.add('hidden');
+        catSelect.value = '';
+    }
+
     window.openModal('printOptionsModal');
 };
 
@@ -4114,7 +4139,8 @@ window.generateAndPrint = async function() {
             }
         }
 
-        const reportHtml = await buildReportHtml(sectionId, fromDate, toDate);
+        const reportHtml = await buildReportHtml(sectionId, fromDate, toDate,
+            document.getElementById('printFinanceCategorySelect').value || '');
         const printFrame = document.getElementById('printFrame');
         printFrame.innerHTML = reportHtml;
         
@@ -4133,7 +4159,7 @@ window.generateAndPrint = async function() {
     }
 };
 
-async function buildReportHtml(sectionId, fromDate, toDate) {
+async function buildReportHtml(sectionId, fromDate, toDate, category = '') {
     const titleMap = {
         'section-rooms': 'Room Management Snapshot',
         'section-tracker': 'Live Tracker Snapshot',
@@ -4144,12 +4170,15 @@ async function buildReportHtml(sectionId, fromDate, toDate) {
         'section-settings': 'Settings Snapshot',
         'section-statistics': 'Statistics & Analytics Report',
         'section-vault': 'Deleted Records Vault',
-        'section-finance': 'Financial Overview Report'
+        'section-finance': category ? `Financial Report — ${category}` : 'Financial Overview Report'
     };
     
     let subtitle = '';
     if (fromDate && toDate) {
         subtitle = `Period: ${fromDate} to ${toDate}`;
+        if (sectionId === 'section-finance' && category) {
+            subtitle += ` &nbsp;|&nbsp; Category: <strong>${category}</strong>`;
+        }
     } else {
         subtitle = `Snapshot as of ${new Date().toLocaleString()}`;
     }
@@ -4180,7 +4209,7 @@ async function buildReportHtml(sectionId, fromDate, toDate) {
     else if (sectionId === 'section-orders') content = await buildOrdersPrint(fromDate, toDate);
     else if (sectionId === 'section-reviews') content = await buildReviewsPrint(fromDate, toDate);
     else if (sectionId === 'section-vault') content = await buildVaultPrint(fromDate, toDate);
-    else if (sectionId === 'section-finance') content = await buildFinancePrint(fromDate, toDate);
+    else if (sectionId === 'section-finance') content = await buildFinancePrint(fromDate, toDate, category);
     else if (sectionId === 'section-statistics') content = await buildStatisticsPrint(fromDate, toDate);
     else content = '<p>Report not implemented for this section yet.</p>';
 
@@ -4350,7 +4379,7 @@ async function buildVaultPrint(from, to) {
     } catch(e) { return '<p>Error loading vault.</p>'; }
 }
 
-async function buildFinancePrint(from, to) {
+async function buildFinancePrint(from, to, category = '') {
     try {
         const q = (from && to) ? `?from=${from}&to=${to}` : '';
         const [sumRes, expRes, incRes] = await Promise.all([
@@ -4363,51 +4392,90 @@ async function buildFinancePrint(from, to) {
         if(!sumRes.ok || !expRes.ok || !incRes.ok) throw new Error('API returned an error status (possibly missing superadmin token)');
 
         const summaryData = await sumRes.json();
-        const expensesList = await expRes.json();
+        let expensesList = await expRes.json();
         const otherIncomeList = await incRes.json();
-        
-        let html = `
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
-                <thead>
-                    <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Total Income</th>
-                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Total Expenses</th>
-                        <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Net P/L</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #15803d; font-size: 16px;">₦${(summaryData.totalIncome||0).toLocaleString()}</td>
-                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #b91c1c; font-size: 16px;">₦${(summaryData.totalExpenses||0).toLocaleString()}</td>
-                        <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 16px; ${summaryData.netProfitLoss >= 0 ? 'color: #15803d; background: #f0fdf4;' : 'color: #b91c1c; background: #fef2f2;'}">₦${(summaryData.netProfitLoss||0).toLocaleString()}</td>
-                    </tr>
-                </tbody>
-            </table>
-        `;
 
-        // Expenses breakdown
-        html += '<h3>Expenses List</h3>';
-        const eHeaders = ['Date', 'Category', 'Description', 'Method', 'Amount'];
-        const eRows = (expensesList || []).map(e => [
-            new Date(e.date).toLocaleDateString(),
-            e.category,
-            e.description || 'N/A',
-            e.paymentMethod,
-            '₦' + (e.amount||0).toLocaleString()
-        ]);
-        html += generateTableHtml(eHeaders, eRows);
+        let html = '';
 
-        // Other Income List
-        if (otherIncomeList && otherIncomeList.length > 0) {
-            html += '<h3>Other Income List</h3>';
-            const oHeaders = ['Date', 'Source', 'Ref', 'Amount'];
-            const oRows = otherIncomeList.map(o => [
-                new Date(o.date).toLocaleDateString(),
-                o.source,
-                o.guestRef || 'N/A',
-                '₦' + (o.amount||0).toLocaleString()
+        // ── CATEGORY-SPECIFIC REPORT ──────────────────────────────────────────
+        if (category) {
+            expensesList = (expensesList || []).filter(e => e.category === category);
+
+            const catTotal = expensesList.reduce((sum, e) => sum + (e.amount || 0), 0);
+            const catCount = expensesList.length;
+            const catAvg   = catCount > 0 ? catTotal / catCount : 0;
+
+            html += `
+                <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:16px 20px; margin-bottom:20px;">
+                    <h3 style="margin:0 0 12px 0; font-size:16px; color:#15803d;">📂 Category: ${category}</h3>
+                    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                        <tr>
+                            <td style="padding:8px 12px; border:1px solid #bbf7d0; background:#dcfce7; font-weight:bold; color:#166534;">Total Spent</td>
+                            <td style="padding:8px 12px; border:1px solid #bbf7d0; background:#dcfce7; font-weight:bold; color:#166534; font-size:18px;">₦${catTotal.toLocaleString()}</td>
+                            <td style="padding:8px 12px; border:1px solid #bbf7d0;">Records</td>
+                            <td style="padding:8px 12px; border:1px solid #bbf7d0; font-weight:bold;">${catCount}</td>
+                            <td style="padding:8px 12px; border:1px solid #bbf7d0;">Avg per Record</td>
+                            <td style="padding:8px 12px; border:1px solid #bbf7d0; font-weight:bold;">₦${Math.round(catAvg).toLocaleString()}</td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+
+            html += `<h3 style="margin-top:0;">${category} — Expense Details</h3>`;
+            const eHeaders = ['Date', 'Description', 'Method', 'Amount'];
+            const eRows = expensesList.map(e => [
+                new Date(e.date).toLocaleDateString('en-GB'),
+                e.description || 'N/A',
+                e.paymentMethod,
+                '₦' + (e.amount || 0).toLocaleString()
             ]);
-            html += generateTableHtml(oHeaders, oRows);
+            html += generateTableHtml(eHeaders, eRows);
+
+        // ── FULL FINANCE OVERVIEW ─────────────────────────────────────────────
+        } else {
+            html += `
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+                            <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Total Income</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Total Expenses</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">Net P/L</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #15803d; font-size: 16px;">₦${(summaryData.totalIncome||0).toLocaleString()}</td>
+                            <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: #b91c1c; font-size: 16px;">₦${(summaryData.totalExpenses||0).toLocaleString()}</td>
+                            <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 16px; ${summaryData.netProfitLoss >= 0 ? 'color: #15803d; background: #f0fdf4;' : 'color: #b91c1c; background: #fef2f2;'}">₦${(summaryData.netProfitLoss||0).toLocaleString()}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+
+            // Expenses breakdown
+            html += '<h3>Expenses List</h3>';
+            const eHeaders = ['Date', 'Category', 'Description', 'Method', 'Amount'];
+            const eRows = (expensesList || []).map(e => [
+                new Date(e.date).toLocaleDateString('en-GB'),
+                e.category,
+                e.description || 'N/A',
+                e.paymentMethod,
+                '₦' + (e.amount||0).toLocaleString()
+            ]);
+            html += generateTableHtml(eHeaders, eRows);
+
+            // Other Income List
+            if (otherIncomeList && otherIncomeList.length > 0) {
+                html += '<h3>Other Income List</h3>';
+                const oHeaders = ['Date', 'Source', 'Ref', 'Amount'];
+                const oRows = otherIncomeList.map(o => [
+                    new Date(o.date).toLocaleDateString('en-GB'),
+                    o.source,
+                    o.guestRef || 'N/A',
+                    '₦' + (o.amount||0).toLocaleString()
+                ]);
+                html += generateTableHtml(oHeaders, oRows);
+            }
         }
 
         return html;
