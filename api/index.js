@@ -668,7 +668,17 @@ app.get("/settings", async (req, res) => {
   try {
     const settings = await prisma.siteSettings.findMany();
     // Default fallback values if not set
-    const defaultSettings = { taxRate: "8.5", roomServiceFee: "1000", roomDiscount: "0", foodDiscount: "0" };
+    const defaultSettings = { 
+      taxRate: "8.5", 
+      roomServiceFee: "1000", 
+      roomDiscount: "0", 
+      foodDiscount: "0",
+      flashEnabled: "false",
+      flashTitle: "Exclusive Grand Offer",
+      flashMessage: "Enjoy a 15% discount on all bookings this weekend! Use code <strong style='color: var(--burgundy);'>GRAND15</strong> at checkout.",
+      flashButton: "Book Now",
+      flashLink: "booking.html"
+    };
     
     const configData = { ...defaultSettings };
     settings.forEach(s => { configData[s.key] = s.value; });
