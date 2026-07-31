@@ -1,8 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if we've already shown the notification in this session
-    if (sessionStorage.getItem('flashNotificationShown')) {
-        return;
-    }
 
     const apiUrl = (window.APP_CONFIG && window.APP_CONFIG.API_URL) ? window.APP_CONFIG.API_URL : '/api';
 
@@ -179,7 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const closeModal = () => {
             overlay.classList.remove('active');
             setTimeout(() => overlay.remove(), 500);
-            sessionStorage.setItem('flashNotificationShown', 'true');
         };
 
         overlay.querySelector('.flash-close').addEventListener('click', closeModal);
