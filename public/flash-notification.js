@@ -5,10 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch(`${apiUrl}/settings`)
         .then(res => res.json())
         .then(data => {
-            // Support both boolean true and string 'true'
-            const isEnabled = data.flashEnabled === true || data.flashEnabled === 'true';
-            if (!isEnabled) return;
-
             const content = {
                 title: data.flashTitle || 'Exclusive Grand Offer',
                 message: data.flashMessage || 'Enjoy a special discount on your next stay!',
@@ -20,6 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => {
             console.error('Flash notification: Failed to load settings', err);
+            // Show default even if settings fetch fails
+            showFlashNotification({
+                title: 'Exclusive Grand Offer',
+                message: 'Enjoy a special discount on your next stay!',
+                buttonText: 'Book Now',
+                link: 'rooms.html'
+            });
         });
 
     function showFlashNotification(content) {
