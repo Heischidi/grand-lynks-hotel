@@ -379,7 +379,7 @@ const authenticateSuperAdmin = (req, res, next) => {
 const SUPER_ADMIN_PIN = process.env.SUPER_ADMIN_PIN || '1234';
 
 // Helper: create a DeletedRecord snapshot
-const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_NOTIFY_EMAIL || "xty0005@gmail.com";
+const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_NOTIFY_EMAIL || "g.lynksweb@gmail.com";
 const SUPER_ADMIN_PHONE = process.env.SUPER_ADMIN_NOTIFY_PHONE || "08051045535";
 
 async function sendSMS(to, message) {
