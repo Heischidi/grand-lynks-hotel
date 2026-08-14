@@ -266,7 +266,7 @@ async function sendBookingFinalizedEmail(booking, guest, room) {
 }
 
 async function sendAdminNotificationEmail({ type, details }) {
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "grandlynkshomesandapartments@gmail.com";
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "g.lynksweb@gmail.com";
   const subjectMap = {
     booking: "🛎️ New Pending Booking - Action Required",
     order: "🍽️ New Food Order Received",
