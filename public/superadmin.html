@@ -453,6 +453,12 @@
                         </button>
                     </li>
                     <li>
+                        <button onclick="switchTab('checkinlog'); closeSidebarOnMobile()" id="nav-checkinlog"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
+                            <span class="mr-3">📝</span> Check-In Log
+                        </button>
+                    </li>
+                    <li>
                         <button onclick="switchTab('guests'); closeSidebarOnMobile()" id="nav-guests"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">👤</span> Guest Directory
@@ -953,6 +959,48 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </section>
+
+            <!-- CHECK-IN LOG SECTION -->
+            <section id="section-checkinlog" class="hidden fade-in">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Guest Check-In Log</h2>
+                        <p class="text-sm text-gray-500 mt-1">Self-registered arrivals from the tablet kiosk</p>
+                    </div>
+                    <div class="flex gap-3 flex-wrap items-center">
+                        <button onclick="openPrintModal('section-checkinlog')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 shadow-sm transition">🖨️ Print</button>
+                        <button onclick="fetchCheckInLog()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Refresh
+                        </button>
+                        <a href="checkin.html" target="_blank" class="px-4 py-2 bg-gradient-to-r from-red-800 to-red-600 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition flex items-center gap-2 shadow">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            Open Kiosk
+                        </a>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow overflow-hidden border border-gray-100">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-100">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Guest Name</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Room</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-In</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Expected Check-Out</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Logged At</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="checkinLogTableBody" class="divide-y divide-gray-50 text-sm text-gray-700">
+                                <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">Loading check-in records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
