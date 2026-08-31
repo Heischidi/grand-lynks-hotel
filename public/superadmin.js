@@ -1164,7 +1164,7 @@ function renderOrders(items) {
                     <p class="text-sm text-gray-500">${date}</p>
                     <p class="text-sm font-medium mt-1">
                         ${item.guest ? item.guest.name : 'Unknown Guest'} 
-                        ${item.room && !isBooking ? '(Room ' + item.room.roomNumber + ')' : ''}
+                        ${item.room && !isBooking ? '(Room ' + (item.room.number || item.room.roomNumber || '') + ')' : ''}
                     </p>
                 </div>
                 <div class="text-right">
@@ -3202,6 +3202,10 @@ window.checkInBooking = async function (id) {
     if (response && response.ok) {
         alert("Guest checked in successfully.");
         if (typeof fetchOrders === 'function') fetchOrders();
+        if (typeof fetchRoomsForTracker === 'function') fetchRoomsForTracker();
+        if (_currentTrackerView === 'calendar' && typeof fetchCalendarData === 'function') fetchCalendarData();
+        if (typeof fetchCheckInLog === 'function') fetchCheckInLog();
+        if (typeof fetchRooms === 'function') fetchRooms();
     } else {
         alert("Failed to check in guest.");
     }
@@ -3350,6 +3354,10 @@ window.processCheckout = async function (event) {
         alert("Checkout completed successfully.");
         window.closeModal('checkoutModal');
         if (typeof fetchOrders === 'function') fetchOrders();
+        if (typeof fetchRoomsForTracker === 'function') fetchRoomsForTracker();
+        if (_currentTrackerView === 'calendar' && typeof fetchCalendarData === 'function') fetchCalendarData();
+        if (typeof fetchCheckInLog === 'function') fetchCheckInLog();
+        if (typeof fetchRooms === 'function') fetchRooms();
     } else {
         alert("Failed to complete checkout.");
     }
@@ -4686,6 +4694,10 @@ window.saveEditedCheckIn = async function (event) {
         alert('Check-in record updated. Changes have been logged to the Vault.');
         window.closeModal('editCheckInModal');
         fetchCheckInLog();
+        if (typeof fetchRoomsForTracker === 'function') fetchRoomsForTracker();
+        if (_currentTrackerView === 'calendar' && typeof fetchCalendarData === 'function') fetchCalendarData();
+        if (typeof fetchOrders === 'function') fetchOrders();
+        if (typeof fetchRooms === 'function') fetchRooms();
     } else {
         const errData = res ? await res.json().catch(() => ({})) : {};
         alert('Failed to update check-in record.' + (errData.error ? '\n' + errData.error : ''));
@@ -4711,6 +4723,10 @@ window.deleteCheckInEntry = async function (id) {
     if (res && res.ok) {
         alert('Record deleted and moved to Vault.');
         fetchCheckInLog();
+        if (typeof fetchRoomsForTracker === 'function') fetchRoomsForTracker();
+        if (_currentTrackerView === 'calendar' && typeof fetchCalendarData === 'function') fetchCalendarData();
+        if (typeof fetchOrders === 'function') fetchOrders();
+        if (typeof fetchRooms === 'function') fetchRooms();
     } else {
         alert('Failed to delete record.');
     }

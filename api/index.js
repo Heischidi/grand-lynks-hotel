@@ -1556,6 +1556,39 @@ app.put("/bookings/:id", authenticateToken, async (req, res) => {
         where: { id: targetRoomId },
         data: { status: "occupied" }
       });
+
+      // Synchronize with CheckInLog so guest check-in log stays 100% complete
+      try {
+        const guestObj = updatedBooking.guest;
+        const roomObj  = updatedBooking.room;
+        const roomNumStr = String(roomObj?.number || targetRoomId);
+
+        const existingLog = await prisma.checkInLog.findFirst({
+          where: {
+            roomNumber: roomNumStr,
+            deletedAt: null,
+            createdAt: {
+              gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+            }
+          }
+        });
+
+        if (!existingLog && guestObj) {
+          await prisma.checkInLog.create({
+            data: {
+              guestName: guestObj.name,
+              phone: guestObj.phone || 'N/A',
+              roomNumber: roomNumStr,
+              checkInTime: new Date(),
+              expectedCheckOut: updatedBooking.endDate,
+              signature: 'Verified at Front Desk',
+              idType: 'Staff Verified'
+            }
+          });
+        }
+      } catch (logSyncErr) {
+        console.warn('Could not auto-create CheckInLog on booking check-in:', logSyncErr.message);
+      }
     }
 
     res.json({ message: "Booking updated successfully", booking: updatedBooking });
@@ -2554,24 +2587,131 @@ if (false) app.post("/bookings_REMOVED_DUPLICATE", async (req, res) => {
 // --- ROOM SERVICE ORDERS (used by order.html) ---
 app.post("/room-service-orders", async (req, res) => {
   try {
-    const { room_id, guest_name, items, total_price, notes } = req.body;
+    const { room_id, guest_name, items, total_price, notes, rawItems } = req.body;
 
-    // Notify admin immediately
+    // 1. Find Room if specified
+    let targetRoom = null;
+    if (room_id) {
+      const parsedNum = parseInt(String(room_id).replace(/[^0-9]/g, ''));
+      if (!isNaN(parsedNum)) {
+        targetRoom = await prisma.room.findFirst({
+          where: { number: parsedNum, deletedAt: null }
+        });
+      }
+      if (!targetRoom) {
+        targetRoom = await prisma.room.findFirst({
+          where: { type: { contains: String(room_id).trim(), mode: 'insensitive' }, deletedAt: null }
+        });
+      }
+    }
+
+    // 2. Find currently checked-in Guest for this room
+    let targetGuest = null;
+    if (targetRoom) {
+      const activeBooking = await prisma.booking.findFirst({
+        where: {
+          roomId: targetRoom.id,
+          status: { in: ['checked-in', 'confirmed'] },
+          deletedAt: null
+        },
+        include: { guest: true },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (activeBooking && activeBooking.guest) {
+        targetGuest = activeBooking.guest;
+      } else {
+        const latestCheckin = await prisma.checkInLog.findFirst({
+          where: { roomNumber: String(targetRoom.number), deletedAt: null },
+          orderBy: { createdAt: 'desc' }
+        });
+        if (latestCheckin) {
+          targetGuest = await prisma.guest.findFirst({
+            where: { phone: latestCheckin.phone, deletedAt: null }
+          });
+        }
+      }
+    }
+
+    if (!targetGuest && guest_name) {
+      targetGuest = await prisma.guest.findFirst({
+        where: { name: { contains: guest_name.trim(), mode: 'insensitive' }, deletedAt: null }
+      });
+      if (!targetGuest) {
+        const fallbackEmail = `order_${Date.now()}@guest.grandlynks.com`;
+        targetGuest = await prisma.guest.create({
+          data: {
+            name: guest_name.trim(),
+            phone: 'N/A',
+            email: fallbackEmail
+          }
+        }).catch(() => null);
+      }
+    }
+
+    // 3. Prepare order items
+    const parsedTotal = parseFloat(total_price) || 0;
+    const orderItemsCreate = [];
+    if (Array.isArray(rawItems) && rawItems.length > 0) {
+      for (const item of rawItems) {
+        if (item.id) {
+          const mId = parseInt(item.id);
+          if (!isNaN(mId)) {
+            const mItem = await prisma.menuItem.findUnique({ where: { id: mId } });
+            if (mItem) {
+              orderItemsCreate.push({
+                menuItemId: mItem.id,
+                quantity: parseInt(item.quantity) || 1,
+                unitPrice: mItem.price || parseFloat(item.price) || 0
+              });
+            }
+          }
+        }
+      }
+    }
+
+    const orderNotes = `${typeof items === 'string' ? items : ''}${notes ? (items ? ' | Notes: ' : 'Notes: ') + notes : ''}`.trim() || null;
+
+    // 4. Create Order in Database
+    const order = await prisma.order.create({
+      data: {
+        guestId: targetGuest ? targetGuest.id : null,
+        roomId: targetRoom ? targetRoom.id : null,
+        status: "pending",
+        totalAmount: parsedTotal,
+        notes: orderNotes,
+        ...(orderItemsCreate.length > 0 && {
+          orderItems: {
+            create: orderItemsCreate
+          }
+        })
+      },
+      include: {
+        guest: true,
+        room: true,
+        orderItems: { include: { menuItem: true } }
+      }
+    });
+
+    const displayGuestName = targetGuest?.name || guest_name || "Guest";
+    const displayRoomText = targetRoom?.number ? `Room ${targetRoom.number}` : (room_id ? `Room ${room_id}` : "Pickup");
+
+    // 5. Notify admin immediately
     sendAdminNotificationEmail({
-      type: "food",
+      type: "order",
       details: `
-        <strong>Guest / Room:</strong> ${guest_name || "Walk-in"} &mdash; Room ${room_id || "Pickup"}<br>
-        <strong>Items:</strong> ${items}<br>
-        <strong>Total:</strong> &#8358;${parseFloat(total_price || 0).toLocaleString()}<br>
-        <strong>Notes:</strong> ${notes || "None"}<br>
-        <strong>Status:</strong> Pending — Payment Confirmed by Guest
+        <strong>Guest:</strong> ${displayGuestName} &mdash; <strong>${displayRoomText}</strong><br>
+        <strong>Items:</strong> ${items || "Room Service Items"}<br>
+        <strong>Total:</strong> &#8358;${parsedTotal.toLocaleString()}<br>
+        <strong>Special Notes:</strong> ${notes || "None"}<br>
+        <strong>Status:</strong> Pending Verification
       `
     }).catch(console.error);
 
-    res.json({ message: "Order received", status: "pending" });
+    res.status(201).json({ message: "Order received and saved successfully", status: "pending", order });
   } catch (error) {
     console.error("Error recording room service order:", error);
-    res.status(500).json({ error: "Failed to record order" });
+    res.status(500).json({ error: "Failed to record order: " + error.message });
   }
 });
 
@@ -3065,23 +3205,154 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
   }
 
   try {
+    const cleanName = String(guestName).trim();
+    const cleanPhone = String(phone).trim();
+    const cleanRoomNumStr = String(roomNumber).trim();
+    const inTime = new Date(checkInTime);
+    const outTime = new Date(expectedCheckOut);
+
+    // 1. Save entry to CheckInLog
     const entry = await prisma.checkInLog.create({
       data: {
-        guestName: guestName.trim(),
-        phone: phone.trim(),
-        roomNumber: String(roomNumber).trim(),
-        checkInTime: new Date(checkInTime),
-        expectedCheckOut: new Date(expectedCheckOut),
+        guestName: cleanName,
+        phone: cleanPhone,
+        roomNumber: cleanRoomNumStr,
+        checkInTime: inTime,
+        expectedCheckOut: outTime,
         signature: signature ? signature.trim() : null,
         idCardUrl: idCardUrl,
         idType: idType ? idType.trim() : (idCardUrl ? "Government ID" : null),
         ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || null
       }
     });
-    res.status(201).json({ message: "Check-in recorded successfully.", entry });
+
+    // 2. Find and update Room to "occupied" (updates Live Tracker)
+    const parsedRoomNum = parseInt(cleanRoomNumStr.replace(/[^0-9]/g, ''));
+    let room = null;
+    if (!isNaN(parsedRoomNum)) {
+      room = await prisma.room.findFirst({
+        where: { number: parsedRoomNum, deletedAt: null }
+      });
+    }
+    if (!room) {
+      room = await prisma.room.findFirst({
+        where: {
+          type: { contains: cleanRoomNumStr, mode: 'insensitive' },
+          deletedAt: null
+        }
+      });
+    }
+
+    if (room) {
+      await prisma.room.update({
+        where: { id: room.id },
+        data: { status: "occupied" }
+      });
+    }
+
+    // 3. Find or Upsert Guest
+    let guest = await prisma.guest.findFirst({
+      where: { phone: cleanPhone, deletedAt: null }
+    });
+
+    if (!guest) {
+      const sanitizedPhone = cleanPhone.replace(/[^0-9]/g, '');
+      const guestEmail = `${sanitizedPhone || Date.now()}@guest.grandlynks.com`;
+      guest = await prisma.guest.create({
+        data: {
+          name: cleanName,
+          phone: cleanPhone,
+          email: guestEmail
+        }
+      });
+    } else {
+      guest = await prisma.guest.update({
+        where: { id: guest.id },
+        data: { name: cleanName }
+      });
+    }
+
+    // 4. Create or Update Booking (updates Calendar and Orders pages)
+    let booking = null;
+    if (room && guest) {
+      // Look for an existing reservation for this room & dates
+      const existingBooking = await prisma.booking.findFirst({
+        where: {
+          roomId: room.id,
+          deletedAt: null,
+          status: { in: ['pending', 'confirmed', 'checked-in'] },
+          OR: [
+            { guestId: guest.id },
+            {
+              AND: [
+                { startDate: { lte: outTime } },
+                { endDate: { gte: inTime } }
+              ]
+            }
+          ]
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (existingBooking) {
+        booking = await prisma.booking.update({
+          where: { id: existingBooking.id },
+          data: {
+            status: "checked-in",
+            guestId: guest.id,
+            checkInTime: inTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            startDate: inTime < existingBooking.startDate ? inTime : existingBooking.startDate,
+            endDate: outTime > existingBooking.endDate ? outTime : existingBooking.endDate
+          },
+          include: { guest: true, room: true }
+        });
+      } else {
+        // Compute nights and rate for walk-in / direct kiosk checkin
+        const nights = Math.max(1, Math.ceil((outTime - inTime) / (1000 * 60 * 60 * 24)));
+        let totalAmount = (room.pricePerNight || 0) * nights;
+        if (room.discount > 0) {
+          totalAmount = totalAmount * (1 - room.discount / 100);
+        }
+
+        booking = await prisma.booking.create({
+          data: {
+            guestId: guest.id,
+            roomId: room.id,
+            startDate: inTime,
+            endDate: outTime,
+            checkInTime: inTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            checkOutTime: "12:00",
+            status: "checked-in",
+            totalAmount: totalAmount,
+            bookedBy: "Kiosk Check-In"
+          },
+          include: { guest: true, room: true }
+        });
+      }
+    }
+
+    // 5. Send real-time notification
+    sendAdminNotificationEmail({
+      type: "booking",
+      details: `
+        <strong>Guest Check-In Arrival:</strong> ${cleanName} (${cleanPhone})<br>
+        <strong>Room:</strong> ${room ? room.number + ' (' + room.type + ')' : cleanRoomNumStr}<br>
+        <strong>Check-In Time:</strong> ${inTime.toLocaleString()}<br>
+        <strong>Expected Check-Out:</strong> ${outTime.toLocaleDateString()}<br>
+        <strong>ID Captured:</strong> ${idCardUrl ? 'Yes (Uploaded)' : 'No ID uploaded'}<br>
+        <strong>Status:</strong> Checked In (Live Tracker & Calendar updated)
+      `
+    }).catch(console.error);
+
+    res.status(201).json({
+      message: "Check-in recorded successfully. Live tracker, calendar, and orders updated.",
+      entry,
+      booking,
+      room
+    });
   } catch (error) {
     console.error("Error saving check-in log:", error);
-    res.status(500).json({ error: "Failed to save check-in record." });
+    res.status(500).json({ error: "Failed to save check-in record: " + error.message });
   }
 });
 
@@ -3148,6 +3419,25 @@ app.put("/checkin-log/:id", authenticateToken, upload.single('idCard'), async (r
       }
     });
 
+    // Synchronize Room status if roomNumber was changed
+    if (roomNumber && String(roomNumber).trim() !== String(previous.roomNumber).trim()) {
+      const prevNum = parseInt(String(previous.roomNumber).replace(/[^0-9]/g, ''));
+      const newNum = parseInt(String(roomNumber).replace(/[^0-9]/g, ''));
+      
+      if (!isNaN(prevNum)) {
+        await prisma.room.updateMany({
+          where: { number: prevNum },
+          data: { status: "available" }
+        });
+      }
+      if (!isNaN(newNum)) {
+        await prisma.room.updateMany({
+          where: { number: newNum },
+          data: { status: "occupied" }
+        });
+      }
+    }
+
     // Notify Super Admin and log audit snapshot in Vault
     notifySuperAdminOnEdit({
       recordType: 'checkInLog',
@@ -3176,6 +3466,27 @@ app.delete("/checkin-log/:id", authenticateToken, async (req, res) => {
       where: { id },
       data: { deletedAt: new Date(), deletedBy: adminUser }
     });
+
+    // Check if room should revert to available
+    const parsedRoomNum = parseInt(String(checkInLog.roomNumber).replace(/[^0-9]/g, ''));
+    if (!isNaN(parsedRoomNum)) {
+      const room = await prisma.room.findFirst({ where: { number: parsedRoomNum } });
+      if (room) {
+        const otherActiveBookings = await prisma.booking.findMany({
+          where: {
+            roomId: room.id,
+            status: "checked-in",
+            deletedAt: null
+          }
+        });
+        if (otherActiveBookings.length === 0) {
+          await prisma.room.update({
+            where: { id: room.id },
+            data: { status: "available" }
+          });
+        }
+      }
+    }
 
     await createDeletedRecord('checkInLog', id, checkInLog, adminUser);
     res.json({ message: "Check-in record deleted. Super admin has been notified and record moved to Vault." });

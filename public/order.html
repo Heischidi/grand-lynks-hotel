@@ -541,11 +541,17 @@
           price: i.price,
           quantity: i.quantity,
         }));
+        const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+        const tax = subtotal * (APP_TAX_RATE / 100);
+        const deliveryFee = deliveryOption === "room" ? APP_ROOM_SERVICE_FEE : 0;
+        const total = subtotal + tax + deliveryFee;
+
         const payload = {
           room_id: deliveryOption === "room" ? roomNumber : null,
           guest_name: null,
           items: items.map((i) => `${i.name} x${i.quantity}`).join(", "),
-          total_price: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+          rawItems: items,
+          total_price: total,
           status: "pending",
           notes: specialInstructions || "",
         };
