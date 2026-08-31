@@ -3047,12 +3047,21 @@ const kioskLimiter = rateLimit({
   message: { error: "Too many check-in submissions. Please ask staff for help." }
 });
 
-// POST /checkin-log — Public endpoint. Guest submits arrival details from the tablet.
-app.post("/checkin-log", kioskLimiter, async (req, res) => {
-  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature } = req.body;
+// POST /checkin-log — Public endpoint. Guest submits arrival details & scanned ID card from the tablet.
+app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res) => {
+  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature, idType } = req.body;
 
   if (!guestName || !phone || !roomNumber || !checkInTime || !expectedCheckOut) {
     return res.status(400).json({ error: "Missing required fields: guestName, phone, roomNumber, checkInTime, expectedCheckOut" });
+  }
+
+  let idCardUrl = req.body.idCardUrl || null;
+  if (req.file) {
+    try {
+      idCardUrl = await uploadToSupabase(req.file);
+    } catch (uploadErr) {
+      console.warn("Could not upload ID image to Supabase:", uploadErr.message);
+    }
   }
 
   try {
@@ -3064,6 +3073,8 @@ app.post("/checkin-log", kioskLimiter, async (req, res) => {
         checkInTime: new Date(checkInTime),
         expectedCheckOut: new Date(expectedCheckOut),
         signature: signature ? signature.trim() : null,
+        idCardUrl: idCardUrl,
+        idType: idType ? idType.trim() : (idCardUrl ? "Government ID" : null),
         ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || null
       }
     });
@@ -3102,16 +3113,25 @@ app.get("/checkin-log/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /checkin-log/:id — Admin only. Update check-in record, notify super admin, log to vault.
-app.put("/checkin-log/:id", authenticateToken, async (req, res) => {
+// PUT /checkin-log/:id — Admin only. Update check-in record & ID card, notify super admin, log to vault.
+app.put("/checkin-log/:id", authenticateToken, upload.single('idCard'), async (req, res) => {
   const id = parseInt(req.params.id);
-  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature } = req.body;
+  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature, idType } = req.body;
   const adminUser = req.user?.username || 'admin';
 
   try {
     const previous = await prisma.checkInLog.findUnique({ where: { id } });
     if (!previous || previous.deletedAt) {
       return res.status(404).json({ error: "Check-in record not found" });
+    }
+
+    let idCardUrl = req.body.idCardUrl !== undefined ? req.body.idCardUrl : previous.idCardUrl;
+    if (req.file) {
+      try {
+        idCardUrl = await uploadToSupabase(req.file);
+      } catch (uploadErr) {
+        console.warn("Could not upload new ID image to Supabase:", uploadErr.message);
+      }
     }
 
     const updated = await prisma.checkInLog.update({
@@ -3122,7 +3142,9 @@ app.put("/checkin-log/:id", authenticateToken, async (req, res) => {
         roomNumber: roomNumber !== undefined ? String(roomNumber).trim() : undefined,
         checkInTime: checkInTime ? new Date(checkInTime) : undefined,
         expectedCheckOut: expectedCheckOut ? new Date(expectedCheckOut) : undefined,
-        signature: signature !== undefined ? signature : undefined
+        signature: signature !== undefined ? signature : undefined,
+        idCardUrl: idCardUrl,
+        idType: idType !== undefined ? idType : undefined
       }
     });
 

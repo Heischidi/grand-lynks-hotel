@@ -47,43 +47,43 @@
       position: relative; z-index: 1;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       min-height: 100dvh;
-      padding: clamp(10px, 2.5vh, 20px) 14px;
+      padding: clamp(8px, 2vh, 18px) 14px;
     }
 
     /* ── COMPACT HEADER ── */
     .hotel-header {
       text-align: center;
-      margin-bottom: clamp(8px, 1.8vh, 16px);
+      margin-bottom: clamp(6px, 1.4vh, 14px);
     }
     .hotel-name {
       font-family: 'Playfair Display', serif;
-      font-size: clamp(1.3rem, 3.2vw, 2.1rem);
+      font-size: clamp(1.25rem, 3vw, 1.9rem);
       font-weight: 700;
       letter-spacing: 0.03em;
       color: #fff;
       line-height: 1.1;
     }
     .hotel-sub {
-      font-size: clamp(0.65rem, 1.3vw, 0.78rem);
+      font-size: clamp(0.62rem, 1.2vw, 0.74rem);
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--gold);
-      margin-top: 2px;
+      margin-top: 1px;
     }
     .divider {
-      width: 36px; height: 1.5px;
+      width: 32px; height: 1.5px;
       background: linear-gradient(90deg, transparent, var(--gold), transparent);
-      margin: 4px auto;
+      margin: 3px auto;
     }
 
     /* ── CARD ── */
     .card {
       width: 100%;
-      max-width: 540px;
-      background: rgba(24, 11, 15, 0.92);
+      max-width: 520px;
+      background: rgba(24, 11, 15, 0.93);
       border: 1px solid var(--dark-border);
       border-radius: 16px;
-      padding: clamp(14px, 2.8vh, 24px) clamp(14px, 3.5vw, 26px);
+      padding: clamp(12px, 2.4vh, 20px) clamp(14px, 3.2vw, 24px);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.1) inset;
@@ -91,7 +91,7 @@
 
     .card-title {
       font-family: 'Playfair Display', serif;
-      font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+      font-size: clamp(1rem, 2.2vw, 1.25rem);
       font-weight: 600;
       text-align: center;
       color: #fff;
@@ -100,27 +100,27 @@
     .card-desc {
       text-align: center;
       color: var(--text-secondary);
-      font-size: clamp(0.72rem, 1.4vw, 0.82rem);
-      margin-top: 2px;
-      margin-bottom: clamp(10px, 2vh, 16px);
+      font-size: clamp(0.7rem, 1.3vw, 0.78rem);
+      margin-top: 1px;
+      margin-bottom: clamp(8px, 1.6vh, 12px);
     }
 
     /* ── FORM ── */
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: clamp(8px, 1.4vh, 12px) 10px;
+      gap: clamp(6px, 1.2vh, 10px) 10px;
     }
     .form-grid .full { grid-column: 1 / -1; }
 
     .field label {
       display: block;
-      font-size: clamp(0.62rem, 1.2vw, 0.7rem);
+      font-size: clamp(0.6rem, 1.1vw, 0.67rem);
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--text-secondary);
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
     .field input {
       width: 100%;
@@ -129,8 +129,8 @@
       border-radius: 8px;
       color: #fff;
       font-family: 'Inter', sans-serif;
-      font-size: clamp(0.85rem, 1.8vw, 0.95rem);
-      padding: clamp(7px, 1.4vh, 11px) 10px;
+      font-size: clamp(0.82rem, 1.6vw, 0.92rem);
+      padding: clamp(6px, 1.2vh, 9px) 10px;
       outline: none;
       transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
       -webkit-appearance: none;
@@ -149,23 +149,106 @@
       margin: 0;
     }
 
+    /* ── ID SCAN / UPLOAD WIDGET ── */
+    .id-scan-box {
+      border: 1.5px dashed rgba(201,168,76,0.35);
+      background: rgba(201,168,76,0.04);
+      border-radius: 9px;
+      padding: 7px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .id-scan-box:hover {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.08);
+    }
+    .id-scan-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .id-scan-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .id-scan-title {
+      font-size: clamp(0.72rem, 1.4vw, 0.82rem);
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .id-scan-sub {
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+    }
+    .id-scan-btn {
+      padding: 4px 10px;
+      background: rgba(201,168,76,0.15);
+      border: 1px solid rgba(201,168,76,0.4);
+      border-radius: 6px;
+      color: var(--gold);
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .id-preview-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .id-preview-thumb {
+      width: 44px;
+      height: 32px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .id-preview-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .id-preview-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #4ade80;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .id-retake-btn {
+      background: none;
+      border: none;
+      color: #f87171;
+      font-size: 0.68rem;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+    }
+
     /* ── COMPACT CONFIRM ROW ── */
     .confirm-row {
       display: flex;
       align-items: center;
-      gap: 9px;
-      background: rgba(201,168,76,0.05);
-      border: 1px solid rgba(201,168,76,0.16);
+      gap: 8px;
+      background: rgba(201,168,76,0.04);
+      border: 1px solid rgba(201,168,76,0.14);
       border-radius: 8px;
-      padding: 8px 10px;
+      padding: 6px 9px;
     }
     .confirm-row input[type=checkbox] {
-      width: 17px; height: 17px; flex-shrink: 0;
+      width: 16px; height: 16px; flex-shrink: 0;
       accent-color: var(--burgundy-light);
       cursor: pointer;
     }
     .confirm-row label {
-      font-size: clamp(0.68rem, 1.3vw, 0.78rem);
+      font-size: clamp(0.65rem, 1.2vw, 0.74rem);
       color: #d4b55e;
       cursor: pointer;
       line-height: 1.3;
@@ -174,14 +257,14 @@
     /* ── SUBMIT BUTTON ── */
     .btn-submit {
       width: 100%;
-      margin-top: clamp(8px, 1.8vh, 14px);
-      padding: clamp(10px, 2vh, 14px);
+      margin-top: clamp(6px, 1.4vh, 12px);
+      padding: clamp(9px, 1.8vh, 13px);
       background: linear-gradient(135deg, var(--burgundy) 0%, var(--burgundy-light) 100%);
       color: #fff;
       border: none;
       border-radius: 10px;
       font-family: 'Inter', sans-serif;
-      font-size: clamp(0.88rem, 1.8vw, 1rem);
+      font-size: clamp(0.85rem, 1.7vw, 0.98rem);
       font-weight: 600;
       letter-spacing: 0.03em;
       cursor: pointer;
@@ -196,36 +279,36 @@
     .btn-submit:disabled { opacity: 0.55; cursor: not-allowed; }
 
     /* ── SCREENS ── */
-    .screen { display: none; width: 100%; max-width: 540px; }
+    .screen { display: none; width: 100%; max-width: 520px; }
     .screen.active { display: block; animation: fade-up 0.3s ease; }
-    @keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ── SUCCESS SCREEN ── */
     #success-screen .card {
       text-align: center;
-      padding: clamp(24px, 4vh, 36px) clamp(16px, 4vw, 28px);
+      padding: clamp(20px, 4vh, 32px) clamp(16px, 4vw, 24px);
     }
     .success-icon {
-      width: 58px; height: 58px;
+      width: 52px; height: 52px;
       background: linear-gradient(135deg, #16a34a, #22c55e);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 12px;
-      font-size: 1.8rem;
+      margin: 0 auto 10px;
+      font-size: 1.6rem;
       box-shadow: 0 8px 24px rgba(34,197,94,0.35);
       animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
     }
     @keyframes pop-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .success-name {
       font-family: 'Playfair Display', serif;
-      font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+      font-size: clamp(1.1rem, 2.4vw, 1.4rem);
       color: #fff;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
     .success-sub {
       color: var(--text-secondary);
-      font-size: clamp(0.78rem, 1.5vw, 0.88rem);
-      margin-bottom: 18px;
+      font-size: clamp(0.74rem, 1.4vw, 0.84rem);
+      margin-bottom: 16px;
       line-height: 1.5;
     }
     .countdown-bar-wrap {
@@ -234,7 +317,7 @@
       height: 5px;
       overflow: hidden;
       margin: 0 auto 8px;
-      max-width: 240px;
+      max-width: 220px;
     }
     .countdown-bar {
       height: 100%;
@@ -245,33 +328,34 @@
     }
     .countdown-label {
       color: var(--text-secondary);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
     }
 
     .idle-badge {
-      position: fixed; bottom: 10px; right: 10px;
+      position: fixed; bottom: 8px; right: 8px;
       background: rgba(0,0,0,0.5);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 0.62rem;
+      padding: 3px 7px;
+      font-size: 0.6rem;
       color: rgba(255,255,255,0.3);
       letter-spacing: 0.08em;
       pointer-events: none;
     }
 
     /* Small screens / landscape phone optimization */
-    @media (max-height: 620px) {
-      .kiosk-wrap { padding: 6px 10px; }
-      .hotel-header { margin-bottom: 4px; }
-      .hotel-name { font-size: 1.1rem; }
-      .hotel-sub { font-size: 0.6rem; }
-      .card { padding: 10px 14px; border-radius: 12px; }
-      .card-desc { margin-bottom: 6px; }
-      .field label { margin-bottom: 2px; font-size: 0.6rem; }
-      .field input { padding: 5px 8px; font-size: 0.8rem; }
-      .btn-submit { margin-top: 6px; padding: 8px; }
-      .confirm-row { padding: 5px 8px; }
+    @media (max-height: 600px) {
+      .kiosk-wrap { padding: 4px 8px; }
+      .hotel-header { margin-bottom: 3px; }
+      .hotel-name { font-size: 1rem; }
+      .hotel-sub { font-size: 0.55rem; }
+      .card { padding: 8px 12px; border-radius: 10px; }
+      .card-desc { margin-bottom: 4px; }
+      .field label { margin-bottom: 1px; font-size: 0.58rem; }
+      .field input { padding: 4px 7px; font-size: 0.76rem; }
+      .id-scan-box { padding: 4px 7px; }
+      .btn-submit { margin-top: 4px; padding: 7px; font-size: 0.8rem; }
+      .confirm-row { padding: 4px 7px; }
     }
   </style>
 </head>
@@ -311,6 +395,30 @@
             <label for="f-checkout">Expected Check-Out</label>
             <input id="f-checkout" type="date" required />
           </div>
+
+          <!-- ID SCANNING / CAMERA CAPTURE -->
+          <div class="field full">
+            <label>Guest ID Document (Staff Camera Scan)</label>
+            <input type="file" id="f-id-card" accept="image/*" capture="environment" style="display:none" onchange="handleIdPhotoCaptured(event)" />
+            <div class="id-scan-box" id="id-scan-box" onclick="triggerIdCapture()">
+              <div id="id-empty-state" class="id-scan-left">
+                <span class="id-scan-icon">🪪</span>
+                <div>
+                  <div class="id-scan-title">Scan / Take Photo of ID Card</div>
+                  <div class="id-scan-sub">NIN, Driver's License, Passport, or Voter Card</div>
+                </div>
+              </div>
+              <span id="id-scan-action-btn" class="id-scan-btn">📷 Scan ID</span>
+              <div id="id-preview-state" class="id-preview-container" style="display:none;">
+                <img id="id-thumb-img" src="" alt="ID Thumbnail" class="id-preview-thumb" />
+                <div class="id-preview-text">
+                  <div class="id-preview-name">✓ ID Card Captured</div>
+                  <button type="button" class="id-retake-btn" onclick="event.stopPropagation(); retakeIdPhoto();">Retake Photo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="field full">
             <div class="confirm-row">
               <input type="checkbox" id="f-confirm" required />
@@ -328,7 +436,7 @@
     <div class="card">
       <div class="success-icon">&#10003;</div>
       <div class="success-name" id="success-name">Welcome!</div>
-      <div class="success-sub">Your arrival has been recorded successfully.<br>Please collect your key from the front desk.<br>Enjoy your stay at Grand Lynks!</div>
+      <div class="success-sub">Your arrival and ID have been recorded successfully.<br>Please collect your key from the front desk.<br>Enjoy your stay at Grand Lynks!</div>
       <div class="countdown-bar-wrap">
         <div class="countdown-bar" id="countdown-bar"></div>
       </div>
@@ -342,6 +450,7 @@
 <script>
   const API_URL = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || 'https://grand-lynks-hotel.vercel.app/api';
   let countdownTimer = null;
+  let selectedIdFile = null;
 
   function setDefaultTimes() {
     var now = new Date();
@@ -357,8 +466,37 @@
     document.getElementById(id).classList.add('active');
   }
 
+  function triggerIdCapture() {
+    document.getElementById('f-id-card').click();
+  }
+
+  function handleIdPhotoCaptured(event) {
+    var file = event.target.files && event.target.files[0];
+    if (!file) return;
+    selectedIdFile = file;
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('id-thumb-img').src = e.target.result;
+      document.getElementById('id-empty-state').style.display = 'none';
+      document.getElementById('id-scan-action-btn').style.display = 'none';
+      document.getElementById('id-preview-state').style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function retakeIdPhoto() {
+    selectedIdFile = null;
+    document.getElementById('f-id-card').value = '';
+    document.getElementById('id-thumb-img').src = '';
+    document.getElementById('id-preview-state').style.display = 'none';
+    document.getElementById('id-empty-state').style.display = 'flex';
+    document.getElementById('id-scan-action-btn').style.display = 'inline-block';
+  }
+
   function resetToForm() {
     document.getElementById('checkin-form').reset();
+    retakeIdPhoto();
     document.getElementById('submit-btn').disabled = false;
     document.getElementById('submit-btn').textContent = 'Confirm Arrival';
     setDefaultTimes();
@@ -381,15 +519,22 @@
     var checkoutDate = document.getElementById('f-checkout').value;
     var expectedCheckOut = new Date(checkoutDate + 'T12:00:00').toISOString();
 
+    var formData = new FormData();
+    formData.append('guestName', guestName);
+    formData.append('phone', phone);
+    formData.append('roomNumber', roomNumber);
+    formData.append('checkInTime', checkInTime);
+    formData.append('expectedCheckOut', expectedCheckOut);
+    formData.append('signature', 'I confirm the above details are correct');
+    if (selectedIdFile) {
+      formData.append('idCard', selectedIdFile);
+      formData.append('idType', 'Scanned ID Card');
+    }
+
     try {
       var res = await fetch(API_URL + '/checkin-log', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          guestName: guestName, phone: phone, roomNumber: roomNumber,
-          checkInTime: checkInTime, expectedCheckOut: expectedCheckOut,
-          signature: 'I confirm the above details are correct'
-        })
+        body: formData
       });
       if (!res.ok) {
         var err = await res.json().catch(function() { return {}; });
@@ -399,7 +544,7 @@
       showScreen('success-screen');
       startCountdown(8);
     } catch(err) {
-      alert('Could not save your check-in. Please ask a staff member for assistance.\n\n(' + err.message + ')');
+      alert('Could not save check-in. Please ask staff for assistance.\n\n(' + err.message + ')');
       btn.disabled = false;
       btn.textContent = 'Confirm Arrival';
     }

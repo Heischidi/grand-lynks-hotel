@@ -2808,7 +2808,7 @@ function renderCheckInLog(entries) {
     if (!tbody) return;
 
     if (!entries || entries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-10 text-center text-gray-400">No check-in records yet. Once guests sign in via the kiosk, their entries will appear here.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-10 text-center text-gray-400">No check-in records yet. Once guests sign in via the kiosk, their entries will appear here.</td></tr>';
         return;
     }
 
@@ -2824,6 +2824,11 @@ function renderCheckInLog(entries) {
         const minsAgo = Math.floor(msAgo / 60000);
         const agoText = hrsAgo > 0 ? hrsAgo + 'h ago' : (minsAgo > 0 ? minsAgo + 'm ago' : 'just now');
 
+        const escapedName = (e.guestName || '').replace(/'/g, "\\'");
+        const idBadge = e.idCardUrl
+            ? `<button onclick="viewIdModal('${e.idCardUrl}', '${escapedName}', '${e.roomNumber || ''}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs rounded-lg border border-emerald-200 transition shadow-sm">🪪 View ID</button>`
+            : `<span class="text-xs text-gray-400">No ID</span>`;
+
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50 transition-colors';
         tr.innerHTML = `
@@ -2833,6 +2838,7 @@ function renderCheckInLog(entries) {
             <td class="px-4 py-3">
                 <span class="inline-block bg-blue-50 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-full">Room ${e.roomNumber}</span>
             </td>
+            <td class="px-4 py-3">${idBadge}</td>
             <td class="px-4 py-3 text-gray-700 text-xs">${checkIn}</td>
             <td class="px-4 py-3 text-gray-700 text-xs">${checkOut}</td>
             <td class="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">${loggedAt} <span class="ml-1 text-emerald-600 font-medium">${agoText}</span></td>
@@ -2873,6 +2879,19 @@ window.openEditCheckInModal = async function (id) {
     }
 
     document.getElementById('editCheckInSignature').value = entry.signature || '';
+
+    // ID preview
+    const previewDiv = document.getElementById('editCheckInIdPreview');
+    const previewImg = document.getElementById('editCheckInIdImg');
+    const fileInput = document.getElementById('editCheckInIdFile');
+    if (fileInput) fileInput.value = '';
+    if (entry.idCardUrl) {
+        if (previewImg) previewImg.src = entry.idCardUrl;
+        if (previewDiv) previewDiv.classList.remove('hidden');
+    } else {
+        if (previewDiv) previewDiv.classList.add('hidden');
+    }
+
     window.openModal('editCheckInModal');
 };
 
@@ -2886,18 +2905,22 @@ window.saveEditedCheckIn = async function (event) {
     const expectedCheckOutVal = document.getElementById('editCheckInExpectedCheckOut').value;
     const signature = document.getElementById('editCheckInSignature').value.trim();
 
-    const payload = {
-        guestName,
-        phone,
-        roomNumber,
-        checkInTime: checkInTimeVal ? new Date(checkInTimeVal).toISOString() : undefined,
-        expectedCheckOut: expectedCheckOutVal ? new Date(expectedCheckOutVal + 'T12:00:00').toISOString() : undefined,
-        signature
-    };
+    const formData = new FormData();
+    formData.append('guestName', guestName);
+    formData.append('phone', phone);
+    formData.append('roomNumber', roomNumber);
+    if (checkInTimeVal) formData.append('checkInTime', new Date(checkInTimeVal).toISOString());
+    if (expectedCheckOutVal) formData.append('expectedCheckOut', new Date(expectedCheckOutVal + 'T12:00:00').toISOString());
+    formData.append('signature', signature);
+
+    const fileInput = document.getElementById('editCheckInIdFile');
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        formData.append('idCard', fileInput.files[0]);
+    }
 
     const res = await authFetch('/checkin-log/' + id, {
         method: 'PUT',
-        body: JSON.stringify(payload)
+        body: formData
     });
 
     if (res && res.ok) {
@@ -2910,6 +2933,19 @@ window.saveEditedCheckIn = async function (event) {
     }
 };
 
+window.viewIdModal = function (url, name, room) {
+    const img = document.getElementById('idViewerImage');
+    const title = document.getElementById('idViewerTitle');
+    const subtitle = document.getElementById('idViewerSubtitle');
+    const dl = document.getElementById('idViewerDownloadLink');
+
+    if (img) img.src = url;
+    if (title) title.textContent = name ? `${name} — ID Document` : 'Guest ID Document';
+    if (subtitle) subtitle.textContent = room ? `Room ${room} Arrival Verification` : '';
+    if (dl) dl.href = url;
+    window.openModal('idViewerModal');
+};
+
 window.deleteCheckInEntry = async function (id) {
     if (!confirm('Are you sure you want to delete this check-in record?\n\nNote: A deletion alert will be sent immediately to the Super Admin and logged to the Vault.')) return;
     const res = await authFetch('/checkin-log/' + id, { method: 'DELETE' });
@@ -2920,3 +2956,4 @@ window.deleteCheckInEntry = async function (id) {
         alert('Failed to delete record.');
     }
 };
+

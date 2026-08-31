@@ -320,6 +320,8 @@ model CheckInLog {
   checkInTime      DateTime
   expectedCheckOut DateTime
   signature        String?   // e.g. "I confirm the above details are correct"
+  idCardUrl        String?   // Public URL of scanned / photographed ID card
+  idType           String?   // National ID, Passport, Driver License, Voters Card, etc.
   ipAddress        String?
   deletedAt        DateTime?
   deletedBy        String?

@@ -726,6 +726,7 @@
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Guest Name</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Room</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID Document</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-In</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Expected Check-Out</th>
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Logged At</th>
@@ -733,7 +734,7 @@
                                 </tr>
                             </thead>
                             <tbody id="checkinLogTableBody" class="divide-y divide-gray-50 text-sm text-gray-700">
-                                <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">Loading check-in records...</td></tr>
+                                <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400">Loading check-in records...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1207,11 +1208,46 @@
                     <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Signature / Confirmation Note</label>
                     <input type="text" id="editCheckInSignature" class="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="e.g. I confirm the above details are correct">
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">ID Document (Scan / Photo)</label>
+                    <div class="flex items-center gap-3">
+                        <div id="editCheckInIdPreview" class="hidden">
+                            <img id="editCheckInIdImg" src="" class="h-12 w-16 object-cover rounded border border-gray-200 shadow-sm" alt="ID Document">
+                        </div>
+                        <input type="file" id="editCheckInIdFile" accept="image/*" class="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
                 <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
                     <button type="button" onclick="closeModal('editCheckInModal')" class="px-5 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Cancel</button>
                     <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition shadow-md">Save & Log to Vault</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ID VIEWER MODAL -->
+    <div id="idViewerModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4" onclick="closeModal('idViewerModal')">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900" id="idViewerTitle">Guest ID Document</h3>
+                    <p class="text-xs text-gray-500" id="idViewerSubtitle"></p>
+                </div>
+                <button onclick="closeModal('idViewerModal')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-4 flex-1 flex items-center justify-center bg-gray-900/5 min-h-[300px]">
+                <img id="idViewerImage" src="" alt="ID Document" class="max-h-[60vh] max-w-full object-contain rounded-lg shadow" />
+            </div>
+            <div class="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50">
+                <a id="idViewerDownloadLink" href="" target="_blank" download="guest-id.jpg" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Download / Open High-Res
+                </a>
+                <button onclick="closeModal('idViewerModal')" class="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-100 transition">Close</button>
+            </div>
         </div>
     </div>
 
