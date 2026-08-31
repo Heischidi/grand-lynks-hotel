@@ -2677,6 +2677,8 @@ window.openEditBookingModal = async function (id) {
         
         document.getElementById('editBookingRoomSelect').value = booking.roomId;
         document.getElementById('editBookingStatusSelect').value = booking.status;
+        // Track original status so we only warn if the admin deliberately changes it to checked-out
+        document.getElementById('editBookingOriginalStatus').value = booking.status;
         
         document.getElementById('editBookingStartDate').value = new Date(booking.startDate).toISOString().split('T')[0];
         document.getElementById('editBookingEndDate').value = new Date(booking.endDate).toISOString().split('T')[0];
@@ -2730,13 +2732,14 @@ window.saveEditedBooking = async function (event) {
     const status = document.getElementById('editBookingStatusSelect').value;
     const guestName = document.getElementById('editBookingGuestName').value;
 
-    // Safety guard: prevent accidental check-outs via the Edit modal.
-    // The dedicated "Check Out" button with its full checkout flow should be used instead.
-    if (status === 'checked-out') {
+    // Only warn if the admin is actively CHANGING the status to checked-out.
+    // If the booking was already checked-out, no warning needed — they're just editing other fields.
+    const originalStatus = document.getElementById('editBookingOriginalStatus').value;
+    if (status === 'checked-out' && originalStatus !== 'checked-out') {
         const confirmed = confirm(
-            `⚠️ WARNING: You are about to mark Booking #${id} (${guestName}) as CHECKED-OUT via the Edit form.\n\n` +
-            `This is an administrative override. Room status will be freed immediately.\n\n` +
-            `Are you absolutely sure? Use the "Check Out" button on the orders list for the standard checkout process.`
+            `⚠️ WARNING: You are changing Booking #${id} (${guestName}) to CHECKED-OUT.\n\n` +
+            `Room status will be freed immediately.\n\n` +
+            `Are you sure? Use the "Check Out" button on the orders list for the standard checkout process.`
         );
         if (!confirmed) return;
     }
