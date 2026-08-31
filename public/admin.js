@@ -1723,29 +1723,53 @@ window.editTransaction = async function (id, type) {
         window.openEditBookingModal(id);
         return;
     }
-    const isBooking = type === 'booking';
-    const typeLabel = isBooking ? 'Booking' : 'Food Order';
-    
-    // Simple prompt-based editing for testing purposes
-    const newStatus = prompt(`Enter new status for ${typeLabel} #${id} (e.g., pending, confirmed, cancelled, completed, checked-in):`);
-    if (newStatus === null) return; // User cancelled
+    // --- Food Order edit: open the dedicated order edit modal ---
+    window.openEditOrderModal(id);
+};
 
-    const newAmount = prompt(`Enter new total amount (optional, leave blank to keep current):`);
-    
-    const data = { status: newStatus };
-    if (newAmount) data.totalAmount = parseFloat(newAmount);
+window.openEditOrderModal = async function (id) {
+    try {
+        const response = await authFetch(`/orders/${id}`);
+        if (!response || !response.ok) {
+            alert('Failed to load order details.');
+            return;
+        }
+        const order = await response.json();
 
-    const endpoint = isBooking ? `/bookings/${id}` : `/orders/${id}`;
-    const response = await authFetch(endpoint, {
+        document.getElementById('editOrderId').value = order.id;
+        document.getElementById('editOrderStatusSelect').value = order.status;
+        document.getElementById('editOrderNotes').value = order.notes || '';
+        document.getElementById('editOrderTotal').value = order.totalAmount || 0;
+        document.getElementById('editOrderGuestLabel').textContent =
+            (order.guest ? order.guest.name : 'Walk-in') +
+            (order.room ? ' · Room ' + (order.room.number || order.room.id) : '');
+
+        window.openModal('editOrderModal');
+    } catch (err) {
+        console.error('Error opening edit order modal:', err);
+        alert('An error occurred: ' + err.message);
+    }
+};
+
+window.saveEditedOrder = async function (event) {
+    event.preventDefault();
+    const id = document.getElementById('editOrderId').value;
+    const status = document.getElementById('editOrderStatusSelect').value;
+    const notes = document.getElementById('editOrderNotes').value;
+    const totalAmount = parseFloat(document.getElementById('editOrderTotal').value) || 0;
+
+    const response = await authFetch(`/orders/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(data)
+        body: JSON.stringify({ status, notes, totalAmount })
     });
 
     if (response && response.ok) {
-        alert(`${typeLabel} updated successfully.`);
-        fetchOrders();
+        window.closeModal('editOrderModal');
+        // Invalidate cache so fetchOrders always pulls fresh data
+        window.allTransactions = [];
+        await fetchOrders();
     } else {
-        alert(`Failed to update ${typeLabel.toLowerCase()}.`);
+        alert('Failed to update order. Please try again.');
     }
 };
 
@@ -2704,9 +2728,21 @@ window.saveEditedBooking = async function (event) {
     event.preventDefault();
     const id = document.getElementById('editBookingId').value;
     const status = document.getElementById('editBookingStatusSelect').value;
+    const guestName = document.getElementById('editBookingGuestName').value;
+
+    // Safety guard: prevent accidental check-outs via the Edit modal.
+    // The dedicated "Check Out" button with its full checkout flow should be used instead.
+    if (status === 'checked-out') {
+        const confirmed = confirm(
+            `⚠️ WARNING: You are about to mark Booking #${id} (${guestName}) as CHECKED-OUT via the Edit form.\n\n` +
+            `This is an administrative override. Room status will be freed immediately.\n\n` +
+            `Are you absolutely sure? Use the "Check Out" button on the orders list for the standard checkout process.`
+        );
+        if (!confirmed) return;
+    }
 
     const payload = {
-        guestName: document.getElementById('editBookingGuestName').value,
+        guestName: guestName,
         guestPhone: document.getElementById('editBookingGuestPhone').value,
         guestEmail: document.getElementById('editBookingGuestEmail').value,
         roomId: document.getElementById('editBookingRoomSelect').value,
@@ -2732,10 +2768,13 @@ window.saveEditedBooking = async function (event) {
     });
 
     if (response && response.ok) {
-        alert("Booking updated successfully.");
+        alert('Booking updated successfully.');
         window.closeModal('editBookingModal');
-        if (typeof fetchOrders === 'function') fetchOrders();
+        // Invalidate cache so fetchOrders always pulls fresh data
+        window.allTransactions = [];
+        if (typeof fetchOrders === 'function') await fetchOrders();
     } else {
-        alert("Failed to update booking.");
+        const errData = response ? await response.json().catch(() => ({})) : {};
+        alert('Failed to update booking.' + (errData.error ? '\n' + errData.error : ''));
     }
 };

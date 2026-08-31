@@ -1466,6 +1466,25 @@ app.delete("/bookings/:id", authenticateToken, async (req, res) => {
   }
 });
 
+app.get("/orders/:id", authenticateToken, async (req, res) => {
+  const orderId = parseInt(req.params.id);
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        guest: true,
+        room: true,
+        orderItems: { include: { menuItem: true } }
+      }
+    });
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    res.json(order);
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    res.status(500).json({ error: "Failed to fetch order" });
+  }
+});
+
 app.delete("/orders/:id", authenticateToken, async (req, res) => {
   const orderId = parseInt(req.params.id);
   try {
