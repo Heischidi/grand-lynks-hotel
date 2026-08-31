@@ -2906,6 +2906,70 @@ Please add \`GEMINI_API_KEY="your_api_key"\` to your \`.env\` file to unlock ful
 });
 
 
+// ============================================================
+// GUEST SELF CHECK-IN KIOSK API
+// ============================================================
+
+// Rate limiter for public kiosk submissions (max 30 per 15 min per IP)
+const kioskLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: "Too many check-in submissions. Please ask staff for help." }
+});
+
+// POST /checkin-log — Public endpoint. Guest submits arrival details from the tablet.
+app.post("/checkin-log", kioskLimiter, async (req, res) => {
+  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature } = req.body;
+
+  if (!guestName || !phone || !roomNumber || !checkInTime || !expectedCheckOut) {
+    return res.status(400).json({ error: "Missing required fields: guestName, phone, roomNumber, checkInTime, expectedCheckOut" });
+  }
+
+  try {
+    const entry = await prisma.checkInLog.create({
+      data: {
+        guestName: guestName.trim(),
+        phone: phone.trim(),
+        roomNumber: String(roomNumber).trim(),
+        checkInTime: new Date(checkInTime),
+        expectedCheckOut: new Date(expectedCheckOut),
+        signature: signature ? signature.trim() : null,
+        ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || null
+      }
+    });
+    res.status(201).json({ message: "Check-in recorded successfully.", entry });
+  } catch (error) {
+    console.error("Error saving check-in log:", error);
+    res.status(500).json({ error: "Failed to save check-in record." });
+  }
+});
+
+// GET /checkin-log — Admin only. Returns all check-in log entries, newest first.
+app.get("/checkin-log", authenticateToken, async (req, res) => {
+  try {
+    const entries = await prisma.checkInLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200
+    });
+    res.json(entries);
+  } catch (error) {
+    console.error("Error fetching check-in log:", error);
+    res.status(500).json({ error: "Failed to fetch check-in records." });
+  }
+});
+
+// DELETE /checkin-log/:id — Admin only. Remove a single record.
+app.delete("/checkin-log/:id", authenticateToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    await prisma.checkInLog.delete({ where: { id } });
+    res.json({ message: "Check-in record deleted." });
+  } catch (error) {
+    console.error("Error deleting check-in log entry:", error);
+    res.status(500).json({ error: "Failed to delete record." });
+  }
+});
+
 const registerFinanceRoutes = require('./financeRoutes.js')
 registerFinanceRoutes(app, prisma, authenticateSuperAdmin, bcrypt, multer, uploadToSupabase)
 // --- Start server ---

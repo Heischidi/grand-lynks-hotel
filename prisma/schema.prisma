@@ -308,3 +308,20 @@ model OtherIncome {
 
   @@map("other_income")
 }
+
+// ============================================================
+// GUEST SELF CHECK-IN KIOSK — Arrival Log
+// ============================================================
+model CheckInLog {
+  id               Int       @id @default(autoincrement())
+  guestName        String
+  phone            String
+  roomNumber       String
+  checkInTime      DateTime
+  expectedCheckOut DateTime
+  signature        String?   // e.g. "I confirm the above details are correct"
+  ipAddress        String?
+  createdAt        DateTime  @default(now())
+
+  @@map("check_in_logs")
+}

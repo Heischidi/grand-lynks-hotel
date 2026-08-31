@@ -1,0 +1,303 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Guest Check-In — Grand Lynks Hotel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="config.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --burgundy: #8b1d30; --burgundy-dark: #6a1524; --burgundy-light: #b02540;
+      --gold: #c9a84c; --dark: #0d0608; --dark-card: #1a0c10;
+      --dark-border: rgba(139,29,48,0.25); --text-primary: #f5f0f1; --text-secondary: #a89096;
+    }
+    html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--dark); color: var(--text-primary); overflow: hidden; }
+    .bg-pattern { position: fixed; inset: 0; z-index: 0; background: radial-gradient(ellipse 80% 60% at 10% 90%, rgba(139,29,48,0.18) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 90% 10%, rgba(139,29,48,0.12) 0%, transparent 70%), linear-gradient(135deg, #0d0608 0%, #150810 50%, #0d0608 100%); }
+    .bg-pattern::after { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(139,29,48,0.04) 60px, rgba(139,29,48,0.04) 61px), repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(139,29,48,0.04) 60px, rgba(139,29,48,0.04) 61px); }
+    .kiosk-wrap { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .hotel-header { text-align: center; margin-bottom: 24px; }
+    .hotel-header .divider { width: 48px; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin: 10px auto; }
+    .hotel-name { font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 4vw, 2.8rem); font-weight: 700; letter-spacing: 0.04em; color: #fff; }
+    .hotel-sub { font-size: clamp(0.7rem, 1.5vw, 0.9rem); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-top: 2px; }
+    .card { width: 100%; max-width: 680px; background: rgba(26,12,16,0.85); border: 1px solid var(--dark-border); border-radius: 20px; padding: clamp(24px, 5vw, 44px); backdrop-filter: blur(20px); box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.08) inset; }
+    .card-title { font-family: 'Playfair Display', serif; font-size: clamp(1.2rem, 3vw, 1.7rem); font-weight: 600; text-align: center; margin-bottom: 6px; color: #fff; }
+    .card-desc { text-align: center; color: var(--text-secondary); font-size: clamp(0.8rem, 1.5vw, 0.9rem); margin-bottom: 24px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 7px; }
+    .field input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-family: 'Inter', sans-serif; font-size: clamp(0.95rem, 2vw, 1.1rem); padding: clamp(12px, 2.5vw, 16px) clamp(14px, 3vw, 18px); outline: none; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; -webkit-appearance: none; }
+    .field input:focus { border-color: var(--burgundy-light); background: rgba(139,29,48,0.1); box-shadow: 0 0 0 3px rgba(139,29,48,0.2); }
+    .field input::placeholder { color: rgba(255,255,255,0.25); }
+    .field input[type="datetime-local"]::-webkit-calendar-picker-indicator, .field input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
+    .confirm-row { display: flex; align-items: flex-start; gap: 12px; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.18); border-radius: 10px; padding: 14px 16px; margin-top: 4px; }
+    .confirm-row input[type=checkbox] { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--burgundy-light); cursor: pointer; margin-top: 2px; }
+    .confirm-row label { font-size: clamp(0.8rem, 1.6vw, 0.88rem); color: #c9a84c; cursor: pointer; line-height: 1.5; }
+    .btn-submit { width: 100%; margin-top: 18px; padding: clamp(14px, 3vw, 18px); background: linear-gradient(135deg, var(--burgundy) 0%, var(--burgundy-light) 100%); color: #fff; border: none; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: clamp(1rem, 2vw, 1.1rem); font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; box-shadow: 0 8px 24px rgba(139,29,48,0.45); }
+    .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(139,29,48,0.55); }
+    .btn-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+    .screen { display: none; }
+    .screen.active { display: block; animation: fade-up 0.35s ease; }
+    @keyframes fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    /* PIN screen */
+    #pin-screen .card { max-width: 380px; }
+    .pin-dots { display: flex; justify-content: center; gap: 14px; margin: 20px 0 26px; }
+    .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); transition: background 0.15s, border-color 0.15s; }
+    .pin-dot.filled { background: var(--burgundy-light); border-color: var(--burgundy-light); }
+    .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 270px; margin: 0 auto; }
+    .pin-key { aspect-ratio: 1; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; background: rgba(255,255,255,0.05); color: #fff; font-size: 1.4rem; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.1s; font-family: 'Inter', sans-serif; }
+    .pin-key:hover { background: rgba(139,29,48,0.3); }
+    .pin-key:active { transform: scale(0.9); }
+    .pin-key.clear { font-size: 0.8rem; letter-spacing: 0.05em; color: var(--text-secondary); }
+    .pin-error { text-align: center; color: #f87171; font-size: 0.85rem; margin-top: 14px; min-height: 20px; }
+    /* Success screen */
+    #success-screen .card { max-width: 480px; text-align: center; }
+    .success-icon { width: 80px; height: 80px; background: linear-gradient(135deg, #16a34a, #22c55e); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.4rem; box-shadow: 0 8px 32px rgba(34,197,94,0.35); animation: pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes pop-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .success-name { font-family: 'Playfair Display', serif; font-size: clamp(1.3rem, 3vw, 1.8rem); color: #fff; margin-bottom: 8px; }
+    .success-sub { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px; line-height: 1.6; }
+    .countdown-bar-wrap { background: rgba(255,255,255,0.08); border-radius: 999px; height: 6px; overflow: hidden; margin: 0 auto 10px; max-width: 300px; }
+    .countdown-bar { height: 100%; background: linear-gradient(90deg, var(--burgundy), var(--gold)); border-radius: 999px; width: 100%; transition: width 1s linear; }
+    .countdown-label { color: var(--text-secondary); font-size: 0.8rem; }
+    .idle-badge { position: fixed; bottom: 14px; right: 14px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 5px 10px; font-size: 0.68rem; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; }
+    @media (max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="bg-pattern"></div>
+<div class="kiosk-wrap">
+
+  <!-- PIN SCREEN -->
+  <div class="screen active" id="pin-screen">
+    <div class="hotel-header">
+      <div class="hotel-name">Grand Lynks</div>
+      <div class="divider"></div>
+      <div class="hotel-sub">Homes &amp; Apartments</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Kiosk Access</div>
+      <div class="card-desc">Enter the PIN to open guest check-in</div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="dot-0"></div>
+        <div class="pin-dot" id="dot-1"></div>
+        <div class="pin-dot" id="dot-2"></div>
+        <div class="pin-dot" id="dot-3"></div>
+      </div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key clear" onclick="pinClear()">Clear</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key clear" onclick="pinBack()">&#9003;</button>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+    </div>
+  </div>
+
+  <!-- FORM SCREEN -->
+  <div class="screen" id="form-screen">
+    <div class="hotel-header">
+      <div class="hotel-name">Grand Lynks</div>
+      <div class="divider"></div>
+      <div class="hotel-sub">Guest Arrival Registration</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Welcome — Please Sign In</div>
+      <div class="card-desc">Kindly fill in your details below to confirm your arrival.</div>
+      <form id="checkin-form" onsubmit="submitCheckIn(event)" autocomplete="off">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="f-name">Full Name</label>
+            <input id="f-name" type="text" placeholder="e.g. Aisha Bello" required />
+          </div>
+          <div class="field">
+            <label for="f-phone">Phone Number</label>
+            <input id="f-phone" type="tel" placeholder="+234 800 000 0000" required />
+          </div>
+          <div class="field">
+            <label for="f-room">Room Number</label>
+            <input id="f-room" type="text" placeholder="e.g. 203" required />
+          </div>
+          <div class="field">
+            <label for="f-checkin">Check-In Date &amp; Time</label>
+            <input id="f-checkin" type="datetime-local" required />
+          </div>
+          <div class="field">
+            <label for="f-checkout">Expected Check-Out Date</label>
+            <input id="f-checkout" type="date" required />
+          </div>
+          <div class="field full">
+            <div class="confirm-row">
+              <input type="checkbox" id="f-confirm" required />
+              <label for="f-confirm">I confirm that the details provided above are accurate and I am checking in to Grand Lynks Homes &amp; Apartments.</label>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn-submit" id="submit-btn">Confirm Arrival</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SUCCESS SCREEN -->
+  <div class="screen" id="success-screen">
+    <div class="card">
+      <div class="success-icon">&#10003;</div>
+      <div class="success-name" id="success-name">Welcome!</div>
+      <div class="success-sub">Your arrival has been recorded successfully.<br>Please collect your key from the front desk.<br>Enjoy your stay at Grand Lynks!</div>
+      <div class="countdown-bar-wrap">
+        <div class="countdown-bar" id="countdown-bar"></div>
+      </div>
+      <div class="countdown-label">Resetting in <span id="countdown-num">8</span> seconds...</div>
+    </div>
+  </div>
+
+</div>
+<div class="idle-badge">KIOSK MODE</div>
+
+<script>
+  const API_URL = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || 'https://grand-lynks-hotel.vercel.app/api';
+  let correctPin = '1234';
+  let pinEntry = '';
+  let countdownTimer = null;
+  let idleTimer = null;
+  const IDLE_TIMEOUT = 90000;
+
+  async function loadPin() {
+    try {
+      const res = await fetch(API_URL + '/settings');
+      if (res.ok) { const cfg = await res.json(); if (cfg.kioskPin) correctPin = String(cfg.kioskPin); }
+    } catch(e) {}
+  }
+  loadPin();
+
+  function setDefaultTimes() {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('f-checkin').value = local;
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('f-checkout').value = tomorrow.toISOString().split('T')[0];
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+  }
+
+  function updateDots() {
+    for (var i = 0; i < 4; i++) {
+      document.getElementById('dot-' + i).classList.toggle('filled', i < pinEntry.length);
+    }
+  }
+
+  function pinPress(digit) {
+    if (pinEntry.length >= 4) return;
+    pinEntry += digit;
+    updateDots();
+    if (pinEntry.length === 4) { setTimeout(checkPin, 120); }
+  }
+
+  function pinBack() { pinEntry = pinEntry.slice(0, -1); updateDots(); }
+  function pinClear() { pinEntry = ''; updateDots(); }
+
+  function checkPin() {
+    var errEl = document.getElementById('pin-error');
+    if (pinEntry === correctPin) {
+      errEl.textContent = '';
+      pinEntry = '';
+      updateDots();
+      setDefaultTimes();
+      showScreen('form-screen');
+      resetIdleTimer();
+    } else {
+      errEl.textContent = 'Incorrect PIN. Please try again.';
+      pinEntry = '';
+      updateDots();
+      var dots = document.querySelectorAll('.pin-dot');
+      dots.forEach(function(d) { d.style.borderColor = '#f87171'; });
+      setTimeout(function() { dots.forEach(function(d) { d.style.borderColor = ''; }); }, 600);
+    }
+  }
+
+  function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function() {
+      showScreen('pin-screen');
+      document.getElementById('checkin-form').reset();
+    }, IDLE_TIMEOUT);
+  }
+  document.addEventListener('touchstart', resetIdleTimer);
+  document.addEventListener('click', resetIdleTimer);
+
+  async function submitCheckIn(e) {
+    e.preventDefault();
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    var guestName = document.getElementById('f-name').value.trim();
+    var phone = document.getElementById('f-phone').value.trim();
+    var roomNumber = document.getElementById('f-room').value.trim();
+    var checkInTime = new Date(document.getElementById('f-checkin').value).toISOString();
+    var checkoutDate = document.getElementById('f-checkout').value;
+    var expectedCheckOut = new Date(checkoutDate + 'T12:00:00').toISOString();
+
+    try {
+      var res = await fetch(API_URL + '/checkin-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestName: guestName, phone: phone, roomNumber: roomNumber, checkInTime: checkInTime, expectedCheckOut: expectedCheckOut, signature: 'I confirm the above details are correct' })
+      });
+      if (!res.ok) { var err = await res.json().catch(function() { return {}; }); throw new Error(err.error || 'Network error'); }
+      document.getElementById('success-name').textContent = 'Welcome, ' + guestName + '!';
+      showScreen('success-screen');
+      clearTimeout(idleTimer);
+      startCountdown(8);
+      document.getElementById('checkin-form').reset();
+    } catch(err) {
+      alert('Could not save your check-in. Please ask a staff member for assistance.\n\n(' + err.message + ')');
+      btn.disabled = false;
+      btn.textContent = 'Confirm Arrival';
+    }
+  }
+
+  function startCountdown(seconds) {
+    var remaining = seconds;
+    var bar = document.getElementById('countdown-bar');
+    var num = document.getElementById('countdown-num');
+    bar.style.width = '100%';
+    num.textContent = remaining;
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(function() {
+      remaining--;
+      num.textContent = remaining;
+      bar.style.width = ((remaining / seconds) * 100) + '%';
+      if (remaining <= 0) {
+        clearInterval(countdownTimer);
+        showScreen('pin-screen');
+        document.getElementById('submit-btn').disabled = false;
+        document.getElementById('submit-btn').textContent = 'Confirm Arrival';
+      }
+    }, 1000);
+  }
+
+  document.addEventListener('keydown', function(e) {
+    var active = document.querySelector('.screen.active');
+    if (active && active.id === 'pin-screen') {
+      if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+      if (e.key === 'Backspace') pinBack();
+      if (e.key === 'Escape') pinClear();
+    }
+  });
+</script>
+</body>
+</html>

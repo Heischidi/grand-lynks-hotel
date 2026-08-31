@@ -132,7 +132,8 @@ const sections = {
     guests: document.getElementById('section-guests'),
     reviews: document.getElementById('section-reviews'),
     settings: document.getElementById('section-settings'),
-    tracker: document.getElementById('section-tracker')
+    tracker: document.getElementById('section-tracker'),
+    checkinlog: document.getElementById('section-checkinlog')
 };
 
 // --- AUTHENTICATION ---
@@ -147,6 +148,7 @@ function init() {
     sections.reviews = document.getElementById('section-reviews');
     sections.settings = document.getElementById('section-settings');
     sections.tracker = document.getElementById('section-tracker');
+    sections.checkinlog = document.getElementById('section-checkinlog');
 
     const token = localStorage.getItem('adminToken');
     const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
@@ -281,6 +283,7 @@ function switchTab(tabName) {
         if (tabName === 'reviews') fetchAdminReviews();
         if (tabName === 'settings') fetchSettings();
         if (tabName === 'tracker') fetchRoomsForTracker();
+        if (tabName === 'checkinlog') fetchCheckInLog();
     }
 }
 
@@ -2779,5 +2782,74 @@ window.saveEditedBooking = async function (event) {
     } else {
         const errData = response ? await response.json().catch(() => ({})) : {};
         alert('Failed to update booking.' + (errData.error ? '\n' + errData.error : ''));
+    }
+};
+
+// ============================================================
+// CHECK-IN LOG
+// ============================================================
+
+window.fetchCheckInLog = async function () {
+    const tbody = document.getElementById('checkinLogTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">Loading...</td></tr>';
+
+    const res = await authFetch('/checkin-log');
+    if (!res || !res.ok) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-red-500">Failed to load records.</td></tr>';
+        return;
+    }
+    const entries = await res.json();
+    renderCheckInLog(entries);
+};
+
+function renderCheckInLog(entries) {
+    const tbody = document.getElementById('checkinLogTableBody');
+    if (!tbody) return;
+
+    if (!entries || entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-10 text-center text-gray-400">No check-in records yet. Once guests sign in via the kiosk, their entries will appear here.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+    entries.forEach(function(e, idx) {
+        const checkIn = e.checkInTime ? new Date(e.checkInTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+        const checkOut = e.expectedCheckOut ? new Date(e.expectedCheckOut).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+        const loggedAt = e.createdAt ? new Date(e.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+
+        // Time-since badge
+        const msAgo = Date.now() - new Date(e.createdAt);
+        const hrsAgo = Math.floor(msAgo / 3600000);
+        const minsAgo = Math.floor(msAgo / 60000);
+        const agoText = hrsAgo > 0 ? hrsAgo + 'h ago' : (minsAgo > 0 ? minsAgo + 'm ago' : 'just now');
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 transition-colors';
+        tr.innerHTML = `
+            <td class="px-4 py-3 text-gray-400 text-xs">${e.id}</td>
+            <td class="px-4 py-3 font-semibold text-gray-800">${e.guestName}</td>
+            <td class="px-4 py-3 text-gray-600">${e.phone}</td>
+            <td class="px-4 py-3">
+                <span class="inline-block bg-blue-50 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-full">Room ${e.roomNumber}</span>
+            </td>
+            <td class="px-4 py-3 text-gray-700 text-xs">${checkIn}</td>
+            <td class="px-4 py-3 text-gray-700 text-xs">${checkOut}</td>
+            <td class="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">${loggedAt} <span class="ml-1 text-emerald-600 font-medium">${agoText}</span></td>
+            <td class="px-4 py-3">
+                <button onclick="deleteCheckInEntry(${e.id})" class="text-red-400 hover:text-red-600 text-xs font-medium hover:underline transition">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.deleteCheckInEntry = async function (id) {
+    if (!confirm('Delete this check-in record?')) return;
+    const res = await authFetch('/checkin-log/' + id, { method: 'DELETE' });
+    if (res && res.ok) {
+        fetchCheckInLog();
+    } else {
+        alert('Failed to delete record.');
     }
 };
