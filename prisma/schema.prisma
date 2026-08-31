@@ -321,7 +321,10 @@ model CheckInLog {
   expectedCheckOut DateTime
   signature        String?   // e.g. "I confirm the above details are correct"
   ipAddress        String?
+  deletedAt        DateTime?
+  deletedBy        String?
   createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
 
   @@map("check_in_logs")
 }

@@ -2663,6 +2663,11 @@ function renderVaultRecords(records) {
                 detailsText = `Guest: ${snap.name || 'Unknown'} (${snap.email || 'No Email'})`;
             } else if (typeLower === 'review') {
                 detailsText = `Review by ${snap.guestName || 'Unknown'} - ${snap.rating} Stars`;
+            } else if (typeLower.includes('checkinlog')) {
+                const isEdit = typeLower.includes('edit');
+                const gName = snap.guestName || snap.updated?.guestName || snap.previous?.guestName || 'Guest';
+                const rNum = snap.roomNumber || snap.updated?.roomNumber || snap.previous?.roomNumber || '?';
+                detailsText = `${isEdit ? 'Edited Check-In' : 'Deleted Check-In'}: ${gName} (Room ${rNum})`;
             } else {
                 detailsText = `${record.recordType} ID: ${record.recordId}`;
             }
@@ -4590,7 +4595,8 @@ function renderCheckInLog(entries) {
             <td class="px-4 py-3 text-gray-700 text-xs">${checkIn}</td>
             <td class="px-4 py-3 text-gray-700 text-xs">${checkOut}</td>
             <td class="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">${loggedAt} <span class="ml-1 text-emerald-600 font-medium">${agoText}</span></td>
-            <td class="px-4 py-3">
+            <td class="px-4 py-3 whitespace-nowrap space-x-2">
+                <button onclick="openEditCheckInModal(${e.id})" class="text-blue-600 hover:text-blue-800 text-xs font-semibold hover:underline transition">Edit</button>
                 <button onclick="deleteCheckInEntry(${e.id})" class="text-red-400 hover:text-red-600 text-xs font-medium hover:underline transition">Delete</button>
             </td>
         `;
@@ -4598,10 +4604,76 @@ function renderCheckInLog(entries) {
     });
 }
 
+window.openEditCheckInModal = async function (id) {
+    const res = await authFetch('/checkin-log/' + id);
+    if (!res || !res.ok) {
+        alert('Failed to load check-in record details.');
+        return;
+    }
+    const entry = await res.json();
+    document.getElementById('editCheckInId').value = entry.id;
+    document.getElementById('editCheckInGuestName').value = entry.guestName || '';
+    document.getElementById('editCheckInPhone').value = entry.phone || '';
+    document.getElementById('editCheckInRoomNumber').value = entry.roomNumber || '';
+
+    if (entry.checkInTime) {
+        const d = new Date(entry.checkInTime);
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        document.getElementById('editCheckInTime').value = local;
+    } else {
+        document.getElementById('editCheckInTime').value = '';
+    }
+
+    if (entry.expectedCheckOut) {
+        const d = new Date(entry.expectedCheckOut);
+        document.getElementById('editCheckInExpectedCheckOut').value = d.toISOString().split('T')[0];
+    } else {
+        document.getElementById('editCheckInExpectedCheckOut').value = '';
+    }
+
+    document.getElementById('editCheckInSignature').value = entry.signature || '';
+    window.openModal('editCheckInModal');
+};
+
+window.saveEditedCheckIn = async function (event) {
+    event.preventDefault();
+    const id = document.getElementById('editCheckInId').value;
+    const guestName = document.getElementById('editCheckInGuestName').value.trim();
+    const phone = document.getElementById('editCheckInPhone').value.trim();
+    const roomNumber = document.getElementById('editCheckInRoomNumber').value.trim();
+    const checkInTimeVal = document.getElementById('editCheckInTime').value;
+    const expectedCheckOutVal = document.getElementById('editCheckInExpectedCheckOut').value;
+    const signature = document.getElementById('editCheckInSignature').value.trim();
+
+    const payload = {
+        guestName,
+        phone,
+        roomNumber,
+        checkInTime: checkInTimeVal ? new Date(checkInTimeVal).toISOString() : undefined,
+        expectedCheckOut: expectedCheckOutVal ? new Date(expectedCheckOutVal + 'T12:00:00').toISOString() : undefined,
+        signature
+    };
+
+    const res = await authFetch('/checkin-log/' + id, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+    });
+
+    if (res && res.ok) {
+        alert('Check-in record updated. Changes have been logged to the Vault.');
+        window.closeModal('editCheckInModal');
+        fetchCheckInLog();
+    } else {
+        const errData = res ? await res.json().catch(() => ({})) : {};
+        alert('Failed to update check-in record.' + (errData.error ? '\n' + errData.error : ''));
+    }
+};
+
 window.deleteCheckInEntry = async function (id) {
-    if (!confirm('Delete this check-in record?')) return;
+    if (!confirm('Are you sure you want to delete this check-in record?\n\nNote: This record will be archived in the Vault.')) return;
     const res = await authFetch('/checkin-log/' + id, { method: 'DELETE' });
     if (res && res.ok) {
+        alert('Record deleted and moved to Vault.');
         fetchCheckInLog();
     } else {
         alert('Failed to delete record.');

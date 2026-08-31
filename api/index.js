@@ -560,6 +560,125 @@ async function createDeletedRecord(recordType, recordId, snapshot, deletedBy) {
   }
 }
 
+async function notifySuperAdminOnEdit({ recordType, recordId, previousData, updatedData, editedBy }) {
+  let changesHtml = "";
+  const changes = [];
+
+  try {
+    const allKeys = Array.from(new Set([...Object.keys(previousData || {}), ...Object.keys(updatedData || {})]));
+    const ignoredKeys = ['updatedAt', 'createdAt', 'deletedAt', 'deletedBy', 'ipAddress'];
+    
+    allKeys.forEach(k => {
+      if (ignoredKeys.includes(k)) return;
+      let prevVal = previousData ? previousData[k] : null;
+      let nextVal = updatedData ? updatedData[k] : null;
+
+      if (prevVal instanceof Date) prevVal = prevVal.toISOString();
+      if (nextVal instanceof Date) nextVal = nextVal.toISOString();
+
+      if (String(prevVal) !== String(nextVal)) {
+        changes.push({
+          field: k,
+          from: prevVal === null || prevVal === undefined ? 'None' : prevVal,
+          to: nextVal === null || nextVal === undefined ? 'None' : nextVal
+        });
+      }
+    });
+
+    if (changes.length > 0) {
+      changesHtml = `
+        <h3 style="color: #8b1d30; margin-top: 20px;">Modified Fields:</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #f8f9fa; text-align: left;">
+              <th style="padding: 8px; border: 1px solid #ddd;">Field</th>
+              <th style="padding: 8px; border: 1px solid #ddd; color: #dc2626;">Previous Value</th>
+              <th style="padding: 8px; border: 1px solid #ddd; color: #16a34a;">New Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${changes.map(c => `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">${c.field}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; color: #dc2626;">${c.from}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; color: #16a34a;">${c.to}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+  } catch (err) {
+    console.error("Error formatting edit changes:", err);
+  }
+
+  // Create audit record in DeletedRecord / Vault table
+  try {
+    await prisma.deletedRecord.create({
+      data: {
+        recordType: `${recordType} (Edited)`,
+        recordId: recordId,
+        snapshot: JSON.stringify({
+          action: 'EDIT',
+          modifiedBy: editedBy,
+          modifiedAt: new Date(),
+          previous: previousData,
+          updated: updatedData,
+          changesSummary: changes
+        }),
+        deletedBy: editedBy || 'admin',
+        isRead: false
+      }
+    });
+  } catch (e) {
+    console.error("Failed to save audit vault record for edit:", e);
+  }
+
+  const subject = `⚠️ [VAULT AUDIT] ${recordType.toUpperCase()} #${recordId} edited by ${editedBy}`;
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ffccd5; border-radius: 8px; overflow: hidden">
+      <div style="background:#b02540; padding:20px; color:#fff; text-align:center;">
+        <h2 style="margin:0;">⚠️ Super Admin Audit Alert</h2>
+        <p style="margin:5px 0 0;">A record was edited by an admin and logged to the Vault.</p>
+      </div>
+      <div style="padding:24px; color:#333; line-height:1.6;">
+        <p>Hello Super Admin,</p>
+        <p>Record <strong>${recordType.toUpperCase()} #${recordId}</strong> was updated by admin <strong>${editedBy}</strong> on ${new Date().toLocaleString()}:</p>
+        
+        ${changesHtml}
+        
+        <div style="margin-top:30px; text-align:center;">
+          <a href="https://www.grandlynkshomesandapartments.com/superadmin" style="background:#b02540; color:#fff; padding:12px 24px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block;">Open Super Admin Vault</a>
+        </div>
+      </div>
+      <div style="background:#f8f9fa; padding:12px; text-align:center; font-size:12px; color:#666; border-top:1px solid #eee;">
+        Grand Lynks Security System • Auto-generated Audit Alert
+      </div>
+    </div>
+  `;
+
+  // 1. Send Email via Resend
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Grand Lynks Security <noreply@grandlynkshomesandapartments.com>',
+      to: SUPER_ADMIN_EMAIL,
+      subject: subject,
+      html: emailHtml
+    });
+    if (error) {
+      console.error("Resend edit notification email failed:", error);
+    } else {
+      console.log(`Edit notification email successfully sent to ${SUPER_ADMIN_EMAIL}. ID: ${data?.id}`);
+    }
+  } catch (error) {
+    console.error("Failed to send super admin edit email notification:", error);
+  }
+
+  // 2. Send SMS
+  const smsMessage = `GL Vault Alert: ${recordType.toUpperCase()} #${recordId} was edited by ${editedBy} at ${new Date().toLocaleTimeString()}. Review here: grandlynkshomesandapartments.com/superadmin`;
+  await sendSMS(SUPER_ADMIN_PHONE, smsMessage);
+}
+
 // --- AUTHENTICATION ---
 app.post("/auth/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body;
@@ -1767,9 +1886,18 @@ app.post('/super/restore/:id', authenticateSuperAdmin, async (req, res) => {
     if (deletedRecord.restoredAt || deletedRecord.purgedAt) return res.status(400).json({ error: 'Record already restored or purged' });
 
     const { recordType, recordId } = deletedRecord;
-    const modelMap = { booking: prisma.booking, order: prisma.order, guest: prisma.guest, menuItem: prisma.menuItem, room: prisma.room, review: prisma.review };
+    const modelMap = {
+      booking: prisma.booking,
+      order: prisma.order,
+      guest: prisma.guest,
+      menuItem: prisma.menuItem,
+      room: prisma.room,
+      review: prisma.review,
+      checkInLog: prisma.checkInLog,
+      checkinlog: prisma.checkInLog
+    };
     const model = modelMap[recordType];
-    if (!model) return res.status(400).json({ error: 'Unknown record type' });
+    if (!model) return res.status(400).json({ error: 'Unknown record type or non-restorable audit record' });
 
     await model.update({ where: { id: recordId }, data: { deletedAt: null } });
     if (recordType === 'booking' || recordType === 'order') {
@@ -1814,6 +1942,8 @@ app.post('/super/purge/:id', authenticateSuperAdmin, async (req, res) => {
         await prisma.room.delete({ where: { id: recordId } });
       } else if (recordType === 'review') {
         await prisma.review.delete({ where: { id: recordId } });
+      } else if (recordType === 'checkInLog' || recordType === 'checkinlog') {
+        await prisma.checkInLog.delete({ where: { id: recordId } });
       }
     } catch (deleteErr) {
       console.warn('Hard delete failed (may already be gone):', deleteErr.message);
@@ -2944,10 +3074,11 @@ app.post("/checkin-log", kioskLimiter, async (req, res) => {
   }
 });
 
-// GET /checkin-log — Admin only. Returns all check-in log entries, newest first.
+// GET /checkin-log — Admin only. Returns all active check-in log entries, newest first.
 app.get("/checkin-log", authenticateToken, async (req, res) => {
   try {
     const entries = await prisma.checkInLog.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       take: 200
     });
@@ -2958,12 +3089,74 @@ app.get("/checkin-log", authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /checkin-log/:id — Admin only. Remove a single record.
-app.delete("/checkin-log/:id", authenticateToken, async (req, res) => {
+// GET /checkin-log/:id — Admin only. Returns single record for edit form.
+app.get("/checkin-log/:id", authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    await prisma.checkInLog.delete({ where: { id } });
-    res.json({ message: "Check-in record deleted." });
+    const entry = await prisma.checkInLog.findUnique({ where: { id } });
+    if (!entry || entry.deletedAt) return res.status(404).json({ error: "Check-in record not found" });
+    res.json(entry);
+  } catch (error) {
+    console.error("Error fetching check-in record:", error);
+    res.status(500).json({ error: "Failed to fetch check-in record" });
+  }
+});
+
+// PUT /checkin-log/:id — Admin only. Update check-in record, notify super admin, log to vault.
+app.put("/checkin-log/:id", authenticateToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature } = req.body;
+  const adminUser = req.user?.username || 'admin';
+
+  try {
+    const previous = await prisma.checkInLog.findUnique({ where: { id } });
+    if (!previous || previous.deletedAt) {
+      return res.status(404).json({ error: "Check-in record not found" });
+    }
+
+    const updated = await prisma.checkInLog.update({
+      where: { id },
+      data: {
+        guestName: guestName ? guestName.trim() : undefined,
+        phone: phone ? phone.trim() : undefined,
+        roomNumber: roomNumber !== undefined ? String(roomNumber).trim() : undefined,
+        checkInTime: checkInTime ? new Date(checkInTime) : undefined,
+        expectedCheckOut: expectedCheckOut ? new Date(expectedCheckOut) : undefined,
+        signature: signature !== undefined ? signature : undefined
+      }
+    });
+
+    // Notify Super Admin and log audit snapshot in Vault
+    notifySuperAdminOnEdit({
+      recordType: 'checkInLog',
+      recordId: id,
+      previousData: previous,
+      updatedData: updated,
+      editedBy: adminUser
+    }).catch(err => console.error("Edit notification error:", err));
+
+    res.json({ message: "Check-in record updated. Super admin has been notified.", entry: updated });
+  } catch (error) {
+    console.error("Error updating check-in log:", error);
+    res.status(500).json({ error: "Failed to update check-in record" });
+  }
+});
+
+// DELETE /checkin-log/:id — Admin only. Soft-delete record, notify super admin, save snapshot to vault.
+app.delete("/checkin-log/:id", authenticateToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  const adminUser = req.user?.username || 'admin';
+  try {
+    const checkInLog = await prisma.checkInLog.findUnique({ where: { id } });
+    if (!checkInLog) return res.status(404).json({ error: 'Record not found' });
+
+    await prisma.checkInLog.update({
+      where: { id },
+      data: { deletedAt: new Date(), deletedBy: adminUser }
+    });
+
+    await createDeletedRecord('checkInLog', id, checkInLog, adminUser);
+    res.json({ message: "Check-in record deleted. Super admin has been notified and record moved to Vault." });
   } catch (error) {
     console.error("Error deleting check-in log entry:", error);
     res.status(500).json({ error: "Failed to delete record." });

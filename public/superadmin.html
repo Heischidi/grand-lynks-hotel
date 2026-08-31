@@ -2053,6 +2053,57 @@
         document.body.appendChild(assistantScript);
     </script>
 
+    <!-- EDIT CHECK-IN LOG MODAL -->
+    <div id="editCheckInModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900">Edit Check-In Log</h3>
+                    <p class="text-xs text-amber-600 font-medium mt-0.5">⚠️ Modifying arrival records is logged to the Vault and alerts Super Admin</p>
+                </div>
+                <button onclick="closeModal('editCheckInModal')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form id="editCheckInForm" onsubmit="saveEditedCheckIn(event)" class="p-6 space-y-4">
+                <input type="hidden" id="editCheckInId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Guest Name</label>
+                        <input type="text" id="editCheckInGuestName" required class="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Phone Number</label>
+                        <input type="tel" id="editCheckInPhone" required class="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Room Number</label>
+                        <input type="text" id="editCheckInRoomNumber" required class="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Check-In Time</label>
+                        <input type="datetime-local" id="editCheckInTime" required class="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Expected Check-Out</label>
+                        <input type="date" id="editCheckInExpectedCheckOut" required class="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Signature / Confirmation Note</label>
+                    <input type="text" id="editCheckInSignature" class="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="e.g. I confirm the above details are correct">
+                </div>
+                <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                    <button type="button" onclick="closeModal('editCheckInModal')" class="px-5 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition shadow-md">Save & Log to Vault</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- GUEST HISTORY MODAL -->
     <div id="guestHistoryModal"
         class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4"
