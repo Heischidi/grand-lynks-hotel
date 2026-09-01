@@ -319,7 +319,8 @@ model CheckInLog {
   roomNumber       String
   checkInTime      DateTime
   expectedCheckOut DateTime
-  signature        String?   // e.g. "I confirm the above details are correct"
+  signature        String?   // Human-readable confirmation text (e.g. "Signed on tablet — T&C accepted")
+  signatureUrl     String?   // Public URL of the drawn signature image (uploaded to Supabase)
   idCardUrl        String?   // Public URL of scanned / photographed ID card
   idType           String?   // National ID, Passport, Driver License, Voters Card, etc.
   ipAddress        String?

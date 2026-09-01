@@ -4596,6 +4596,10 @@ function renderCheckInLog(entries) {
             ? `<button onclick="viewIdModal('${e.idCardUrl}', '${escapedName}', '${e.roomNumber || ''}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs rounded-lg border border-emerald-200 transition shadow-sm">🪪 View ID</button>`
             : `<span class="text-xs text-gray-400">No ID</span>`;
 
+        const sigBadge = e.signatureUrl
+            ? `<button onclick="viewIdModal('${e.signatureUrl}', '${escapedName} \u2014 Signature', '')" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-xs rounded-lg border border-purple-200 transition shadow-sm">✍️ View Sig</button>`
+            : (e.signature && e.signature.includes('Signed') ? `<span class="inline-flex items-center gap-1 text-xs text-purple-600 font-medium">✓ Signed</span>` : `<span class="text-xs text-gray-400">No Sig</span>`);
+
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50 transition-colors';
         tr.innerHTML = `
@@ -4606,6 +4610,7 @@ function renderCheckInLog(entries) {
                 <span class="inline-block bg-blue-50 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-full">Room ${e.roomNumber}</span>
             </td>
             <td class="px-4 py-3">${idBadge}</td>
+            <td class="px-4 py-3">${sigBadge}</td>
             <td class="px-4 py-3 text-gray-700 text-xs">${checkIn}</td>
             <td class="px-4 py-3 text-gray-700 text-xs">${checkOut}</td>
             <td class="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">${loggedAt} <span class="ml-1 text-emerald-600 font-medium">${agoText}</span></td>
@@ -4662,45 +4667,110 @@ window.openEditCheckInModal = async function (id) {
     window.openModal('editCheckInModal');
 };
 
+// Fast Client-Side Image Compression using Canvas
+async function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+    if (!file || !file.type.startsWith('image/')) return file;
+    if (file.size <= 150 * 1024) return file;
+
+    return new Promise(function(resolve) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img = new Image();
+            img.onload = function() {
+                var width = img.width;
+                var height = img.height;
+
+                if (width > maxWidth || height > maxHeight) {
+                    if (width / height > maxWidth / maxHeight) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+
+                var canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(function(blob) {
+                    if (blob && blob.size < file.size) {
+                        var cleanName = (file.name || 'id_card').replace(/\.[^/.]+$/, "") + ".jpg";
+                        var compressedFile = new File([blob], cleanName, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        resolve(compressedFile);
+                    } else {
+                        resolve(file);
+                    }
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = function() { resolve(file); };
+            img.src = e.target.result;
+        };
+        reader.onerror = function() { resolve(file); };
+        reader.readAsDataURL(file);
+    });
+}
+
 window.saveEditedCheckIn = async function (event) {
     event.preventDefault();
-    const id = document.getElementById('editCheckInId').value;
-    const guestName = document.getElementById('editCheckInGuestName').value.trim();
-    const phone = document.getElementById('editCheckInPhone').value.trim();
-    const roomNumber = document.getElementById('editCheckInRoomNumber').value.trim();
-    const checkInTimeVal = document.getElementById('editCheckInTime').value;
-    const expectedCheckOutVal = document.getElementById('editCheckInExpectedCheckOut').value;
-    const signature = document.getElementById('editCheckInSignature').value.trim();
-
-    const formData = new FormData();
-    formData.append('guestName', guestName);
-    formData.append('phone', phone);
-    formData.append('roomNumber', roomNumber);
-    if (checkInTimeVal) formData.append('checkInTime', new Date(checkInTimeVal).toISOString());
-    if (expectedCheckOutVal) formData.append('expectedCheckOut', new Date(expectedCheckOutVal + 'T12:00:00').toISOString());
-    formData.append('signature', signature);
-
-    const fileInput = document.getElementById('editCheckInIdFile');
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-        formData.append('idCard', fileInput.files[0]);
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn ? submitBtn.innerHTML : 'Save & Log to Vault';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>Saving...</span>';
     }
 
-    const res = await authFetch('/checkin-log/' + id, {
-        method: 'PUT',
-        body: formData
-    });
+    try {
+        const id = document.getElementById('editCheckInId').value;
+        const guestName = document.getElementById('editCheckInGuestName').value.trim();
+        const phone = document.getElementById('editCheckInPhone').value.trim();
+        const roomNumber = document.getElementById('editCheckInRoomNumber').value.trim();
+        const checkInTimeVal = document.getElementById('editCheckInTime').value;
+        const expectedCheckOutVal = document.getElementById('editCheckInExpectedCheckOut').value;
+        const signature = document.getElementById('editCheckInSignature').value.trim();
 
-    if (res && res.ok) {
-        alert('Check-in record updated. Changes have been logged to the Vault.');
-        window.closeModal('editCheckInModal');
-        fetchCheckInLog();
-        if (typeof fetchRoomsForTracker === 'function') fetchRoomsForTracker();
-        if (_currentTrackerView === 'calendar' && typeof fetchCalendarData === 'function') fetchCalendarData();
-        if (typeof fetchOrders === 'function') fetchOrders();
-        if (typeof fetchRooms === 'function') fetchRooms();
-    } else {
-        const errData = res ? await res.json().catch(() => ({})) : {};
-        alert('Failed to update check-in record.' + (errData.error ? '\n' + errData.error : ''));
+        const formData = new FormData();
+        formData.append('guestName', guestName);
+        formData.append('phone', phone);
+        formData.append('roomNumber', roomNumber);
+        if (checkInTimeVal) formData.append('checkInTime', new Date(checkInTimeVal).toISOString());
+        if (expectedCheckOutVal) formData.append('expectedCheckOut', new Date(expectedCheckOutVal + 'T12:00:00').toISOString());
+        formData.append('signature', signature);
+
+        const fileInput = document.getElementById('editCheckInIdFile');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            const compressedId = await compressImageFile(fileInput.files[0]);
+            formData.append('idCard', compressedId);
+        }
+
+        const res = await authFetch('/checkin-log/' + id, {
+            method: 'PUT',
+            body: formData
+        });
+
+        if (res && res.ok) {
+            alert('Check-in record updated. Changes have been logged to the Vault.');
+            window.closeModal('editCheckInModal');
+            fetchCheckInLog();
+            if (typeof fetchRoomsForTracker === 'function') fetchRoomsForTracker();
+            if (_currentTrackerView === 'calendar' && typeof fetchCalendarData === 'function') fetchCalendarData();
+            if (typeof fetchOrders === 'function') fetchOrders();
+            if (typeof fetchRooms === 'function') fetchRooms();
+        } else {
+            const errData = res ? await res.json().catch(() => ({})) : {};
+            alert('Failed to update check-in record.' + (errData.error ? '\n' + errData.error : ''));
+        }
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
     }
 };
 

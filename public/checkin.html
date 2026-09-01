@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -343,6 +343,246 @@
       pointer-events: none;
     }
 
+    /* ── TERMS & CONDITIONS SECTION ── */
+    .terms-section {
+      border: 1.5px solid rgba(201,168,76,0.3);
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(201,168,76,0.03);
+    }
+    .terms-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      background: rgba(201,168,76,0.06);
+      border-bottom: 1px solid rgba(201,168,76,0.15);
+    }
+    .terms-label {
+      font-size: clamp(0.68rem, 1.3vw, 0.76rem);
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .terms-status {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid currentColor;
+    }
+    .terms-status.pending { color: #f87171; border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.08); }
+    .terms-status.accepted { color: #4ade80; border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.08); }
+    .terms-read-btn {
+      width: 100%;
+      padding: 7px 12px;
+      background: transparent;
+      border: none;
+      color: var(--gold);
+      font-size: clamp(0.7rem, 1.3vw, 0.78rem);
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .terms-read-btn:hover { background: rgba(201,168,76,0.08); }
+    .terms-read-btn:disabled { opacity: 0.4; cursor: not-allowed; text-decoration: none; }
+
+    /* ── SIGNATURE PAD ── */
+    .sig-section {
+      border: 1.5px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.3s, opacity 0.3s;
+    }
+    .sig-section.locked {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .sig-section.unlocked {
+      border-color: rgba(201,168,76,0.5);
+      box-shadow: 0 0 0 2px rgba(201,168,76,0.1);
+    }
+    .sig-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sig-title {
+      font-size: clamp(0.65rem, 1.2vw, 0.72rem);
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .sig-clear-btn {
+      background: none;
+      border: none;
+      color: #f87171;
+      font-size: 0.65rem;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .sig-clear-btn:hover { background: rgba(248,113,113,0.1); }
+    .sig-canvas {
+      display: block;
+      width: 100%;
+      background: rgba(255,255,255,0.03);
+      cursor: crosshair;
+      touch-action: none;
+    }
+    .sig-hint {
+      text-align: center;
+      font-size: 0.62rem;
+      color: var(--text-secondary);
+      padding: 3px 0 5px;
+      pointer-events: none;
+    }
+    .sig-required-note {
+      font-size: 0.62rem;
+      color: #f87171;
+      text-align: center;
+      padding: 3px 0 0;
+      display: none;
+    }
+
+    /* ── TERMS MODAL ── */
+    .tc-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+    }
+    .tc-backdrop.open {
+      display: flex;
+    }
+    .tc-sheet {
+      width: 100%;
+      max-width: 620px;
+      max-height: 92dvh;
+      background: #180b0f;
+      border: 1px solid rgba(139,29,48,0.4);
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slide-up 0.35s cubic-bezier(0.32,0.72,0,1);
+    }
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .tc-handle {
+      width: 36px; height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      margin: 10px auto 0;
+      flex-shrink: 0;
+    }
+    .tc-head {
+      padding: 12px 20px 10px;
+      border-bottom: 1px solid rgba(139,29,48,0.25);
+      flex-shrink: 0;
+    }
+    .tc-head-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: #fff;
+      text-align: center;
+    }
+    .tc-head-sub {
+      font-size: 0.7rem;
+      color: var(--gold);
+      text-align: center;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .tc-body {
+      overflow-y: auto;
+      flex: 1;
+      padding: 16px 20px;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tc-body ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tc-body li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: clamp(0.8rem, 1.6vw, 0.9rem);
+      color: rgba(255,255,255,0.88);
+      line-height: 1.55;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+      border-left: 2px solid rgba(201,168,76,0.3);
+    }
+    .tc-body li .tc-num {
+      font-weight: 700;
+      color: var(--gold);
+      font-size: 0.75rem;
+      min-width: 18px;
+      padding-top: 2px;
+    }
+    .tc-scroll-hint {
+      text-align: center;
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      padding: 6px 0 2px;
+      animation: pulse-hint 2s ease-in-out infinite;
+    }
+    @keyframes pulse-hint { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    .tc-footer {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(139,29,48,0.25);
+      flex-shrink: 0;
+      background: rgba(24,11,15,0.98);
+    }
+    .tc-accept-btn {
+      width: 100%;
+      padding: clamp(10px, 2vh, 14px);
+      background: linear-gradient(135deg, var(--burgundy) 0%, var(--burgundy-light) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.85rem, 1.7vw, 0.98rem);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 6px 20px rgba(139,29,48,0.4);
+    }
+    .tc-accept-btn:active { transform: scale(0.98); }
+    .tc-accept-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
     /* Small screens / landscape phone optimization */
     @media (max-height: 600px) {
       .kiosk-wrap { padding: 4px 8px; }
@@ -357,6 +597,8 @@
       .btn-submit { margin-top: 4px; padding: 7px; font-size: 0.8rem; }
       .confirm-row { padding: 4px 7px; }
     }
+    /* Spin animation for fast loading */
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -419,11 +661,32 @@
             </div>
           </div>
 
-          <div class="field full">
-            <div class="confirm-row">
-              <input type="checkbox" id="f-confirm" required />
-              <label for="f-confirm">I confirm that the details provided are accurate and I am checking in to Grand Lynks.</label>
+          <!-- TERMS & CONDITIONS + SIGNATURE -->
+          <div class="field full" style="display:flex; flex-direction:column; gap:8px;">
+
+            <!-- Step 1: Read T&C -->
+            <div class="terms-section">
+              <div class="terms-header">
+                <div class="terms-label">📋 Terms &amp; Conditions</div>
+                <span class="terms-status pending" id="tc-status-badge">Not Read</span>
+              </div>
+              <button type="button" class="terms-read-btn" id="tc-open-btn" onclick="openTermsModal()">
+                👆 Tap here to read the Hotel Terms &amp; Conditions (Required)
+              </button>
             </div>
+
+            <!-- Step 2: Sign on tablet -->
+            <div class="sig-section locked" id="sig-section">
+              <div class="sig-header">
+                <div class="sig-title">✍️ Guest Signature</div>
+                <button type="button" class="sig-clear-btn" id="sig-clear-btn" onclick="clearSignature()">Clear</button>
+              </div>
+              <canvas class="sig-canvas" id="sig-canvas" height="90"></canvas>
+              <div class="sig-hint" id="sig-hint">Sign with your finger or stylus above</div>
+            </div>
+            <div class="sig-required-note" id="sig-required-note">Please draw your signature above to continue.</div>
+
+            <input type="hidden" id="f-confirm" value="" />
           </div>
         </div>
         <button type="submit" class="btn-submit" id="submit-btn">Confirm Arrival</button>
@@ -447,10 +710,264 @@
 </div>
 <div class="idle-badge">KIOSK MODE</div>
 
+<!-- ═══════════ TERMS & CONDITIONS MODAL ═══════════ -->
+<div class="tc-backdrop" id="tc-backdrop" role="dialog" aria-modal="true" aria-labelledby="tc-title">
+  <div class="tc-sheet">
+    <div class="tc-handle"></div>
+    <div class="tc-head">
+      <div class="tc-head-title" id="tc-title">Terms &amp; Conditions</div>
+      <div class="tc-head-sub">Grand Lynks Homes &amp; Apartments</div>
+    </div>
+    <div class="tc-body" id="tc-body">
+      <ul>
+        <li><span class="tc-num">1.</span>All bookings are subject to availability and confirmation.</li>
+        <li><span class="tc-num">2.</span>A reservation is confirmed only after successful payment.</li>
+        <li><span class="tc-num">3.</span>Valid government-issued ID is required at check-in and must be presented to staff.</li>
+        <li><span class="tc-num">4.</span>Check-in and check-out times must be strictly observed. Standard check-out is 12:00 noon.</li>
+        <li><span class="tc-num">5.</span>Early check-in or late check-out is subject to availability and may attract additional charges.</li>
+        <li><span class="tc-num">6.</span>Cancellations and refunds are governed by the stated cancellation policy communicated at the time of booking.</li>
+        <li><span class="tc-num">7.</span>Maximum room occupancy must not be exceeded at any time.</li>
+        <li><span class="tc-num">8.</span>Guests are responsible for any damage to property or missing items during their stay. Charges will apply.</li>
+        <li><span class="tc-num">9.</span>Smoking is strictly not permitted inside rooms. Violations will attract immediate penalties.</li>
+        <li><span class="tc-num">10.</span>Illegal activities, excessive noise, or disruptive behavior are strictly prohibited and will result in immediate eviction.</li>
+        <li><span class="tc-num">11.</span>Management reserves the right to deny service or request checkout without refund for any breach of hotel policy.</li>
+        <li><span class="tc-num">12.</span>Personal belongings are the sole responsibility of the guest. Grand Lynks is not liable for any loss, theft, or damage to personal items.</li>
+        <li><span class="tc-num">13.</span>Guest information collected at check-in is handled in line with our privacy policy and used solely for hotel operations.</li>
+        <li><span class="tc-num">14.</span>Terms and conditions may be updated by management without prior notice.</li>
+        <li><span class="tc-num">15.</span>By signing below, I confirm that I have read, understood, and agreed to abide by all terms and conditions of Grand Lynks Homes &amp; Apartments.</li>
+      </ul>
+      <div class="tc-scroll-hint" id="tc-scroll-hint">▼ Scroll down to read all terms</div>
+    </div>
+    <div class="tc-footer">
+      <button type="button" class="tc-accept-btn" id="tc-accept-btn" onclick="acceptTerms()">
+        ✅ I Have Read &amp; Accept These Terms — Proceed to Sign
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
   const API_URL = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || 'https://grand-lynks-hotel.vercel.app/api';
   let countdownTimer = null;
   let selectedIdFile = null;
+  let compressionPromise = null;
+  let termsAccepted = false;
+  let signatureDrawn = false;
+
+  // ── TERMS & CONDITIONS MODAL ──
+  function openTermsModal() {
+    var backdrop = document.getElementById('tc-backdrop');
+    var body = document.getElementById('tc-body');
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    // Scroll body back to top each time
+    body.scrollTop = 0;
+    // Show scroll hint until near bottom
+    updateScrollHint();
+    body.addEventListener('scroll', updateScrollHint);
+  }
+
+  function updateScrollHint() {
+    var body = document.getElementById('tc-body');
+    var hint = document.getElementById('tc-scroll-hint');
+    var nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 60;
+    if (hint) hint.style.display = nearBottom ? 'none' : 'block';
+  }
+
+  function closeTermsModal() {
+    var backdrop = document.getElementById('tc-backdrop');
+    backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function acceptTerms() {
+    termsAccepted = true;
+    closeTermsModal();
+
+    // Update status badge
+    var badge = document.getElementById('tc-status-badge');
+    badge.textContent = '✓ Read & Accepted';
+    badge.className = 'terms-status accepted';
+
+    // Update T&C button
+    var btn = document.getElementById('tc-open-btn');
+    btn.textContent = '✅ Terms Accepted — Tap to Review Again';
+    btn.style.color = '#4ade80';
+    btn.style.textDecoration = 'none';
+
+    // Unlock signature pad
+    var sigSection = document.getElementById('sig-section');
+    sigSection.classList.remove('locked');
+    sigSection.classList.add('unlocked');
+
+    // Focus / animate signature
+    var hint = document.getElementById('sig-hint');
+    if (hint) hint.textContent = '✍️ Please sign below with your finger or stylus';
+
+    updateSubmitState();
+  }
+
+  function updateSubmitState() {
+    var btn = document.getElementById('submit-btn');
+    var note = document.getElementById('sig-required-note');
+    var ready = termsAccepted && signatureDrawn;
+    btn.disabled = !ready;
+    if (termsAccepted && !signatureDrawn && note) note.style.display = 'block';
+    if (!termsAccepted && note) note.style.display = 'none';
+    if (signatureDrawn && note) note.style.display = 'none';
+  }
+
+  // ── SIGNATURE PAD ──
+  var sigPad = (function () {
+    var canvas, ctx, drawing = false, lastX = 0, lastY = 0, hasStrokes = false;
+
+    function getPos(e) {
+      var rect = canvas.getBoundingClientRect();
+      var scaleX = canvas.width / rect.width;
+      var scaleY = canvas.height / rect.height;
+      if (e.touches) {
+        return {
+          x: (e.touches[0].clientX - rect.left) * scaleX,
+          y: (e.touches[0].clientY - rect.top) * scaleY
+        };
+      }
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function start(e) {
+      e.preventDefault();
+      drawing = true;
+      var pos = getPos(e);
+      lastX = pos.x; lastY = pos.y;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+    }
+
+    function move(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      var pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      lastX = pos.x; lastY = pos.y;
+      if (!hasStrokes) {
+        hasStrokes = true;
+        signatureDrawn = true;
+        var hint = document.getElementById('sig-hint');
+        if (hint) hint.textContent = 'Signature captured ✓';
+        updateSubmitState();
+      }
+    }
+
+    function stop(e) {
+      if (!drawing) return;
+      drawing = false;
+      ctx.beginPath();
+    }
+
+    function init() {
+      canvas = document.getElementById('sig-canvas');
+      if (!canvas) return;
+      // Fit canvas to its CSS width
+      var w = canvas.offsetWidth || 480;
+      canvas.width = w;
+      ctx = canvas.getContext('2d');
+      ctx.strokeStyle = '#f5f0f1';
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      canvas.addEventListener('mousedown', start, { passive: false });
+      canvas.addEventListener('mousemove', move, { passive: false });
+      canvas.addEventListener('mouseup', stop, { passive: false });
+      canvas.addEventListener('mouseleave', stop, { passive: false });
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', stop, { passive: false });
+    }
+
+    function clear() {
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasStrokes = false;
+      signatureDrawn = false;
+      var hint = document.getElementById('sig-hint');
+      if (hint) hint.textContent = '✍️ Please sign below with your finger or stylus';
+      updateSubmitState();
+    }
+
+    function getDataURL() {
+      return hasStrokes ? canvas.toDataURL('image/png') : null;
+    }
+
+    return { init: init, clear: clear, getDataURL: getDataURL };
+  })();
+
+  function clearSignature() { sigPad.clear(); }
+
+  // Initialise after DOM ready
+  document.addEventListener('DOMContentLoaded', function () {
+    sigPad.init();
+    // Submit button starts disabled until T&C + signature
+    document.getElementById('submit-btn').disabled = true;
+    // Allow tapping backdrop to dismiss (optional convenience)
+    document.getElementById('tc-backdrop').addEventListener('click', function(e) {
+      if (e.target === this) { /* don't close — guest must press Accept */ }
+    });
+  });
+
+  // Fast Client-Side Image Compression using HTML5 Canvas (Shrinks 10MB raw photos to ~150KB in ~30ms)
+  async function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+    if (!file || !file.type.startsWith('image/')) return file;
+    // If file is already tiny (< 150KB), skip compression
+    if (file.size <= 150 * 1024) return file;
+
+    return new Promise(function(resolve) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var width = img.width;
+          var height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width / height > maxWidth / maxHeight) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          var canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(function(blob) {
+            if (blob && blob.size < file.size) {
+              var cleanName = (file.name || 'id_card').replace(/\.[^/.]+$/, "") + ".jpg";
+              var compressedFile = new File([blob], cleanName, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', quality);
+        };
+        img.onerror = function() { resolve(file); };
+        img.src = e.target.result;
+      };
+      reader.onerror = function() { resolve(file); };
+      reader.readAsDataURL(file);
+    });
+  }
 
   function setDefaultTimes() {
     var now = new Date();
@@ -473,20 +990,28 @@
   function handleIdPhotoCaptured(event) {
     var file = event.target.files && event.target.files[0];
     if (!file) return;
-    selectedIdFile = file;
 
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      document.getElementById('id-thumb-img').src = e.target.result;
-      document.getElementById('id-empty-state').style.display = 'none';
-      document.getElementById('id-scan-action-btn').style.display = 'none';
-      document.getElementById('id-preview-state').style.display = 'flex';
-    };
-    reader.readAsDataURL(file);
+    // Instant thumbnail display
+    var previewUrl = URL.createObjectURL(file);
+    document.getElementById('id-thumb-img').src = previewUrl;
+    document.getElementById('id-empty-state').style.display = 'none';
+    document.getElementById('id-scan-action-btn').style.display = 'none';
+    document.getElementById('id-preview-state').style.display = 'flex';
+
+    // Compress in background immediately upon capture so it's ready when user submits
+    selectedIdFile = file;
+    compressionPromise = compressImageFile(file).then(function(compressed) {
+      selectedIdFile = compressed;
+      return compressed;
+    }).catch(function(err) {
+      console.warn("Image compression warning:", err);
+      return file;
+    });
   }
 
   function retakeIdPhoto() {
     selectedIdFile = null;
+    compressionPromise = null;
     document.getElementById('f-id-card').value = '';
     document.getElementById('id-thumb-img').src = '';
     document.getElementById('id-preview-state').style.display = 'none';
@@ -510,7 +1035,16 @@
     e.preventDefault();
     var btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.textContent = 'Saving...';
+    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><svg style="width:16px;height:16px;animation:spin 1s linear infinite;display:inline-block;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>Saving Arrival...</span>';
+
+    // Ensure background compression is complete before sending
+    if (compressionPromise) {
+      try {
+        await compressionPromise;
+      } catch (compErr) {
+        console.warn("Awaiting compression failed:", compErr);
+      }
+    }
 
     var guestName = document.getElementById('f-name').value.trim();
     var phone = document.getElementById('f-phone').value.trim();
@@ -519,13 +1053,30 @@
     var checkoutDate = document.getElementById('f-checkout').value;
     var expectedCheckOut = new Date(checkoutDate + 'T12:00:00').toISOString();
 
+    // Guard: terms + signature must be complete
+    if (!termsAccepted) {
+      openTermsModal();
+      btn.disabled = false;
+      btn.textContent = 'Confirm Arrival';
+      return;
+    }
+    if (!signatureDrawn) {
+      document.getElementById('sig-required-note').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Confirm Arrival';
+      return;
+    }
+
+    var signatureDataUrl = sigPad.getDataURL();
+
     var formData = new FormData();
     formData.append('guestName', guestName);
     formData.append('phone', phone);
     formData.append('roomNumber', roomNumber);
     formData.append('checkInTime', checkInTime);
     formData.append('expectedCheckOut', expectedCheckOut);
-    formData.append('signature', 'I confirm the above details are correct');
+    formData.append('signature', signatureDataUrl || 'Signed on tablet — terms accepted');
+    formData.append('termsAccepted', 'true');
     if (selectedIdFile) {
       formData.append('idCard', selectedIdFile);
       formData.append('idType', 'Scanned ID Card');
@@ -566,6 +1117,27 @@
         resetToForm();
       }
     }, 1000);
+  }
+
+  // Also reset T&C + signature state when form resets
+  var _origResetToForm = resetToForm;
+  function resetToForm() {
+    _origResetToForm();
+    termsAccepted = false;
+    signatureDrawn = false;
+    sigPad.clear();
+    // Reset T&C UI
+    var badge = document.getElementById('tc-status-badge');
+    if (badge) { badge.textContent = 'Not Read'; badge.className = 'terms-status pending'; }
+    var tcBtn = document.getElementById('tc-open-btn');
+    if (tcBtn) { tcBtn.textContent = '👆 Tap here to read the Hotel Terms & Conditions (Required)'; tcBtn.style.color = ''; tcBtn.style.textDecoration = ''; }
+    var sigSection = document.getElementById('sig-section');
+    if (sigSection) { sigSection.classList.remove('unlocked'); sigSection.classList.add('locked'); }
+    var hint = document.getElementById('sig-hint');
+    if (hint) hint.textContent = 'Sign with your finger or stylus above';
+    var note = document.getElementById('sig-required-note');
+    if (note) note.style.display = 'none';
+    document.getElementById('submit-btn').disabled = true;
   }
 </script>
 </body>

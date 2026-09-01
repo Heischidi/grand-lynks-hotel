@@ -313,24 +313,33 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-async function uploadToSupabase(file) {
+async function uploadToSupabase(file, timeoutMs = 5000) {
   if (!supabase) throw new Error("Supabase credentials are not configured.");
   
   const fileName = Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const { data, error } = await supabase.storage
-    .from('grand-lynks-images')
-    .upload(fileName, file.buffer, {
-      contentType: file.mimetype,
-      upsert: false
-    });
+
+  const uploadTask = async () => {
+    const { data, error } = await supabase.storage
+      .from('grand-lynks-images')
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false
+      });
+      
+    if (error) throw error;
     
-  if (error) throw error;
-  
-  const { data: publicUrlData } = supabase.storage
-    .from('grand-lynks-images')
-    .getPublicUrl(fileName);
-    
-  return publicUrlData.publicUrl;
+    const { data: publicUrlData } = supabase.storage
+      .from('grand-lynks-images')
+      .getPublicUrl(fileName);
+      
+    return publicUrlData.publicUrl;
+  };
+
+  const timeoutTask = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Supabase storage upload timed out after " + timeoutMs + "ms")), timeoutMs)
+  );
+
+  return Promise.race([uploadTask(), timeoutTask]);
 }
 
 // Configure Multer for in-memory image uploads (Serverless friendly)
@@ -3189,19 +3198,10 @@ const kioskLimiter = rateLimit({
 
 // POST /checkin-log — Public endpoint. Guest submits arrival details & scanned ID card from the tablet.
 app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res) => {
-  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature, idType } = req.body;
+  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature, idType, termsAccepted } = req.body;
 
   if (!guestName || !phone || !roomNumber || !checkInTime || !expectedCheckOut) {
     return res.status(400).json({ error: "Missing required fields: guestName, phone, roomNumber, checkInTime, expectedCheckOut" });
-  }
-
-  let idCardUrl = req.body.idCardUrl || null;
-  if (req.file) {
-    try {
-      idCardUrl = await uploadToSupabase(req.file);
-    } catch (uploadErr) {
-      console.warn("Could not upload ID image to Supabase:", uploadErr.message);
-    }
   }
 
   try {
@@ -3210,72 +3210,118 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
     const cleanRoomNumStr = String(roomNumber).trim();
     const inTime = new Date(checkInTime);
     const outTime = new Date(expectedCheckOut);
+    const parsedRoomNum = parseInt(cleanRoomNumStr.replace(/[^0-9]/g, ''));
 
-    // 1. Save entry to CheckInLog
-    const entry = await prisma.checkInLog.create({
+    // --- PHASE 1: Concurrently run ID upload, signature upload, room lookup, and guest lookup ---
+    const uploadTask = (async () => {
+      if (req.file) {
+        try {
+          return await uploadToSupabase(req.file);
+        } catch (uploadErr) {
+          console.warn("Could not upload ID image to Supabase:", uploadErr.message);
+          return req.body.idCardUrl || null;
+        }
+      }
+      return req.body.idCardUrl || null;
+    })();
+
+    // Upload signature PNG (sent as base64 dataURL from the kiosk canvas) to Supabase
+    const signatureUploadTask = (async () => {
+      if (!signature || !signature.startsWith('data:image/')) return null;
+      try {
+        const base64Data = signature.replace(/^data:image\/\w+;base64,/, '');
+        const sigBuffer = Buffer.from(base64Data, 'base64');
+        const sigFile = {
+          originalname: `sig-${cleanName.replace(/\s+/g, '_')}-${Date.now()}.png`,
+          buffer: sigBuffer,
+          mimetype: 'image/png'
+        };
+        return await uploadToSupabase(sigFile, 5000);
+      } catch (sigErr) {
+        console.warn("Could not upload signature to Supabase:", sigErr.message);
+        return null;
+      }
+    })();
+
+    const roomLookupTask = (async () => {
+      let r = null;
+      if (!isNaN(parsedRoomNum)) {
+        r = await prisma.room.findFirst({
+          where: { number: parsedRoomNum, deletedAt: null }
+        });
+      }
+      if (!r) {
+        r = await prisma.room.findFirst({
+          where: {
+            type: { contains: cleanRoomNumStr, mode: 'insensitive' },
+            deletedAt: null
+          }
+        });
+      }
+      return r;
+    })();
+
+    const guestLookupTask = prisma.guest.findFirst({
+      where: { phone: cleanPhone, deletedAt: null }
+    });
+
+    const [idCardUrl, signatureUrl, room, existingGuest] = await Promise.all([
+      uploadTask,
+      signatureUploadTask,
+      roomLookupTask,
+      guestLookupTask
+    ]);
+
+    // --- PHASE 2: Concurrently create CheckInLog, mark Room occupied, and upsert Guest ---
+    const createCheckInLogTask = prisma.checkInLog.create({
       data: {
         guestName: cleanName,
         phone: cleanPhone,
         roomNumber: cleanRoomNumStr,
         checkInTime: inTime,
         expectedCheckOut: outTime,
-        signature: signature ? signature.trim() : null,
+        // Store human-readable text in signature field; actual image is in signatureUrl
+        signature: termsAccepted === 'true' ? 'Signed on tablet — T&C accepted' : (signature && !signature.startsWith('data:') ? signature.trim() : null),
+        signatureUrl: signatureUrl,
         idCardUrl: idCardUrl,
         idType: idType ? idType.trim() : (idCardUrl ? "Government ID" : null),
         ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || null
       }
     });
 
-    // 2. Find and update Room to "occupied" (updates Live Tracker)
-    const parsedRoomNum = parseInt(cleanRoomNumStr.replace(/[^0-9]/g, ''));
-    let room = null;
-    if (!isNaN(parsedRoomNum)) {
-      room = await prisma.room.findFirst({
-        where: { number: parsedRoomNum, deletedAt: null }
-      });
-    }
-    if (!room) {
-      room = await prisma.room.findFirst({
-        where: {
-          type: { contains: cleanRoomNumStr, mode: 'insensitive' },
-          deletedAt: null
-        }
-      });
-    }
+    const updateRoomTask = room ? prisma.room.update({
+      where: { id: room.id },
+      data: { status: "occupied" }
+    }) : Promise.resolve(null);
 
-    if (room) {
-      await prisma.room.update({
-        where: { id: room.id },
-        data: { status: "occupied" }
-      });
-    }
+    const upsertGuestTask = (async () => {
+      if (!existingGuest) {
+        const sanitizedPhone = cleanPhone.replace(/[^0-9]/g, '');
+        const guestEmail = `${sanitizedPhone || Date.now()}@guest.grandlynks.com`;
+        return prisma.guest.create({
+          data: {
+            name: cleanName,
+            phone: cleanPhone,
+            email: guestEmail
+          }
+        });
+      } else {
+        return prisma.guest.update({
+          where: { id: existingGuest.id },
+          data: { name: cleanName }
+        });
+      }
+    })();
 
-    // 3. Find or Upsert Guest
-    let guest = await prisma.guest.findFirst({
-      where: { phone: cleanPhone, deletedAt: null }
-    });
+    const [entry, updatedRoom, guest] = await Promise.all([
+      createCheckInLogTask,
+      updateRoomTask,
+      upsertGuestTask
+    ]);
 
-    if (!guest) {
-      const sanitizedPhone = cleanPhone.replace(/[^0-9]/g, '');
-      const guestEmail = `${sanitizedPhone || Date.now()}@guest.grandlynks.com`;
-      guest = await prisma.guest.create({
-        data: {
-          name: cleanName,
-          phone: cleanPhone,
-          email: guestEmail
-        }
-      });
-    } else {
-      guest = await prisma.guest.update({
-        where: { id: guest.id },
-        data: { name: cleanName }
-      });
-    }
-
-    // 4. Create or Update Booking (updates Calendar and Orders pages)
+    // --- PHASE 3: Link or Create Booking for Calendar & Orders sync ---
     let booking = null;
     if (room && guest) {
-      // Look for an existing reservation for this room & dates
       const existingBooking = await prisma.booking.findFirst({
         where: {
           roomId: room.id,
@@ -3307,7 +3353,6 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
           include: { guest: true, room: true }
         });
       } else {
-        // Compute nights and rate for walk-in / direct kiosk checkin
         const nights = Math.max(1, Math.ceil((outTime - inTime) / (1000 * 60 * 60 * 24)));
         let totalAmount = (room.pricePerNight || 0) * nights;
         if (room.discount > 0) {
@@ -3331,7 +3376,7 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
       }
     }
 
-    // 5. Send real-time notification
+    // --- PHASE 4: Real-time notification (fire and forget) ---
     sendAdminNotificationEmail({
       type: "booking",
       details: `
@@ -3348,7 +3393,7 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
       message: "Check-in recorded successfully. Live tracker, calendar, and orders updated.",
       entry,
       booking,
-      room
+      room: updatedRoom || room
     });
   } catch (error) {
     console.error("Error saving check-in log:", error);
@@ -3391,21 +3436,21 @@ app.put("/checkin-log/:id", authenticateToken, upload.single('idCard'), async (r
   const adminUser = req.user?.username || 'admin';
 
   try {
-    const previous = await prisma.checkInLog.findUnique({ where: { id } });
+    const uploadTask = req.file ? uploadToSupabase(req.file).catch(err => {
+      console.warn("Could not upload new ID image to Supabase:", err.message);
+      return null;
+    }) : Promise.resolve(null);
+
+    const previousLookup = prisma.checkInLog.findUnique({ where: { id } });
+
+    const [uploadedUrl, previous] = await Promise.all([uploadTask, previousLookup]);
     if (!previous || previous.deletedAt) {
       return res.status(404).json({ error: "Check-in record not found" });
     }
 
-    let idCardUrl = req.body.idCardUrl !== undefined ? req.body.idCardUrl : previous.idCardUrl;
-    if (req.file) {
-      try {
-        idCardUrl = await uploadToSupabase(req.file);
-      } catch (uploadErr) {
-        console.warn("Could not upload new ID image to Supabase:", uploadErr.message);
-      }
-    }
+    let idCardUrl = uploadedUrl || (req.body.idCardUrl !== undefined ? req.body.idCardUrl : previous.idCardUrl);
 
-    const updated = await prisma.checkInLog.update({
+    const updateCheckInTask = prisma.checkInLog.update({
       where: { id },
       data: {
         guestName: guestName ? guestName.trim() : undefined,
@@ -3419,26 +3464,28 @@ app.put("/checkin-log/:id", authenticateToken, upload.single('idCard'), async (r
       }
     });
 
-    // Synchronize Room status if roomNumber was changed
+    const roomSyncTasks = [];
     if (roomNumber && String(roomNumber).trim() !== String(previous.roomNumber).trim()) {
       const prevNum = parseInt(String(previous.roomNumber).replace(/[^0-9]/g, ''));
       const newNum = parseInt(String(roomNumber).replace(/[^0-9]/g, ''));
       
       if (!isNaN(prevNum)) {
-        await prisma.room.updateMany({
+        roomSyncTasks.push(prisma.room.updateMany({
           where: { number: prevNum },
           data: { status: "available" }
-        });
+        }));
       }
       if (!isNaN(newNum)) {
-        await prisma.room.updateMany({
+        roomSyncTasks.push(prisma.room.updateMany({
           where: { number: newNum },
           data: { status: "occupied" }
-        });
+        }));
       }
     }
 
-    // Notify Super Admin and log audit snapshot in Vault
+    const [updated] = await Promise.all([updateCheckInTask, ...roomSyncTasks]);
+
+    // Notify Super Admin and log audit snapshot in Vault (fire-and-forget)
     notifySuperAdminOnEdit({
       recordType: 'checkInLog',
       recordId: id,
