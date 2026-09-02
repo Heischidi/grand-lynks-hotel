@@ -4838,9 +4838,23 @@ async function buildCheckInLogPrint(fromDate, toDate) {
     return generateTableHtml(headers, rows);
 }
 
-// =============================================================================
-// STAFF MANAGEMENT & EMPLOYMENT LOG SYSTEM
-// =============================================================================
+// Helper to escape HTML characters
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Media / Document viewer fallback
+window.viewStaffMediaModal = function(url, title) {
+    if (!url) return;
+    window.open(url, '_blank');
+};
+window.viewIdModal = window.viewStaffMediaModal;
 
 window.allStaffList = [];
 window.currentStaffFilter = 'all';

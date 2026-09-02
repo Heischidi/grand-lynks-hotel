@@ -3048,6 +3048,17 @@ window.deleteCheckInEntry = async function (id) {
 // STAFF ON DUTY & OPERATIONAL DIRECTORY (FRONT-DESK ADMIN VIEW)
 // =============================================================================
 
+// Helper to escape HTML characters
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 window.adminStaffList = [];
 
 async function fetchAdminStaff() {
@@ -3068,7 +3079,7 @@ async function fetchAdminStaff() {
         filterAdminStaffTable();
     } catch (err) {
         console.error('Error fetching staff for admin:', err);
-        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error connecting to server</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error loading staff records: ${err.message || err}</td></tr>`;
     }
 }
 
