@@ -222,21 +222,60 @@ model SiteSettings {
 }
 
 model Staff {
-  id          Int      @id @default(autoincrement())
-  name        String
-  email       String   @unique
-  phone       String?
-  role        String
-  department  String
-  status      String   @default("active") // active, inactive, on_leave
-  hireDate    DateTime?
-  salary      Float?
-  permissions String?  // JSON string of permissions
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    Int              @id @default(autoincrement())
+  staffCode             String?          @unique // e.g. GLH-001
+  name                  String
+  email                 String?          @unique
+  phone                 String?
+  role                  String           // Position / job title
+  department            String           // Front Office, Housekeeping, Kitchen, Security, etc.
+  status                String           @default("active") // active, on_leave, on_vacation, suspended, resigned, terminated
+  hireDate              DateTime?        // Employment start date
+  endDate               DateTime?        // Exit / resignation / termination date
+  salary                Float?           // Monthly salary in NGN
+  shift                 String?          // e.g. Morning (7am-3pm), Night, Day, etc.
+  workDays              String?          // e.g. Mon - Fri, Rotational
+  address               String?          // Residential address
+  photoUrl              String?          // Passport / avatar photo URL
+  idCardUrl             String?          // Uploaded ID document URL
+  idType                String?          // National ID, NIN, Voters Card, Drivers License, Passport
+  signatureUrl          String?          // Signature image URL
+  guarantorName         String?
+  guarantorPhone        String?
+  guarantorAddress      String?
+  guarantorRelationship String?
+  bankName              String?
+  accountNumber         String?
+  accountName           String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  notes                 String?          // Management notes, disciplinary records, remarks
+  permissions           String?          // JSON string of permissions
+  incentives            StaffIncentive[]
+  deletedAt             DateTime?        // Soft delete timestamp
+  deletedBy             String?          // Admin username who soft-deleted
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
   @@map("staff")
 }
+
+model StaffIncentive {
+  id            Int      @id @default(autoincrement())
+  staffId       Int
+  amount        Float
+  reason        String   // Performance, Overtime, Customer Commendation, Holiday Bonus, etc.
+  date          DateTime @default(now())
+  paymentMethod String?  // Cash, Transfer, Payroll Addition
+  notes         String?
+  recordedBy    String?  // Superadmin username
+  staff         Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("staff_incentives")
+}
+
 
 model MaintenanceRequest {
   id          Int      @id @default(autoincrement())

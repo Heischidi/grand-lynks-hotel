@@ -1936,7 +1936,8 @@ app.post('/super/restore/:id', authenticateSuperAdmin, async (req, res) => {
       room: prisma.room,
       review: prisma.review,
       checkInLog: prisma.checkInLog,
-      checkinlog: prisma.checkInLog
+      checkinlog: prisma.checkInLog,
+      staff: prisma.staff
     };
     const model = modelMap[recordType];
     if (!model) return res.status(400).json({ error: 'Unknown record type or non-restorable audit record' });
@@ -1986,6 +1987,8 @@ app.post('/super/purge/:id', authenticateSuperAdmin, async (req, res) => {
         await prisma.review.delete({ where: { id: recordId } });
       } else if (recordType === 'checkInLog' || recordType === 'checkinlog') {
         await prisma.checkInLog.delete({ where: { id: recordId } });
+      } else if (recordType === 'staff') {
+        await prisma.staff.delete({ where: { id: recordId } });
       }
     } catch (deleteErr) {
       console.warn('Hard delete failed (may already be gone):', deleteErr.message);
@@ -2473,11 +2476,83 @@ app.put("/housekeeping/:id", async (req, res) => {
   }
 });
 
-// Update existing staff endpoints to use database
+// =====================================================
+// STAFF MANAGEMENT & EMPLOYMENT LOG ENDPOINTS
+// =====================================================
+
+// Helper to handle staff image uploads (Supabase / DataURL)
+async function processStaffMedia(file, base64OrUrl, prefix) {
+  if (file) {
+    try {
+      return await uploadToSupabase(file, 6000);
+    } catch (err) {
+      console.warn(`Could not upload ${prefix} file to Supabase:`, err.message);
+      return null;
+    }
+  }
+  if (base64OrUrl && typeof base64OrUrl === 'string') {
+    if (base64OrUrl.startsWith('data:image/')) {
+      try {
+        const mimeMatch = base64OrUrl.match(/^data:(image\/\w+);base64,/);
+        const mimetype = mimeMatch ? mimeMatch[1] : 'image/png';
+        const ext = mimetype.split('/')[1] || 'png';
+        const raw = base64OrUrl.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(raw, 'base64');
+        const uploadFile = {
+          originalname: `${prefix}-${Date.now()}.${ext}`,
+          buffer,
+          mimetype
+        };
+        return await uploadToSupabase(uploadFile, 6000);
+      } catch (err) {
+        console.warn(`Could not upload ${prefix} base64 to Supabase:`, err.message);
+        return null;
+      }
+    }
+    if (base64OrUrl.startsWith('http://') || base64OrUrl.startsWith('https://')) {
+      return base64OrUrl;
+    }
+  }
+  return null;
+}
+
+// GET all staff (Supports filter by status, department, search, includeDeleted)
 app.get("/staff", async (req, res) => {
   try {
+    const { status, department, search, includeDeleted } = req.query;
+    const where = {};
+
+    if (includeDeleted !== 'true') {
+      where.deletedAt = null;
+    }
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+    if (department && department !== 'all') {
+      where.department = department;
+    }
+    if (search) {
+      const s = String(search).trim();
+      where.OR = [
+        { name: { contains: s, mode: 'insensitive' } },
+        { staffCode: { contains: s, mode: 'insensitive' } },
+        { phone: { contains: s, mode: 'insensitive' } },
+        { role: { contains: s, mode: 'insensitive' } },
+        { department: { contains: s, mode: 'insensitive' } }
+      ];
+    }
+
     const staff = await prisma.staff.findMany({
-      orderBy: { name: "asc" },
+      where,
+      include: {
+        incentives: {
+          orderBy: { date: 'desc' }
+        }
+      },
+      orderBy: [
+        { status: 'asc' },
+        { name: 'asc' }
+      ]
     });
     res.json(staff);
   } catch (error) {
@@ -2486,50 +2561,357 @@ app.get("/staff", async (req, res) => {
   }
 });
 
-app.post("/staff", authenticateSuperAdmin, async (req, res) => {
+// GET single staff member by ID
+app.get("/staff/:id", async (req, res) => {
   try {
-    const member = await prisma.staff.create({
-      data: req.body,
+    const staffId = parseInt(req.params.id);
+    if (isNaN(staffId)) return res.status(400).json({ error: "Invalid staff ID" });
+
+    const member = await prisma.staff.findUnique({
+      where: { id: staffId },
+      include: {
+        incentives: {
+          orderBy: { date: 'desc' }
+        }
+      }
     });
-    res.json({ message: "Staff member added", member });
+
+    if (!member) return res.status(404).json({ error: "Staff member not found" });
+    res.json(member);
+  } catch (error) {
+    console.error("Error fetching staff member:", error);
+    res.status(500).json({ error: "Failed to fetch staff member" });
+  }
+});
+
+// POST create new staff member (Authenticated Super Admin)
+app.post("/staff", authenticateSuperAdmin, upload.fields([
+  { name: 'photo', maxCount: 1 },
+  { name: 'idCard', maxCount: 1 },
+  { name: 'signature', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const body = req.body || {};
+    if (!body.name || !body.role || !body.department) {
+      return res.status(400).json({ error: "Name, position (role), and department are required" });
+    }
+
+    // Auto-generate staffCode if not provided (e.g. GLH-005)
+    let staffCode = body.staffCode ? String(body.staffCode).trim() : null;
+    if (!staffCode) {
+      const count = await prisma.staff.count();
+      staffCode = `GLH-${String(count + 1).padStart(3, '0')}`;
+      const existingCode = await prisma.staff.findUnique({ where: { staffCode } });
+      if (existingCode) {
+        staffCode = `GLH-${Date.now().toString().slice(-4)}`;
+      }
+    }
+
+    const photoFile = req.files?.photo?.[0];
+    const idCardFile = req.files?.idCard?.[0];
+    const sigFile = req.files?.signature?.[0];
+
+    const [photoUrl, idCardUrl, signatureUrl] = await Promise.all([
+      processStaffMedia(photoFile, body.photo || body.photoUrl, `photo-${staffCode}`),
+      processStaffMedia(idCardFile, body.idCard || body.idCardUrl, `id-${staffCode}`),
+      processStaffMedia(sigFile, body.signature || body.signatureUrl, `sig-${staffCode}`)
+    ]);
+
+    const salary = body.salary !== undefined && body.salary !== '' && !isNaN(body.salary)
+      ? parseFloat(body.salary) : null;
+    const hireDate = body.hireDate ? new Date(body.hireDate) : new Date();
+    const endDate = body.endDate ? new Date(body.endDate) : null;
+
+    const newStaff = await prisma.staff.create({
+      data: {
+        staffCode,
+        name: String(body.name).trim(),
+        email: body.email ? String(body.email).trim().toLowerCase() : null,
+        phone: body.phone ? String(body.phone).trim() : null,
+        role: String(body.role).trim(),
+        department: String(body.department).trim(),
+        status: body.status || 'active',
+        hireDate,
+        endDate,
+        salary,
+        shift: body.shift ? String(body.shift).trim() : null,
+        workDays: body.workDays ? String(body.workDays).trim() : null,
+        address: body.address ? String(body.address).trim() : null,
+        photoUrl: photoUrl || body.photoUrl || null,
+        idCardUrl: idCardUrl || body.idCardUrl || null,
+        idType: body.idType ? String(body.idType).trim() : null,
+        signatureUrl: signatureUrl || body.signatureUrl || null,
+        guarantorName: body.guarantorName ? String(body.guarantorName).trim() : null,
+        guarantorPhone: body.guarantorPhone ? String(body.guarantorPhone).trim() : null,
+        guarantorAddress: body.guarantorAddress ? String(body.guarantorAddress).trim() : null,
+        guarantorRelationship: body.guarantorRelationship ? String(body.guarantorRelationship).trim() : null,
+        bankName: body.bankName ? String(body.bankName).trim() : null,
+        accountNumber: body.accountNumber ? String(body.accountNumber).trim() : null,
+        accountName: body.accountName ? String(body.accountName).trim() : null,
+        emergencyContactName: body.emergencyContactName ? String(body.emergencyContactName).trim() : null,
+        emergencyContactPhone: body.emergencyContactPhone ? String(body.emergencyContactPhone).trim() : null,
+        notes: body.notes ? String(body.notes).trim() : null,
+        permissions: body.permissions || null
+      },
+      include: {
+        incentives: true
+      }
+    });
+
+    res.json({ message: "Staff member added successfully", member: newStaff });
   } catch (error) {
     console.error("Error creating staff member:", error);
-    res.status(500).json({ error: "Failed to create staff member" });
+    if (error.code === 'P2002') {
+      const target = error.meta?.target?.[0] || 'field';
+      return res.status(400).json({ error: `A staff member with this ${target} already exists` });
+    }
+    res.status(500).json({ error: "Failed to create staff member: " + error.message });
   }
 });
 
-app.put("/staff/:id", authenticateSuperAdmin, async (req, res) => {
+// PUT update staff member (Authenticated Super Admin)
+app.put("/staff/:id", authenticateSuperAdmin, upload.fields([
+  { name: 'photo', maxCount: 1 },
+  { name: 'idCard', maxCount: 1 },
+  { name: 'signature', maxCount: 1 }
+]), async (req, res) => {
   try {
-    const member = await prisma.staff.update({
-      where: { id: parseInt(req.params.id) },
-      data: req.body,
+    const staffId = parseInt(req.params.id);
+    if (isNaN(staffId)) return res.status(400).json({ error: "Invalid staff ID" });
+
+    const existing = await prisma.staff.findUnique({ where: { id: staffId } });
+    if (!existing) return res.status(404).json({ error: "Staff member not found" });
+
+    const body = req.body || {};
+    const photoFile = req.files?.photo?.[0];
+    const idCardFile = req.files?.idCard?.[0];
+    const sigFile = req.files?.signature?.[0];
+
+    const [photoUrl, idCardUrl, signatureUrl] = await Promise.all([
+      processStaffMedia(photoFile, body.photo || body.photoUrl, `photo-${existing.staffCode || staffId}`),
+      processStaffMedia(idCardFile, body.idCard || body.idCardUrl, `id-${existing.staffCode || staffId}`),
+      processStaffMedia(sigFile, body.signature || body.signatureUrl, `sig-${existing.staffCode || staffId}`)
+    ]);
+
+    const updateData = {};
+    if (body.name !== undefined) updateData.name = String(body.name).trim();
+    if (body.staffCode !== undefined) updateData.staffCode = body.staffCode ? String(body.staffCode).trim() : existing.staffCode;
+    if (body.email !== undefined) updateData.email = body.email ? String(body.email).trim().toLowerCase() : null;
+    if (body.phone !== undefined) updateData.phone = body.phone ? String(body.phone).trim() : null;
+    if (body.role !== undefined) updateData.role = String(body.role).trim();
+    if (body.department !== undefined) updateData.department = String(body.department).trim();
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.hireDate !== undefined) updateData.hireDate = body.hireDate ? new Date(body.hireDate) : null;
+    if (body.endDate !== undefined) updateData.endDate = body.endDate ? new Date(body.endDate) : null;
+    if (body.salary !== undefined) updateData.salary = body.salary !== '' && !isNaN(body.salary) ? parseFloat(body.salary) : null;
+    if (body.shift !== undefined) updateData.shift = body.shift ? String(body.shift).trim() : null;
+    if (body.workDays !== undefined) updateData.workDays = body.workDays ? String(body.workDays).trim() : null;
+    if (body.address !== undefined) updateData.address = body.address ? String(body.address).trim() : null;
+    if (photoUrl) updateData.photoUrl = photoUrl;
+    else if (body.photoUrl !== undefined) updateData.photoUrl = body.photoUrl || null;
+    if (idCardUrl) updateData.idCardUrl = idCardUrl;
+    else if (body.idCardUrl !== undefined) updateData.idCardUrl = body.idCardUrl || null;
+    if (body.idType !== undefined) updateData.idType = body.idType ? String(body.idType).trim() : null;
+    if (signatureUrl) updateData.signatureUrl = signatureUrl;
+    else if (body.signatureUrl !== undefined) updateData.signatureUrl = body.signatureUrl || null;
+    if (body.guarantorName !== undefined) updateData.guarantorName = body.guarantorName ? String(body.guarantorName).trim() : null;
+    if (body.guarantorPhone !== undefined) updateData.guarantorPhone = body.guarantorPhone ? String(body.guarantorPhone).trim() : null;
+    if (body.guarantorAddress !== undefined) updateData.guarantorAddress = body.guarantorAddress ? String(body.guarantorAddress).trim() : null;
+    if (body.guarantorRelationship !== undefined) updateData.guarantorRelationship = body.guarantorRelationship ? String(body.guarantorRelationship).trim() : null;
+    if (body.bankName !== undefined) updateData.bankName = body.bankName ? String(body.bankName).trim() : null;
+    if (body.accountNumber !== undefined) updateData.accountNumber = body.accountNumber ? String(body.accountNumber).trim() : null;
+    if (body.accountName !== undefined) updateData.accountName = body.accountName ? String(body.accountName).trim() : null;
+    if (body.emergencyContactName !== undefined) updateData.emergencyContactName = body.emergencyContactName ? String(body.emergencyContactName).trim() : null;
+    if (body.emergencyContactPhone !== undefined) updateData.emergencyContactPhone = body.emergencyContactPhone ? String(body.emergencyContactPhone).trim() : null;
+    if (body.notes !== undefined) updateData.notes = body.notes ? String(body.notes).trim() : null;
+
+    const updated = await prisma.staff.update({
+      where: { id: staffId },
+      data: updateData,
+      include: { incentives: true }
     });
-    res.json({ message: "Staff member updated", member });
+
+    res.json({ message: "Staff member updated successfully", member: updated });
   } catch (error) {
     console.error("Error updating staff member:", error);
+    if (error.code === 'P2002') {
+      const target = error.meta?.target?.[0] || 'field';
+      return res.status(400).json({ error: `A staff member with this ${target} already exists` });
+    }
+    res.status(500).json({ error: "Failed to update staff member: " + error.message });
+  }
+});
+
+// DELETE soft-delete staff member and record in Superadmin Vault
+app.delete("/staff/:id", authenticateSuperAdmin, async (req, res) => {
+  try {
+    const staffId = parseInt(req.params.id);
+    if (isNaN(staffId)) return res.status(400).json({ error: "Invalid staff ID" });
+
+    const staff = await prisma.staff.findUnique({
+      where: { id: staffId },
+      include: { incentives: true }
+    });
+    if (!staff) return res.status(404).json({ error: "Staff member not found" });
+
+    const now = new Date();
+    await prisma.staff.update({
+      where: { id: staffId },
+      data: {
+        deletedAt: now,
+        deletedBy: req.user.username
+      }
+    });
+
+    // Create snapshot in deleted_records for Super Admin Vault
+    await prisma.deletedRecord.create({
+      data: {
+        recordType: 'staff',
+        recordId: staffId,
+        snapshot: JSON.stringify(staff),
+        deletedBy: req.user.username,
+        deletedAt: now,
+        isRead: false
+      }
+    });
+
+    res.json({ message: "Staff member archived / moved to Vault" });
+  } catch (error) {
+    console.error("Error archiving staff member:", error);
+    res.status(500).json({ error: "Failed to archive staff member" });
+  }
+});
+
+// =====================================================
+// STAFF INCENTIVES ENDPOINTS
+// =====================================================
+
+// POST award an incentive to a staff member (Authenticated Super Admin)
+app.post("/staff/:id/incentives", authenticateSuperAdmin, async (req, res) => {
+  try {
+    const staffId = parseInt(req.params.id);
+    if (isNaN(staffId)) return res.status(400).json({ error: "Invalid staff ID" });
+
+    const staff = await prisma.staff.findUnique({ where: { id: staffId } });
+    if (!staff) return res.status(404).json({ error: "Staff member not found" });
+
+    const { amount, reason, date, paymentMethod, notes, syncExpense } = req.body;
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+      return res.status(400).json({ error: "A valid positive amount is required" });
+    }
+    if (!reason) {
+      return res.status(400).json({ error: "Reason / Title for the incentive is required" });
+    }
+
+    const incentiveDate = date ? new Date(date) : new Date();
+    const incentiveAmount = parseFloat(amount);
+
+    const incentive = await prisma.staffIncentive.create({
+      data: {
+        staffId,
+        amount: incentiveAmount,
+        reason: String(reason).trim(),
+        date: incentiveDate,
+        paymentMethod: paymentMethod ? String(paymentMethod).trim() : 'Cash',
+        notes: notes ? String(notes).trim() : null,
+        recordedBy: req.user.username
+      }
+    });
+
+    // Optional: sync to Financial Expenses under 'Staff Incentives' category
+    let expenseRecord = null;
+    if (syncExpense === true || syncExpense === 'true' || syncExpense === 1) {
+      try {
+        expenseRecord = await prisma.expense.create({
+          data: {
+            category: 'Staff Incentives',
+            amount: incentiveAmount,
+            description: `Staff Incentive: ${staff.name} (${staff.staffCode || 'ID ' + staff.id}) — ${reason}`,
+            date: incentiveDate,
+            paymentMethod: paymentMethod ? String(paymentMethod).trim() : 'Cash',
+            notes: notes ? `Staff Incentive #${incentive.id}: ${notes}` : `Staff Incentive #${incentive.id}`,
+            recordedBy: req.user.username
+          }
+        });
+      } catch (expErr) {
+        console.warn("Could not sync incentive to finance expenses:", expErr.message);
+      }
+    }
+
+    res.json({
+      message: "Incentive awarded successfully",
+      incentive,
+      expenseCreated: !!expenseRecord
+    });
+  } catch (error) {
+    console.error("Error creating staff incentive:", error);
+    res.status(500).json({ error: "Failed to record incentive: " + error.message });
+  }
+});
+
+// GET all staff incentives across the hotel
+app.get("/staff-incentives", authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { fromDate, toDate, staffId } = req.query;
+    const where = {};
+
+    if (staffId && !isNaN(staffId)) {
+      where.staffId = parseInt(staffId);
+    }
+    if (fromDate || toDate) {
+      where.date = {};
+      if (fromDate) where.date.gte = new Date(fromDate);
+      if (toDate) where.date.lte = new Date(toDate + 'T23:59:59.999Z');
+    }
+
+    const incentives = await prisma.staffIncentive.findMany({
+      where,
+      include: {
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            staffCode: true,
+            role: true,
+            department: true,
+            status: true
+          }
+        }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    const totalAmount = incentives.reduce((sum, item) => sum + item.amount, 0);
+
+    res.json({
+      incentives,
+      totalAmount,
+      count: incentives.length
+    });
+  } catch (error) {
+    console.error("Error fetching staff incentives:", error);
+    res.status(500).json({ error: "Failed to fetch staff incentives" });
+  }
+});
+
+// DELETE an incentive record
+app.delete("/staff-incentives/:id", authenticateSuperAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid incentive ID" });
+
+    await prisma.staffIncentive.delete({ where: { id } });
+    res.json({ message: "Incentive record removed" });
+  } catch (error) {
+    console.error("Error deleting staff incentive:", error);
     if (error.code === "P2025") {
-      res.status(404).json({ error: "Staff member not found" });
+      res.status(404).json({ error: "Incentive not found" });
     } else {
-      res.status(500).json({ error: "Failed to update staff member" });
+      res.status(500).json({ error: "Failed to delete incentive" });
     }
   }
 });
 
-app.delete("/staff/:id", authenticateSuperAdmin, async (req, res) => {
-  try {
-    await prisma.staff.delete({
-      where: { id: parseInt(req.params.id) },
-    });
-    res.json({ message: "Staff member deleted" });
-  } catch (error) {
-    console.error("Error deleting staff member:", error);
-    if (error.code === "P2025") {
-      res.status(404).json({ error: "Staff member not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete staff member" });
-    }
-  }
-});
 
 // NOTE: Duplicate POST /bookings route removed — the primary route at line ~1172
 // handles all booking creation (with overlap detection, email, walk-in support).

@@ -259,6 +259,13 @@
                             <span class="mr-3">📝</span> Check-In Log
                         </button>
                     </li>
+                    <li>
+                        <button onclick="switchTab('staff'); closeSidebarOnMobile()" id="nav-staff"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center justify-between">
+                            <span class="flex items-center"><span class="mr-3">👥</span> Staff on Duty</span>
+                            <span id="adminStaffBadge" class="hidden text-xs bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">0</span>
+                        </button>
+                    </li>
                     <li class="border-t border-gray-100 my-2 pt-2">
                         <a href="index.html" target="_blank"
                             class="w-full block px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">
@@ -735,6 +742,100 @@
                             </thead>
                             <tbody id="checkinLogTableBody" class="divide-y divide-gray-50 text-sm text-gray-700">
                                 <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400">Loading check-in records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STAFF ON DUTY SECTION (READ-ONLY OPERATIONAL DIRECTORY) -->
+            <section id="section-staff" class="hidden fade-in">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Staff on Duty &amp; Directory</h2>
+                        <p class="text-sm text-gray-500 mt-1">Operational view of active staff, assigned shifts, departments, and duty contacts</p>
+                    </div>
+                    <button onclick="fetchAdminStaff()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Refresh Staff
+                    </button>
+                </div>
+
+                <!-- KPI Cards for Admin -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center text-lg font-bold">👥</div>
+                        <div>
+                            <span class="text-xs text-gray-400 uppercase font-semibold">Total Staff</span>
+                            <div class="text-xl font-bold text-gray-800" id="adminStatStaffTotal">0</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg font-bold">🟢</div>
+                        <div>
+                            <span class="text-xs text-emerald-600 uppercase font-semibold">Active &amp; Working</span>
+                            <div class="text-xl font-bold text-emerald-700" id="adminStatStaffActive">0</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-blue-100 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center text-lg font-bold">🏖️</div>
+                        <div>
+                            <span class="text-xs text-blue-600 uppercase font-semibold">On Leave / Vacation</span>
+                            <div class="text-xl font-bold text-blue-700" id="adminStatStaffLeave">0</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-lg font-bold">⏰</div>
+                        <div>
+                            <span class="text-xs text-amber-600 uppercase font-semibold">Front Office Team</span>
+                            <div class="text-xl font-bold text-amber-700" id="adminStatStaffFrontOffice">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-center gap-3 justify-between">
+                    <div class="flex-1 min-w-[240px]">
+                        <input type="text" id="adminStaffSearch" oninput="filterAdminStaffTable()" placeholder="Search staff by name, code, role, or phone..."
+                            class="w-full border border-gray-200 rounded-lg px-3.5 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="adminStaffDeptFilter" onchange="filterAdminStaffTable()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none">
+                            <option value="all">All Departments</option>
+                            <option value="Front Office">Front Office</option>
+                            <option value="Housekeeping">Housekeeping</option>
+                            <option value="Food & Beverage">Food &amp; Beverage</option>
+                            <option value="Engineering">Engineering / Maintenance</option>
+                            <option value="Security">Security</option>
+                            <option value="Administration">Administration</option>
+                            <option value="Management">Management</option>
+                        </select>
+                        <select id="adminStaffShiftFilter" onchange="filterAdminStaffTable()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none">
+                            <option value="all">All Shifts</option>
+                            <option value="Morning">Morning</option>
+                            <option value="Afternoon">Afternoon</option>
+                            <option value="Night">Night</option>
+                            <option value="Day">Day Shift</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Staff Table -->
+                <div class="bg-white rounded-xl shadow overflow-hidden border border-gray-100">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-100 text-left text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Staff Member</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role &amp; Department</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned Shift</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Work Days</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Duty Phone</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminStaffTableBody" class="divide-y divide-gray-50 text-gray-700">
+                                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Loading staff records...</td></tr>
                             </tbody>
                         </table>
                     </div>

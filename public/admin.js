@@ -133,7 +133,8 @@ const sections = {
     reviews: document.getElementById('section-reviews'),
     settings: document.getElementById('section-settings'),
     tracker: document.getElementById('section-tracker'),
-    checkinlog: document.getElementById('section-checkinlog')
+    checkinlog: document.getElementById('section-checkinlog'),
+    staff: document.getElementById('section-staff')
 };
 
 // --- AUTHENTICATION ---
@@ -149,6 +150,8 @@ function init() {
     sections.settings = document.getElementById('section-settings');
     sections.tracker = document.getElementById('section-tracker');
     sections.checkinlog = document.getElementById('section-checkinlog');
+    sections.staff = document.getElementById('section-staff');
+
 
     const token = localStorage.getItem('adminToken');
     const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
@@ -284,6 +287,7 @@ function switchTab(tabName) {
         if (tabName === 'settings') fetchSettings();
         if (tabName === 'tracker') fetchRoomsForTracker();
         if (tabName === 'checkinlog') fetchCheckInLog();
+        if (tabName === 'staff') fetchAdminStaff();
     }
 }
 
@@ -3039,3 +3043,155 @@ window.deleteCheckInEntry = async function (id) {
         alert('Failed to delete record.');
     }
 };
+
+// =============================================================================
+// STAFF ON DUTY & OPERATIONAL DIRECTORY (FRONT-DESK ADMIN VIEW)
+// =============================================================================
+
+window.adminStaffList = [];
+
+async function fetchAdminStaff() {
+    const tbody = document.getElementById('adminStaffTableBody');
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Loading staff records...</td></tr>`;
+    }
+
+    try {
+        const res = await authFetch('/staff');
+        if (!res || !res.ok) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Failed to load staff list</td></tr>`;
+            return;
+        }
+
+        window.adminStaffList = await res.json();
+        updateAdminStaffKPIs();
+        filterAdminStaffTable();
+    } catch (err) {
+        console.error('Error fetching staff for admin:', err);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error connecting to server</td></tr>`;
+    }
+}
+
+function updateAdminStaffKPIs() {
+    const list = window.adminStaffList || [];
+    const total = list.length;
+    let active = 0;
+    let onLeave = 0;
+    let frontOffice = 0;
+
+    list.forEach(m => {
+        const s = (m.status || 'active').toLowerCase();
+        if (s === 'active') active++;
+        else if (s === 'on_leave' || s === 'on_vacation') onLeave++;
+
+        if ((m.department || '').toLowerCase().includes('front office')) frontOffice++;
+    });
+
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setTxt('adminStatStaffTotal', total);
+    setTxt('adminStatStaffActive', active);
+    setTxt('adminStatStaffLeave', onLeave);
+    setTxt('adminStatStaffFrontOffice', frontOffice);
+
+    const badge = document.getElementById('adminStaffBadge');
+    if (badge) {
+        badge.textContent = active;
+        if (active > 0) badge.classList.remove('hidden');
+        else badge.classList.add('hidden');
+    }
+}
+
+function filterAdminStaffTable() {
+    const search = (document.getElementById('adminStaffSearch')?.value || '').toLowerCase().trim();
+    const dept = document.getElementById('adminStaffDeptFilter')?.value || 'all';
+    const shift = document.getElementById('adminStaffShiftFilter')?.value || 'all';
+
+    let filtered = window.adminStaffList || [];
+
+    if (dept !== 'all') {
+        filtered = filtered.filter(m => (m.department || '').toLowerCase() === dept.toLowerCase());
+    }
+
+    if (shift !== 'all') {
+        filtered = filtered.filter(m => (m.shift || '').toLowerCase().includes(shift.toLowerCase()));
+    }
+
+    if (search) {
+        filtered = filtered.filter(m => {
+            return (m.name && m.name.toLowerCase().includes(search)) ||
+                (m.staffCode && m.staffCode.toLowerCase().includes(search)) ||
+                (m.role && m.role.toLowerCase().includes(search)) ||
+                (m.department && m.department.toLowerCase().includes(search)) ||
+                (m.phone && m.phone.toLowerCase().includes(search));
+        });
+    }
+
+    renderAdminStaffTable(filtered);
+}
+
+function renderAdminStaffTable(list) {
+    const tbody = document.getElementById('adminStaffTableBody');
+    if (!tbody) return;
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">No staff members found matching criteria</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(member => {
+        const code = member.staffCode || `GLH-${String(member.id).padStart(3, '0')}`;
+        const s = (member.status || 'active').toLowerCase();
+
+        let statusBadge = '';
+        if (s === 'active') {
+            statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Active</span>`;
+        } else if (s === 'on_leave') {
+            statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">On Leave</span>`;
+        } else if (s === 'on_vacation') {
+            statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">On Vacation</span>`;
+        } else if (s === 'suspended') {
+            statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Suspended</span>`;
+        } else {
+            statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">${member.status}</span>`;
+        }
+
+        const avatarHtml = member.photoUrl
+            ? `<img src="${member.photoUrl}" alt="${escapeHtml(member.name)}" class="w-9 h-9 rounded-xl object-cover border border-gray-200">`
+            : `<div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">${escapeHtml(member.name.charAt(0).toUpperCase())}</div>`;
+
+        return `
+            <tr class="hover:bg-gray-50/70 transition-colors">
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                        ${avatarHtml}
+                        <div>
+                            <div class="font-bold text-gray-900 flex items-center gap-1.5">
+                                <span>${escapeHtml(member.name)}</span>
+                                <span class="px-1.5 py-0.2 bg-gray-100 text-gray-600 text-[10px] font-mono rounded border">${escapeHtml(code)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    <div class="font-semibold text-gray-800 text-xs">${escapeHtml(member.role)}</div>
+                    <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[11px] mt-0.5">${escapeHtml(member.department)}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    ${statusBadge}
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-xs font-medium text-gray-800">⏰ ${escapeHtml(member.shift || 'Regular Day')}</span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-xs text-gray-600">${escapeHtml(member.workDays || 'Mon – Sat')}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <a href="tel:${escapeHtml(member.phone || '')}" class="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1">
+                        📞 ${escapeHtml(member.phone || 'No phone logged')}
+                    </a>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+

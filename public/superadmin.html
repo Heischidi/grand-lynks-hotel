@@ -459,6 +459,15 @@
                         </button>
                     </li>
                     <li>
+                        <button onclick="switchTab('staff'); closeSidebarOnMobile()" id="nav-staff"
+                            class="w-full text-left px-4 py-3 rounded-md hover:bg-purple-50 text-gray-700 font-medium transition-colors flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span class="mr-3">👥</span> Staff Directory
+                            </div>
+                            <span id="staffCountBadge" class="bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5 rounded-full hidden">0</span>
+                        </button>
+                    </li>
+                    <li>
                         <button onclick="switchTab('guests'); closeSidebarOnMobile()" id="nav-guests"
                             class="w-full text-left px-4 py-3 rounded-md hover:bg-blue-50 text-gray-700 font-medium transition-colors flex items-center">
                             <span class="mr-3">👤</span> Guest Directory
@@ -999,6 +1008,164 @@
                             </thead>
                             <tbody id="checkinLogTableBody" class="divide-y divide-gray-50 text-sm text-gray-700">
                                 <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400">Loading check-in records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STAFF DIRECTORY & EMPLOYMENT LOG SECTION -->
+            <section id="section-staff" class="hidden fade-in">
+                <!-- Header with Action Buttons -->
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2.5">
+                            <span>👥</span> Staff Directory &amp; Employment Log
+                        </h2>
+                        <p class="text-sm text-gray-500 mt-1">Keep track of current &amp; past staff, work durations, assigned shifts, compensation, and incentives</p>
+                    </div>
+                    <div class="flex gap-2.5 flex-wrap items-center">
+                        <button onclick="openPrintModal('section-staff')" class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 shadow-sm transition">
+                            🖨️ Print Directory
+                        </button>
+                        <button onclick="openAllIncentivesModal()" class="flex items-center gap-1.5 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-purple-700 hover:bg-purple-100 shadow-sm transition font-medium">
+                            🎁 Incentives Log
+                        </button>
+                        <button onclick="fetchStaff()" class="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Refresh
+                        </button>
+                        <button onclick="openAddStaffModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Add Staff Member
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Metric Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-6">
+                    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Total Recorded</span>
+                        <div class="text-2xl font-bold text-gray-800" id="statStaffTotal">0</div>
+                        <span class="text-[11px] text-gray-400">All-time staff files</span>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-emerald-100 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wider block mb-1">Active Staff</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </div>
+                        <div class="text-2xl font-bold text-emerald-700" id="statStaffActive">0</div>
+                        <span class="text-[11px] text-emerald-600">Currently on duty</span>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-blue-100 shadow-sm">
+                        <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider block mb-1">On Leave/Vacation</span>
+                        <div class="text-2xl font-bold text-blue-700" id="statStaffLeave">0</div>
+                        <span class="text-[11px] text-blue-500">Approved time off</span>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-amber-100 shadow-sm">
+                        <span class="text-xs font-semibold text-amber-600 uppercase tracking-wider block mb-1">Suspended</span>
+                        <div class="text-2xl font-bold text-amber-700" id="statStaffSuspended">0</div>
+                        <span class="text-[11px] text-amber-600">On administrative hold</span>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                        <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">Monthly Payroll</span>
+                        <div class="text-xl font-bold text-gray-900" id="statStaffSalary">₦0</div>
+                        <span class="text-[11px] text-gray-400">Active monthly base</span>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-purple-100 shadow-sm">
+                        <span class="text-xs font-semibold text-purple-600 uppercase tracking-wider block mb-1">Total Incentives</span>
+                        <div class="text-xl font-bold text-purple-700" id="statStaffIncentives">₦0</div>
+                        <span class="text-[11px] text-purple-500">All bonuses awarded</span>
+                    </div>
+                </div>
+
+                <!-- Controls, Search, and Status Tabs -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-5">
+                    <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                        <!-- Search Bar -->
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            </div>
+                            <input type="text" id="staffSearchInput" oninput="filterStaffTable()" placeholder="Search staff by name, ID (e.g. GLH-001), phone, role..."
+                                class="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:outline-none transition">
+                        </div>
+
+                        <!-- Department Filter -->
+                        <div class="w-full lg:w-48">
+                            <select id="staffDeptFilter" onchange="filterStaffTable()" class="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                                <option value="all">All Departments</option>
+                                <option value="Front Office">Front Office</option>
+                                <option value="Housekeeping">Housekeeping</option>
+                                <option value="Food & Beverage">Food &amp; Beverage</option>
+                                <option value="Engineering">Engineering / Maintenance</option>
+                                <option value="Security">Security</option>
+                                <option value="Administration">Administration</option>
+                                <option value="Management">Management</option>
+                            </select>
+                        </div>
+
+                        <!-- Shift Filter -->
+                        <div class="w-full lg:w-48">
+                            <select id="staffShiftFilter" onchange="filterStaffTable()" class="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                                <option value="all">All Shifts</option>
+                                <option value="Morning">Morning Shift</option>
+                                <option value="Afternoon">Afternoon / Evening</option>
+                                <option value="Night">Night Shift</option>
+                                <option value="Day">Regular Day</option>
+                                <option value="Flexible">Flexible / Rotational</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Status Filter Badges/Pills -->
+                    <div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-100 text-xs">
+                        <button type="button" onclick="setStaffStatusFilter('all')" id="staffFilter-all" class="staff-filter-btn px-3 py-1.5 rounded-full font-semibold transition bg-gray-900 text-white shadow-sm">
+                            All Staff (<span id="count-all">0</span>)
+                        </button>
+                        <button type="button" onclick="setStaffStatusFilter('active')" id="staffFilter-active" class="staff-filter-btn px-3 py-1.5 rounded-full font-semibold transition bg-gray-100 text-gray-700 hover:bg-gray-200">
+                            🟢 Active / Working (<span id="count-active">0</span>)
+                        </button>
+                        <button type="button" onclick="setStaffStatusFilter('on_leave')" id="staffFilter-on_leave" class="staff-filter-btn px-3 py-1.5 rounded-full font-semibold transition bg-gray-100 text-gray-700 hover:bg-gray-200">
+                            🔵 On Leave (<span id="count-on_leave">0</span>)
+                        </button>
+                        <button type="button" onclick="setStaffStatusFilter('on_vacation')" id="staffFilter-on_vacation" class="staff-filter-btn px-3 py-1.5 rounded-full font-semibold transition bg-gray-100 text-gray-700 hover:bg-gray-200">
+                            🟣 On Vacation (<span id="count-on_vacation">0</span>)
+                        </button>
+                        <button type="button" onclick="setStaffStatusFilter('suspended')" id="staffFilter-suspended" class="staff-filter-btn px-3 py-1.5 rounded-full font-semibold transition bg-gray-100 text-gray-700 hover:bg-gray-200">
+                            🟠 Suspended (<span id="count-suspended">0</span>)
+                        </button>
+                        <button type="button" onclick="setStaffStatusFilter('former')" id="staffFilter-former" class="staff-filter-btn px-3 py-1.5 rounded-full font-semibold transition bg-gray-100 text-gray-700 hover:bg-gray-200">
+                            ⚪ Former / Resigned / Terminated (<span id="count-former">0</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Staff Records Table -->
+                <div class="bg-white rounded-xl shadow overflow-hidden border border-gray-200">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-left text-sm">
+                            <thead class="bg-gray-50/80">
+                                <tr>
+                                    <th class="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Staff Member</th>
+                                    <th class="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role &amp; Department</th>
+                                    <th class="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration of Work</th>
+                                    <th class="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Shift &amp; Schedule</th>
+                                    <th class="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Salary &amp; Incentives</th>
+                                    <th class="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Guarantor</th>
+                                    <th class="px-4 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffTableBody" class="divide-y divide-gray-100 text-gray-700 bg-white">
+                                <tr>
+                                    <td colspan="8" class="px-4 py-12 text-center text-gray-400">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <span class="text-3xl mb-2">👥</span>
+                                            <span>Loading staff records...</span>
+                                        </div>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -2494,6 +2661,651 @@
         </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- STAFF MANAGEMENT MODALS -->
+    <!-- ============================================================ -->
+
+    <!-- ADD / EDIT STAFF MODAL -->
+    <div id="staffModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden my-6 border border-gray-100">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold shadow-sm">
+                        👥
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800" id="staffModalTitle">Add New Staff Member</h3>
+                        <p class="text-xs text-gray-500">Record staff profile, shift assignment, compensation, guarantor, and verification</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('staffModal')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Form (Scrollable) -->
+            <form id="staffForm" onsubmit="handleStaffSubmit(event)" class="flex-1 overflow-y-auto p-6 space-y-6">
+                <input type="hidden" id="staffEditId" value="">
+
+                <!-- SECTION 1: Personal & Basic Info -->
+                <div>
+                    <h4 class="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span>👤</span> 1. Personal &amp; Employment Details
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Full Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="staffNameInput" required placeholder="e.g. Mary Olawale Johnson"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Staff ID Code</label>
+                            <input type="text" id="staffCodeInput" placeholder="Auto (e.g. GLH-005)"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none font-mono">
+                            <span class="text-[10px] text-gray-400">Leave blank to auto-generate</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Position / Role <span class="text-red-500">*</span></label>
+                            <input type="text" id="staffRoleInput" required placeholder="e.g. Receptionist, Housekeeper, Chef"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Department <span class="text-red-500">*</span></label>
+                            <select id="staffDepartmentInput" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                                <option value="Front Office">Front Office</option>
+                                <option value="Housekeeping">Housekeeping</option>
+                                <option value="Food & Beverage">Food &amp; Beverage</option>
+                                <option value="Engineering">Engineering / Maintenance</option>
+                                <option value="Security">Security</option>
+                                <option value="Administration">Administration</option>
+                                <option value="Management">Management</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Employment Status <span class="text-red-500">*</span></label>
+                            <select id="staffStatusInput" onchange="toggleStaffStatusFields()" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none font-medium">
+                                <option value="active">🟢 Active / Working</option>
+                                <option value="on_leave">🔵 On Leave</option>
+                                <option value="on_vacation">🟣 On Vacation</option>
+                                <option value="suspended">🟠 Suspended</option>
+                                <option value="resigned">⚪ Resigned / Former</option>
+                                <option value="terminated">🔴 Terminated / Dismissed</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Date Joined (Hire Date) <span class="text-red-500">*</span></label>
+                            <input type="date" id="staffHireDateInput" required
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div id="staffEndDateContainer" class="hidden">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Date Left / Exit Date</label>
+                            <input type="date" id="staffEndDateInput"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                            <span class="text-[10px] text-gray-400">Recorded for former/resigned staff</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: Shift, Schedule & Compensation -->
+                <div class="pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span>⏰</span> 2. Shift Hours, Schedule &amp; Salary
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Assigned Shift Hours</label>
+                            <select id="staffShiftPreset" onchange="handleShiftPresetChange(this.value)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none mb-1">
+                                <option value="Morning (7:00 AM – 3:00 PM)">Morning (7:00 AM – 3:00 PM)</option>
+                                <option value="Afternoon (3:00 PM – 11:00 PM)">Afternoon (3:00 PM – 11:00 PM)</option>
+                                <option value="Night (11:00 PM – 7:00 AM)">Night (11:00 PM – 7:00 AM)</option>
+                                <option value="Day Shift (8:00 AM – 5:00 PM)">Day Shift (8:00 AM – 5:00 PM)</option>
+                                <option value="Flexible / Rotational">Flexible / Rotational</option>
+                                <option value="custom">Custom Shift Hours...</option>
+                            </select>
+                            <input type="text" id="staffShiftCustomInput" placeholder="e.g. 6:00 AM – 2:00 PM"
+                                class="hidden w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Work Days / Pattern</label>
+                            <input type="text" id="staffWorkDaysInput" placeholder="e.g. Mon – Sat, 6 Days on / 1 Day off"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Monthly Salary (₦)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm">₦</span>
+                                <input type="number" id="staffSalaryInput" step="100" min="0" placeholder="e.g. 150000"
+                                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: Contact, Address & Emergency -->
+                <div class="pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span>📞</span> 3. Contact &amp; Residential Address
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span class="text-red-500">*</span></label>
+                            <input type="tel" id="staffPhoneInput" required placeholder="e.g. 08012345678"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Email Address <span class="text-gray-400 font-normal">(optional)</span></label>
+                            <input type="email" id="staffEmailInput" placeholder="e.g. mary@example.com"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Residential Address</label>
+                            <input type="text" id="staffAddressInput" placeholder="e.g. Suite 4, Gwarinpa, Abuja"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Emergency Contact Name</label>
+                            <input type="text" id="staffEmergNameInput" placeholder="e.g. John Johnson (Spouse)"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Emergency Contact Phone</label>
+                            <input type="tel" id="staffEmergPhoneInput" placeholder="e.g. 08087654321"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Passport / Avatar Photo</label>
+                            <input type="file" id="staffPhotoInput" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                            <div id="staffPhotoPreviewContainer" class="mt-1 hidden flex items-center gap-2">
+                                <img id="staffPhotoPreview" src="" alt="Staff Preview" class="w-8 h-8 rounded-full object-cover border">
+                                <span class="text-[11px] text-gray-500">Current photo</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: Bank Details for Salary Disbursement -->
+                <div class="pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span>🏦</span> 4. Bank Account Details (Salary Disbursement)
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Bank Name</label>
+                            <input type="text" id="staffBankNameInput" placeholder="e.g. Access Bank, Zenith, GTBank"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Account Number (NUBAN)</label>
+                            <input type="text" id="staffAccountNumInput" maxlength="10" placeholder="10 digits"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Account Name</label>
+                            <input type="text" id="staffAccountNameInput" placeholder="e.g. Mary O. Johnson"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 5: Guarantor Information -->
+                <div class="pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span>🛡️</span> 5. Guarantor Record
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Guarantor Name</label>
+                            <input type="text" id="staffGuarantorNameInput" placeholder="e.g. Chief B. A. Adeleke"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Guarantor Phone Number</label>
+                            <input type="tel" id="staffGuarantorPhoneInput" placeholder="e.g. 08030001122"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Relationship</label>
+                            <input type="text" id="staffGuarantorRelInput" placeholder="e.g. Uncle, Pastor, Former Employer"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Guarantor Address</label>
+                            <input type="text" id="staffGuarantorAddrInput" placeholder="e.g. 14 Airport Rd, Abuja"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 6: Verification ID & Signature -->
+                <div class="pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span>✍️</span> 6. ID Document &amp; Signature
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- ID Document Upload -->
+                        <div class="bg-gray-50/70 p-4 rounded-xl border border-gray-200">
+                            <label class="block text-xs font-semibold text-gray-700 mb-2">Government ID Document</label>
+                            <div class="grid grid-cols-2 gap-2 mb-3">
+                                <select id="staffIdTypeInput" class="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400">
+                                    <option value="National ID / NIN">National ID / NIN</option>
+                                    <option value="Driver's License">Driver's License</option>
+                                    <option value="Voter's Card">Voter's Card</option>
+                                    <option value="International Passport">International Passport</option>
+                                    <option value="Other ID">Other Official ID</option>
+                                </select>
+                                <input type="file" id="staffIdCardInput" accept="image/*" class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700">
+                            </div>
+                            <div id="staffIdCardPreviewContainer" class="hidden mt-2">
+                                <div class="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                                    <span>📄 ID file attached:</span>
+                                    <button type="button" id="staffIdCardViewBtn" class="underline font-semibold">View uploaded document</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Signature Draw Pad / Upload -->
+                        <div class="bg-gray-50/70 p-4 rounded-xl border border-gray-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-xs font-semibold text-gray-700">Staff Signature</label>
+                                <button type="button" onclick="clearStaffSignatureCanvas()" class="text-xs text-red-600 hover:text-red-700 font-medium">Clear Signature</button>
+                            </div>
+                            <!-- Canvas Signature Pad -->
+                            <div class="bg-white rounded-lg border border-gray-300 overflow-hidden relative shadow-inner">
+                                <canvas id="staffSignaturePad" width="380" height="110" class="w-full h-28 touch-none cursor-crosshair bg-white"></canvas>
+                                <div id="staffSigPadPlaceholder" class="absolute inset-0 flex items-center justify-center pointer-events-none text-xs text-gray-400">
+                                    Sign here using mouse or finger
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-2">
+                                <label class="text-[11px] text-gray-500">Or upload signature image:</label>
+                                <input type="file" id="staffSignatureFileInput" accept="image/*" class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700">
+                            </div>
+                            <div id="staffSigExistingContainer" class="hidden mt-2">
+                                <div class="flex items-center gap-2 text-xs text-purple-700 bg-purple-50 p-2 rounded-lg border border-purple-200">
+                                    <span>✍️ Existing signature on file</span>
+                                    <button type="button" id="staffSigViewBtn" class="underline font-semibold ml-auto">Preview</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 7: Notes & Management Remarks -->
+                <div class="pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-bold text-purple-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <span>📝</span> 7. Management Notes &amp; Remarks
+                    </h4>
+                    <textarea id="staffNotesInput" rows="3" placeholder="Disciplinary notes, performance observations, uniform sizes, background checks, or any special instructions regarding this staff member..."
+                        class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none"></textarea>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
+                    <button type="button" onclick="closeModal('staffModal')" class="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" id="staffSubmitBtn" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition shadow-md flex items-center gap-2">
+                        <span id="staffSubmitSpinner" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        <span id="staffSubmitBtnText">Save Staff Member</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- STAFF FULL EMPLOYEE FILE MODAL (DOSSIER VIEWER) -->
+    <div id="staffDetailModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden my-6 border border-gray-100">
+            <!-- Header with Staff Banner -->
+            <div class="p-6 bg-gradient-to-r from-[#1a1a2e] to-[#252545] text-white flex-shrink-0 relative overflow-hidden">
+                <button type="button" onclick="closeModal('staffDetailModal')" class="absolute top-4 right-4 p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                    <div id="detailStaffAvatar" class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-500 text-white flex items-center justify-center text-3xl font-bold border-2 border-white/20 shadow-lg overflow-hidden flex-shrink-0">
+                        👤
+                    </div>
+                    <div class="text-center sm:text-left flex-1">
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
+                            <h3 class="text-2xl font-bold text-white tracking-wide" id="detailStaffName">-</h3>
+                            <span id="detailStaffCodeBadge" class="px-2.5 py-0.5 bg-white/20 text-white text-xs font-mono font-semibold rounded-md backdrop-blur-sm">GLH-000</span>
+                            <span id="detailStaffStatusBadge" class="px-2.5 py-0.5 bg-emerald-500 text-white text-xs font-semibold rounded-full shadow-sm">Active</span>
+                        </div>
+                        <p class="text-sm text-gray-300 mb-2" id="detailStaffRoleDept">-</p>
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-gray-300">
+                            <span class="flex items-center gap-1">📅 <span id="detailStaffDuration">-</span></span>
+                            <span class="flex items-center gap-1">⏰ <span id="detailStaffShift">-</span></span>
+                            <span class="flex items-center gap-1">📞 <span id="detailStaffPhone">-</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area (Scrollable) -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/40">
+                <!-- 4 Highlights Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
+                        <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">Monthly Salary</span>
+                        <div class="text-lg font-bold text-gray-900" id="detailStaffSalary">₦0</div>
+                        <span class="text-[10px] text-gray-400" id="detailStaffSalaryNote">Direct payout</span>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm bg-purple-50/30">
+                        <span class="text-[11px] font-semibold text-purple-600 uppercase tracking-wider block mb-0.5">Total Incentives</span>
+                        <div class="text-lg font-bold text-purple-700" id="detailStaffIncentivesTotal">₦0</div>
+                        <span class="text-[10px] text-purple-500" id="detailStaffIncentivesCount">0 bonuses awarded</span>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
+                        <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">Work Schedule</span>
+                        <div class="text-sm font-bold text-gray-800 truncate" id="detailStaffWorkDays">Mon – Fri</div>
+                        <span class="text-[10px] text-gray-500" id="detailStaffShiftHours">-</span>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
+                        <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">Guarantor Contact</span>
+                        <div class="text-sm font-bold text-gray-800 truncate" id="detailStaffGuarantorName">None logged</div>
+                        <div class="text-[11px] text-blue-600 font-semibold truncate" id="detailStaffGuarantorPhone">-</div>
+                    </div>
+                </div>
+
+                <!-- 2-column detailed breakdown -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Left: Employment & Bank Details -->
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                        <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider border-b pb-2 flex items-center justify-between">
+                            <span>📋 Employment &amp; Banking</span>
+                        </h4>
+                        <div class="text-xs space-y-2">
+                            <div class="flex justify-between py-1 border-b border-gray-50">
+                                <span class="text-gray-500">Employment Date:</span>
+                                <span class="font-semibold text-gray-800" id="detailStaffHireDate">-</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-gray-50" id="detailStaffExitRow">
+                                <span class="text-gray-500">Departure / Exit Date:</span>
+                                <span class="font-semibold text-red-600" id="detailStaffExitDate">Still employed</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-gray-50">
+                                <span class="text-gray-500">Email:</span>
+                                <span class="font-semibold text-gray-800" id="detailStaffEmail">-</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-gray-50">
+                                <span class="text-gray-500">Residential Address:</span>
+                                <span class="font-semibold text-gray-800" id="detailStaffAddress">-</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-gray-50">
+                                <span class="text-gray-500">Emergency Contact:</span>
+                                <span class="font-semibold text-gray-800" id="detailStaffEmergContact">-</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-gray-50">
+                                <span class="text-gray-500">Bank Name:</span>
+                                <span class="font-semibold text-gray-800" id="detailStaffBankName">-</span>
+                            </div>
+                            <div class="flex justify-between py-1">
+                                <span class="text-gray-500">Account Number:</span>
+                                <span class="font-mono font-bold text-purple-700" id="detailStaffAccountNum">-</span>
+                            </div>
+                            <div class="flex justify-between py-1">
+                                <span class="text-gray-500">Account Name:</span>
+                                <span class="font-semibold text-gray-800" id="detailStaffAccountName">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Guarantor, Documents & Verification -->
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                        <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider border-b pb-2 flex items-center justify-between">
+                            <span>🛡️ Guarantor &amp; Verification</span>
+                        </h4>
+                        <div class="text-xs space-y-2">
+                            <div class="flex justify-between py-1 border-b border-gray-50">
+                                <span class="text-gray-500">Guarantor Relationship:</span>
+                                <span class="font-semibold text-gray-800" id="detailStaffGuarantorRel">-</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-gray-50">
+                                <span class="text-gray-500">Guarantor Address:</span>
+                                <span class="font-semibold text-gray-800" id="detailStaffGuarantorAddr">-</span>
+                            </div>
+                            <div class="py-2 border-b border-gray-50">
+                                <span class="text-gray-500 block mb-1.5 font-medium">Government ID Document:</span>
+                                <div id="detailStaffIdCardBox" class="flex items-center gap-2">
+                                    <span class="text-gray-400 italic">No ID uploaded</span>
+                                </div>
+                            </div>
+                            <div class="py-2">
+                                <span class="text-gray-500 block mb-1.5 font-medium">Digital Signature:</span>
+                                <div id="detailStaffSignatureBox" class="flex items-center gap-2">
+                                    <span class="text-gray-400 italic">No signature on file</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Management Notes Card -->
+                <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-200 shadow-sm">
+                    <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                        <span>📝</span> Management Notes &amp; Observations
+                    </h4>
+                    <p class="text-xs text-amber-900 whitespace-pre-line leading-relaxed" id="detailStaffNotes">No administrative notes recorded for this staff member.</p>
+                </div>
+
+                <!-- Incentives Log Section for this Staff -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <span>🎁</span> Incentives &amp; Bonus History
+                            </h4>
+                            <p class="text-xs text-gray-500">All bonuses, tips, or excellence rewards awarded to this staff member</p>
+                        </div>
+                        <button type="button" onclick="openAwardIncentiveForCurrentStaff()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                            <span>+</span> Award Incentive
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-100 text-left text-xs">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-3 py-2 text-gray-500 uppercase font-semibold">Date</th>
+                                    <th class="px-3 py-2 text-gray-500 uppercase font-semibold">Reason / Title</th>
+                                    <th class="px-3 py-2 text-gray-500 uppercase font-semibold">Amount</th>
+                                    <th class="px-3 py-2 text-gray-500 uppercase font-semibold">Method</th>
+                                    <th class="px-3 py-2 text-gray-500 uppercase font-semibold">Recorded By</th>
+                                    <th class="px-3 py-2 text-gray-500 uppercase font-semibold">Notes</th>
+                                    <th class="px-3 py-2 text-right text-gray-500 uppercase font-semibold">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailStaffIncentivesBody" class="divide-y divide-gray-100 text-gray-700">
+                                <tr><td colspan="7" class="px-3 py-4 text-center text-gray-400">No incentives recorded yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-4 border-t border-gray-200 bg-white flex justify-between items-center flex-shrink-0">
+                <button type="button" onclick="printSingleStaffFile()" class="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-50 transition flex items-center gap-1.5">
+                    🖨️ Print Employee File
+                </button>
+                <div class="flex gap-2.5">
+                    <button type="button" onclick="editCurrentStaffFromDetail()" class="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                        ✏️ Edit Profile
+                    </button>
+                    <button type="button" onclick="closeModal('staffDetailModal')" class="px-5 py-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl text-xs font-semibold transition">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AWARD INCENTIVE MODAL -->
+    <div id="awardIncentiveModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100">
+            <div class="flex items-center justify-between p-6 border-b border-gray-100 bg-purple-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold">
+                        🎁
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Award Staff Incentive</h3>
+                        <p class="text-xs text-gray-500">Record a bonus or excellence reward</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('awardIncentiveModal')" class="p-2 text-gray-400 hover:text-gray-600 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form id="awardIncentiveForm" onsubmit="handleAwardIncentiveSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="awardStaffId" value="">
+
+                <!-- Staff display badge -->
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] text-gray-400 uppercase font-semibold block">Recipient</span>
+                        <div class="font-bold text-gray-800 text-sm" id="awardStaffNameDisplay">-</div>
+                    </div>
+                    <span class="text-xs font-mono font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200" id="awardStaffCodeDisplay">-</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Incentive Amount (₦) <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm font-bold">₦</span>
+                        <input type="number" id="awardAmountInput" required min="100" step="100" placeholder="e.g. 25000"
+                            class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-base font-bold text-purple-800 focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Reason / Category <span class="text-red-500">*</span></label>
+                    <select id="awardReasonPreset" onchange="handleIncentiveReasonChange(this.value)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none mb-1.5">
+                        <option value="Employee of the Month">Employee of the Month</option>
+                        <option value="Overtime / Extended Shift Bonus">Overtime / Extended Shift Bonus</option>
+                        <option value="High Occupancy Performance Reward">High Occupancy Performance Reward</option>
+                        <option value="Outstanding Guest Commendation">Outstanding Guest Commendation</option>
+                        <option value="Holiday / Festive Bonus">Holiday / Festive Bonus</option>
+                        <option value="Honesty & Integrity Award">Honesty &amp; Integrity Award</option>
+                        <option value="custom">Other Custom Reason...</option>
+                    </select>
+                    <input type="text" id="awardReasonCustomInput" placeholder="Specify reason..."
+                        class="hidden w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Date Granted</label>
+                        <input type="date" id="awardDateInput" required
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Payment Method</label>
+                        <select id="awardPaymentMethod" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Next Payroll">Added to Next Payroll</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Notes / Remarks <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <textarea id="awardNotesInput" rows="2" placeholder="e.g. Excellent service praised by VIP suite guest in Room 204"
+                        class="w-full border border-gray-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none"></textarea>
+                </div>
+
+                <!-- Sync with Financial Module Checkbox -->
+                <div class="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200">
+                    <label class="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="awardSyncExpenseCheckbox" checked class="w-4 h-4 mt-0.5 accent-emerald-600 rounded">
+                        <div class="text-xs text-emerald-900">
+                            <span class="font-bold block">Record in Hotel Financial Expenses</span>
+                            <span class="text-emerald-700 text-[11px]">Automatically adds an expense entry under category <strong>"Staff Incentives"</strong> in the Financial Module</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="flex justify-end gap-2.5 pt-3 border-t border-gray-100">
+                    <button type="button" onclick="closeModal('awardIncentiveModal')" class="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-xs font-medium hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" id="awardSubmitBtn" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition shadow-sm flex items-center gap-1.5">
+                        <span id="awardSubmitSpinner" class="hidden w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        Award Incentive
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- HOTEL ALL INCENTIVES LOG MODAL -->
+    <div id="allIncentivesModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden my-6 border border-gray-100">
+            <div class="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold shadow-sm">
+                        🎁
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">Staff Incentives &amp; Bonuses Log</h3>
+                        <p class="text-xs text-gray-500">Comprehensive hotel-wide audit of all staff bonuses awarded</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="printAllIncentivesLog()" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition">
+                        🖨️ Print Log
+                    </button>
+                    <button type="button" onclick="closeModal('allIncentivesModal')" class="p-2 text-gray-400 hover:text-gray-600 rounded-full">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters & Summary -->
+            <div class="p-4 bg-white border-b border-gray-100 flex flex-wrap gap-3 items-center justify-between flex-shrink-0">
+                <div class="flex flex-wrap gap-2 items-center text-xs">
+                    <input type="date" id="incentivesFromDate" onchange="fetchAllIncentives()" class="border border-gray-300 rounded-lg px-2.5 py-1.5">
+                    <span class="text-gray-400">to</span>
+                    <input type="date" id="incentivesToDate" onchange="fetchAllIncentives()" class="border border-gray-300 rounded-lg px-2.5 py-1.5">
+                    <button type="button" onclick="resetIncentivesDateFilter()" class="text-purple-600 hover:underline font-semibold ml-1">Reset</button>
+                </div>
+                <div class="bg-purple-50 border border-purple-200 px-4 py-1.5 rounded-xl flex items-center gap-2">
+                    <span class="text-xs font-semibold text-purple-700">Total Distributed:</span>
+                    <span class="text-base font-bold text-purple-900" id="allIncentivesTotalSum">₦0</span>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <table class="min-w-full divide-y divide-gray-100 text-left text-xs">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2.5 text-gray-500 uppercase font-semibold">Date</th>
+                            <th class="px-3 py-2.5 text-gray-500 uppercase font-semibold">Staff Member</th>
+                            <th class="px-3 py-2.5 text-gray-500 uppercase font-semibold">Reason / Title</th>
+                            <th class="px-3 py-2.5 text-gray-500 uppercase font-semibold">Amount</th>
+                            <th class="px-3 py-2.5 text-gray-500 uppercase font-semibold">Payment</th>
+                            <th class="px-3 py-2.5 text-gray-500 uppercase font-semibold">Authorized By</th>
+                            <th class="px-3 py-2.5 text-gray-500 uppercase font-semibold">Notes</th>
+                            <th class="px-3 py-2.5 text-right text-gray-500 uppercase font-semibold">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allIncentivesTableBody" class="divide-y divide-gray-100 text-gray-700">
+                        <tr><td colspan="8" class="px-3 py-8 text-center text-gray-400">Loading incentives records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-end flex-shrink-0">
+                <button type="button" onclick="closeModal('allIncentivesModal')" class="px-5 py-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl text-xs font-semibold transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Print Frame (hidden normally, visible on print) -->
     <div id="printFrame" class="hidden"></div>

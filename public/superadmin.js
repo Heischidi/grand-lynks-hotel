@@ -154,6 +154,7 @@ function init() {
     sections.tracker = document.getElementById('section-tracker');
     sections.finance = document.getElementById('section-finance');
     sections.checkinlog = document.getElementById('section-checkinlog');
+    sections.staff = document.getElementById('section-staff');
 
 
     const token = localStorage.getItem('adminToken');
@@ -299,6 +300,7 @@ function switchTab(tabName) {
         if (tabName === 'tracker') fetchRoomsForTracker();
         if (tabName === 'finance') window.initFinanceTab();
         if (tabName === 'checkinlog') fetchCheckInLog();
+        if (tabName === 'staff') fetchStaff();
     }
 }
 
@@ -4047,7 +4049,8 @@ window.openPrintModal = function(sectionId) {
         'section-statistics': 'Statistics',
         'section-vault': 'Vault',
         'section-finance': 'Finance',
-        'section-checkinlog': 'Check-In Log'
+        'section-checkinlog': 'Check-In Log',
+        'section-staff': 'Staff Directory & Employment Log'
     };
     document.getElementById('printModalSectionName').textContent = nameMap[sectionId] || 'Report';
 
@@ -4188,7 +4191,8 @@ async function buildReportHtml(sectionId, fromDate, toDate, category = '') {
         'section-statistics': 'Statistics & Analytics Report',
         'section-vault': 'Deleted Records Vault',
         'section-finance': category ? `Financial Report — ${category}` : 'Financial Overview Report',
-        'section-checkinlog': 'Guest Check-In Log Report'
+        'section-checkinlog': 'Guest Check-In Log Report',
+        'section-staff': 'Staff Directory & Employment Log Report'
     };
     
     let subtitle = '';
@@ -4230,6 +4234,7 @@ async function buildReportHtml(sectionId, fromDate, toDate, category = '') {
     else if (sectionId === 'section-finance') content = await buildFinancePrint(fromDate, toDate, category);
     else if (sectionId === 'section-statistics') content = await buildStatisticsPrint(fromDate, toDate);
     else if (sectionId === 'section-checkinlog') content = await buildCheckInLogPrint(fromDate, toDate);
+    else if (sectionId === 'section-staff') content = buildStaffPrint();
     else content = '<p>Report not implemented for this section yet.</p>';
 
     return `<div style="font-family: sans-serif; color: #000;">${header}${content}${footer}</div>`;
@@ -4832,4 +4837,1201 @@ async function buildCheckInLogPrint(fromDate, toDate) {
     ]);
     return generateTableHtml(headers, rows);
 }
+
+// =============================================================================
+// STAFF MANAGEMENT & EMPLOYMENT LOG SYSTEM
+// =============================================================================
+
+window.allStaffList = [];
+window.currentStaffFilter = 'all';
+window._currentDetailStaff = null;
+window._staffSigPadDrawn = false;
+
+// Format duration of work: e.g. "1 yr, 4 mos (Since Jan 2023)"
+function formatWorkDuration(hireDate, endDate, status) {
+    if (!hireDate) return { text: 'N/A', sub: '' };
+    const start = new Date(hireDate);
+    if (isNaN(start.getTime())) return { text: 'N/A', sub: '' };
+
+    const isFormer = (status === 'resigned' || status === 'terminated');
+    const end = isFormer && endDate && !isNaN(new Date(endDate).getTime())
+        ? new Date(endDate)
+        : new Date();
+
+    let years = end.getFullYear() - start.getFullYear();
+    let months = end.getMonth() - start.getMonth();
+    let days = end.getDate() - start.getDate();
+
+    if (days < 0) {
+        months--;
+    }
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+
+    let durationStr = '';
+    if (years > 0) {
+        durationStr = `${years} yr${years > 1 ? 's' : ''}`;
+        if (months > 0) durationStr += `, ${months} mo${months > 1 ? 's' : ''}`;
+    } else if (months > 0) {
+        durationStr = `${months} month${months > 1 ? 's' : ''}`;
+    } else {
+        const diffDays = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+        durationStr = `${diffDays} day${diffDays > 1 ? 's' : ''}`;
+    }
+
+    const startFormatted = start.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+    let sub = '';
+    if (isFormer) {
+        const endFormatted = end.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+        sub = `(${startFormatted} – ${endFormatted})`;
+    } else {
+        sub = `(Since ${startFormatted})`;
+    }
+
+    return { text: durationStr, sub };
+}
+
+// Status badge helper
+function getStaffStatusBadge(status) {
+    const s = String(status || 'active').toLowerCase();
+    switch (s) {
+        case 'active':
+            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Active</span>`;
+        case 'on_leave':
+            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>On Leave</span>`;
+        case 'on_vacation':
+            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200"><span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>On Vacation</span>`;
+        case 'suspended':
+            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Suspended</span>`;
+        case 'resigned':
+            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">Resigned</span>`;
+        case 'terminated':
+            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">Terminated</span>`;
+        default:
+            return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">${status}</span>`;
+    }
+}
+
+// Fetch all staff members
+async function fetchStaff() {
+    const tbody = document.getElementById('staffTableBody');
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400"><div class="flex flex-col items-center justify-center"><span class="text-3xl mb-2">👥</span><span>Loading staff records...</span></div></td></tr>`;
+    }
+
+    try {
+        const res = await authFetch('/staff');
+        if (!res || !res.ok) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-red-500">Failed to load staff records</td></tr>`;
+            return;
+        }
+
+        window.allStaffList = await res.json();
+        updateStaffKPIs();
+        filterStaffTable();
+    } catch (err) {
+        console.error('Error in fetchStaff:', err);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-red-500">Error connecting to server</td></tr>`;
+    }
+}
+
+// Update KPI cards and status filter counts
+function updateStaffKPIs() {
+    const list = window.allStaffList || [];
+    const total = list.length;
+    let active = 0;
+    let onLeave = 0;
+    let suspended = 0;
+    let former = 0;
+    let monthlySalary = 0;
+    let totalIncentives = 0;
+
+    list.forEach(m => {
+        const s = (m.status || 'active').toLowerCase();
+        if (s === 'active') {
+            active++;
+            if (m.salary) monthlySalary += parseFloat(m.salary);
+        } else if (s === 'on_leave' || s === 'on_vacation') {
+            onLeave++;
+            if (m.salary) monthlySalary += parseFloat(m.salary);
+        } else if (s === 'suspended') {
+            suspended++;
+        } else if (s === 'resigned' || s === 'terminated') {
+            former++;
+        }
+
+        if (m.incentives && Array.isArray(m.incentives)) {
+            m.incentives.forEach(inc => {
+                totalIncentives += parseFloat(inc.amount || 0);
+            });
+        }
+    });
+
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setTxt('statStaffTotal', total);
+    setTxt('statStaffActive', active);
+    setTxt('statStaffLeave', onLeave);
+    setTxt('statStaffSuspended', suspended);
+    setTxt('statStaffSalary', '₦' + monthlySalary.toLocaleString());
+    setTxt('statStaffIncentives', '₦' + totalIncentives.toLocaleString());
+
+    // Update pill counts
+    setTxt('count-all', total);
+    setTxt('count-active', active);
+    setTxt('count-on_leave', list.filter(m => (m.status || '').toLowerCase() === 'on_leave').length);
+    setTxt('count-on_vacation', list.filter(m => (m.status || '').toLowerCase() === 'on_vacation').length);
+    setTxt('count-suspended', suspended);
+    setTxt('count-former', former);
+
+    // Update sidebar badge
+    const badge = document.getElementById('staffCountBadge');
+    if (badge) {
+        badge.textContent = active;
+        if (active > 0) badge.classList.remove('hidden');
+        else badge.classList.add('hidden');
+    }
+}
+
+// Filter button toggle
+function setStaffStatusFilter(status) {
+    window.currentStaffFilter = status;
+    document.querySelectorAll('.staff-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-gray-900', 'text-white', 'shadow-sm');
+        btn.classList.add('bg-gray-100', 'text-gray-700');
+    });
+
+    const activeBtn = document.getElementById(`staffFilter-${status}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-100', 'text-gray-700');
+        activeBtn.classList.add('bg-gray-900', 'text-white', 'shadow-sm');
+    }
+
+    filterStaffTable();
+}
+
+// Filter staff table based on search input, department, shift, and status filter
+function filterStaffTable() {
+    const rawSearch = document.getElementById('staffSearchInput')?.value || '';
+    const search = rawSearch.toLowerCase().trim();
+    const dept = document.getElementById('staffDeptFilter')?.value || 'all';
+    const shift = document.getElementById('staffShiftFilter')?.value || 'all';
+    const statusFilter = window.currentStaffFilter || 'all';
+
+    let filtered = window.allStaffList || [];
+
+    // Filter by status tab
+    if (statusFilter !== 'all') {
+        if (statusFilter === 'former') {
+            filtered = filtered.filter(m => {
+                const s = (m.status || '').toLowerCase();
+                return s === 'resigned' || s === 'terminated';
+            });
+        } else {
+            filtered = filtered.filter(m => (m.status || '').toLowerCase() === statusFilter);
+        }
+    }
+
+    // Filter by department
+    if (dept !== 'all') {
+        filtered = filtered.filter(m => (m.department || '').toLowerCase() === dept.toLowerCase());
+    }
+
+    // Filter by shift
+    if (shift !== 'all') {
+        filtered = filtered.filter(m => (m.shift || '').toLowerCase().includes(shift.toLowerCase()));
+    }
+
+    // Search keyword
+    if (search) {
+        filtered = filtered.filter(m => {
+            return (m.name && m.name.toLowerCase().includes(search)) ||
+                (m.staffCode && m.staffCode.toLowerCase().includes(search)) ||
+                (m.phone && m.phone.toLowerCase().includes(search)) ||
+                (m.role && m.role.toLowerCase().includes(search)) ||
+                (m.department && m.department.toLowerCase().includes(search)) ||
+                (m.guarantorName && m.guarantorName.toLowerCase().includes(search)) ||
+                (m.guarantorPhone && m.guarantorPhone.toLowerCase().includes(search));
+        });
+    }
+
+    renderStaffTable(filtered);
+}
+
+// Render filtered staff into table
+function renderStaffTable(list) {
+    const tbody = document.getElementById('staffTableBody');
+    if (!tbody) return;
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="px-4 py-12 text-center text-gray-400">
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="text-3xl mb-2">🔍</span>
+                        <span class="font-medium text-gray-600">No staff members match this filter</span>
+                        <span class="text-xs text-gray-400 mt-1">Try resetting filters or click "+ Add Staff Member"</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = list.map(member => {
+        const duration = formatWorkDuration(member.hireDate, member.endDate, member.status);
+        const statusBadge = getStaffStatusBadge(member.status);
+        const code = member.staffCode || `GLH-${String(member.id).padStart(3, '0')}`;
+        
+        // Calculate total incentives
+        let incTotal = 0;
+        if (member.incentives && Array.isArray(member.incentives)) {
+            member.incentives.forEach(i => incTotal += parseFloat(i.amount || 0));
+        }
+
+        // Avatar
+        const avatarHtml = member.photoUrl
+            ? `<img src="${member.photoUrl}" alt="${escapeHtml(member.name)}" class="w-10 h-10 rounded-xl object-cover border border-purple-200 shadow-sm">`
+            : `<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-100 to-indigo-100 text-purple-700 flex items-center justify-center font-bold text-sm border border-purple-200 shadow-sm">${escapeHtml(member.name.charAt(0).toUpperCase())}</div>`;
+
+        // Salary display
+        const salaryText = member.salary ? `₦${parseFloat(member.salary).toLocaleString()}` : '<span class="text-gray-400 italic">Not set</span>';
+
+        // Guarantor display
+        let guarantorHtml = '<span class="text-gray-400 italic text-xs">None logged</span>';
+        if (member.guarantorName) {
+            guarantorHtml = `
+                <div class="text-xs">
+                    <span class="font-semibold text-gray-800 block">${escapeHtml(member.guarantorName)}</span>
+                    <a href="tel:${escapeHtml(member.guarantorPhone || '')}" class="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
+                        📞 ${escapeHtml(member.guarantorPhone || 'No phone')}
+                    </a>
+                </div>
+            `;
+        }
+
+        const escapedName = escapeHtml(member.name).replace(/'/g, "\\'");
+
+        return `
+            <tr class="hover:bg-purple-50/20 transition-colors">
+                <!-- Staff Member -->
+                <td class="px-4 py-3.5 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                        ${avatarHtml}
+                        <div>
+                            <div class="font-bold text-gray-900 flex items-center gap-1.5">
+                                <span>${escapeHtml(member.name)}</span>
+                                <span class="px-1.5 py-0.2 bg-gray-100 text-gray-600 text-[10px] font-mono rounded border">${escapeHtml(code)}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                                <a href="tel:${escapeHtml(member.phone || '')}" class="hover:text-blue-600">📞 ${escapeHtml(member.phone || 'No phone')}</a>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Role & Department -->
+                <td class="px-4 py-3.5">
+                    <div class="font-semibold text-gray-800 text-xs">${escapeHtml(member.role)}</div>
+                    <span class="inline-block mt-0.5 px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[11px]">${escapeHtml(member.department)}</span>
+                </td>
+
+                <!-- Status -->
+                <td class="px-4 py-3.5 whitespace-nowrap">
+                    ${statusBadge}
+                </td>
+
+                <!-- Duration of Work -->
+                <td class="px-4 py-3.5 whitespace-nowrap">
+                    <div class="font-bold text-gray-900 text-xs">${duration.text}</div>
+                    <div class="text-[10px] text-gray-400 mt-0.5">${duration.sub}</div>
+                </td>
+
+                <!-- Shift & Schedule -->
+                <td class="px-4 py-3.5">
+                    <div class="font-medium text-gray-800 text-xs flex items-center gap-1">
+                        <span>⏰</span> ${escapeHtml(member.shift || 'Regular Day')}
+                    </div>
+                    <div class="text-[11px] text-gray-400 mt-0.5">${escapeHtml(member.workDays || 'Mon – Sat')}</div>
+                </td>
+
+                <!-- Salary & Incentives -->
+                <td class="px-4 py-3.5 whitespace-nowrap">
+                    <div class="font-bold text-gray-900 text-xs">${salaryText}<span class="text-[10px] text-gray-400 font-normal"> /mo</span></div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                            🎁 ₦${incTotal.toLocaleString()}
+                        </span>
+                        <button type="button" onclick="openAwardIncentiveModal(${member.id}, '${escapedName}', '${escapeHtml(code)}')" title="Award Incentive / Bonus" class="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded-full transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </button>
+                    </div>
+                </td>
+
+                <!-- Guarantor -->
+                <td class="px-4 py-3.5">
+                    ${guarantorHtml}
+                </td>
+
+                <!-- Actions -->
+                <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                    <div class="flex items-center justify-end gap-1.5">
+                        <button type="button" onclick="viewStaffDetail(${member.id})" title="View Full Employee File" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition shadow-sm flex items-center gap-1">
+                            👁️ View File
+                        </button>
+                        <button type="button" onclick="openEditStaffModal(${member.id})" title="Edit Staff" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <button type="button" onclick="openAwardIncentiveModal(${member.id}, '${escapedName}', '${escapeHtml(code)}')" title="Award Bonus / Incentive" class="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>
+                        </button>
+                        <button type="button" onclick="deleteStaff(${member.id}, '${escapedName}')" title="Archive / Move to Vault" class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Toggle exit date field based on status
+function toggleStaffStatusFields() {
+    const status = document.getElementById('staffStatusInput')?.value || 'active';
+    const container = document.getElementById('staffEndDateContainer');
+    if (container) {
+        if (status === 'resigned' || status === 'terminated') {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+}
+
+// Shift preset change
+function handleShiftPresetChange(val) {
+    const custom = document.getElementById('staffShiftCustomInput');
+    if (!custom) return;
+    if (val === 'custom') {
+        custom.classList.remove('hidden');
+        custom.focus();
+    } else {
+        custom.classList.add('hidden');
+        custom.value = '';
+    }
+}
+
+// Incentive reason preset change
+function handleIncentiveReasonChange(val) {
+    const custom = document.getElementById('awardReasonCustomInput');
+    if (!custom) return;
+    if (val === 'custom') {
+        custom.classList.remove('hidden');
+        custom.focus();
+    } else {
+        custom.classList.add('hidden');
+        custom.value = '';
+    }
+}
+
+// Signature pad initialization & drawing
+function initStaffSignaturePad() {
+    const canvas = document.getElementById('staffSignaturePad');
+    if (!canvas || canvas._initialized) return;
+    canvas._initialized = true;
+
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (canvas.width / rect.width),
+            y: (clientY - rect.top) * (canvas.height / rect.height)
+        };
+    }
+
+    function start(e) {
+        drawing = true;
+        window._staffSigPadDrawn = true;
+        const placeholder = document.getElementById('staffSigPadPlaceholder');
+        if (placeholder) placeholder.classList.add('hidden');
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.strokeStyle = '#1e1b4b';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        e.preventDefault();
+    }
+
+    function move(e) {
+        if (!drawing) return;
+        const pos = getPos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        e.preventDefault();
+    }
+
+    function stop(e) {
+        if (drawing) {
+            drawing = false;
+        }
+    }
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('mouseleave', stop);
+
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', stop);
+}
+
+function clearStaffSignatureCanvas() {
+    const canvas = document.getElementById('staffSignaturePad');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    window._staffSigPadDrawn = false;
+    const placeholder = document.getElementById('staffSigPadPlaceholder');
+    if (placeholder) placeholder.classList.remove('hidden');
+}
+
+// Open Add Staff Modal
+function openAddStaffModal() {
+    document.getElementById('staffForm').reset();
+    document.getElementById('staffEditId').value = '';
+    document.getElementById('staffModalTitle').textContent = 'Add New Staff Member';
+    document.getElementById('staffSubmitBtnText').textContent = 'Save Staff Member';
+
+    // Auto staffCode placeholder
+    const nextNum = (window.allStaffList ? window.allStaffList.length : 0) + 1;
+    document.getElementById('staffCodeInput').placeholder = `GLH-${String(nextNum).padStart(3, '0')}`;
+
+    // Default today for hireDate
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('staffHireDateInput').value = today;
+
+    // Reset status fields
+    document.getElementById('staffStatusInput').value = 'active';
+    toggleStaffStatusFields();
+
+    // Reset shift preset
+    document.getElementById('staffShiftPreset').value = 'Morning (7:00 AM – 3:00 PM)';
+    handleShiftPresetChange('Morning (7:00 AM – 3:00 PM)');
+
+    // Reset previews
+    document.getElementById('staffPhotoPreviewContainer').classList.add('hidden');
+    document.getElementById('staffIdCardPreviewContainer').classList.add('hidden');
+    document.getElementById('staffSigExistingContainer').classList.add('hidden');
+
+    clearStaffSignatureCanvas();
+    window.openModal('staffModal');
+    setTimeout(initStaffSignaturePad, 200);
+}
+
+// Open Edit Staff Modal
+function openEditStaffModal(staffId) {
+    const member = (window.allStaffList || []).find(m => m.id === staffId);
+    if (!member) return alert('Staff member not found');
+
+    document.getElementById('staffForm').reset();
+    document.getElementById('staffEditId').value = member.id;
+    document.getElementById('staffModalTitle').textContent = `Edit Staff: ${member.name}`;
+    document.getElementById('staffSubmitBtnText').textContent = 'Update Staff Member';
+
+    document.getElementById('staffNameInput').value = member.name || '';
+    document.getElementById('staffCodeInput').value = member.staffCode || '';
+    document.getElementById('staffRoleInput').value = member.role || '';
+    document.getElementById('staffDepartmentInput').value = member.department || 'Front Office';
+    document.getElementById('staffStatusInput').value = member.status || 'active';
+    toggleStaffStatusFields();
+
+    if (member.hireDate) {
+        document.getElementById('staffHireDateInput').value = new Date(member.hireDate).toISOString().split('T')[0];
+    }
+    if (member.endDate) {
+        document.getElementById('staffEndDateInput').value = new Date(member.endDate).toISOString().split('T')[0];
+    }
+
+    document.getElementById('staffSalaryInput').value = member.salary !== null ? member.salary : '';
+    
+    // Shift preset handling
+    const shiftVal = member.shift || '';
+    const presetSelect = document.getElementById('staffShiftPreset');
+    const hasPreset = Array.from(presetSelect.options).some(o => o.value === shiftVal);
+    if (hasPreset && shiftVal) {
+        presetSelect.value = shiftVal;
+        handleShiftPresetChange(shiftVal);
+    } else if (shiftVal) {
+        presetSelect.value = 'custom';
+        handleShiftPresetChange('custom');
+        document.getElementById('staffShiftCustomInput').value = shiftVal;
+    } else {
+        presetSelect.value = 'Morning (7:00 AM – 3:00 PM)';
+        handleShiftPresetChange('Morning (7:00 AM – 3:00 PM)');
+    }
+
+    document.getElementById('staffWorkDaysInput').value = member.workDays || '';
+    document.getElementById('staffPhoneInput').value = member.phone || '';
+    document.getElementById('staffEmailInput').value = member.email || '';
+    document.getElementById('staffAddressInput').value = member.address || '';
+    document.getElementById('staffEmergNameInput').value = member.emergencyContactName || '';
+    document.getElementById('staffEmergPhoneInput').value = member.emergencyContactPhone || '';
+
+    document.getElementById('staffBankNameInput').value = member.bankName || '';
+    document.getElementById('staffAccountNumInput').value = member.accountNumber || '';
+    document.getElementById('staffAccountNameInput').value = member.accountName || '';
+
+    document.getElementById('staffGuarantorNameInput').value = member.guarantorName || '';
+    document.getElementById('staffGuarantorPhoneInput').value = member.guarantorPhone || '';
+    document.getElementById('staffGuarantorRelInput').value = member.guarantorRelationship || '';
+    document.getElementById('staffGuarantorAddrInput').value = member.guarantorAddress || '';
+
+    document.getElementById('staffIdTypeInput').value = member.idType || 'National ID / NIN';
+    document.getElementById('staffNotesInput').value = member.notes || '';
+
+    // Previews
+    const photoContainer = document.getElementById('staffPhotoPreviewContainer');
+    const photoImg = document.getElementById('staffPhotoPreview');
+    if (member.photoUrl) {
+        photoImg.src = member.photoUrl;
+        photoContainer.classList.remove('hidden');
+    } else {
+        photoContainer.classList.add('hidden');
+    }
+
+    const idContainer = document.getElementById('staffIdCardPreviewContainer');
+    const idBtn = document.getElementById('staffIdCardViewBtn');
+    if (member.idCardUrl) {
+        idBtn.onclick = () => viewIdModal(member.idCardUrl, `${member.name} — ID Card`, member.idType);
+        idContainer.classList.remove('hidden');
+    } else {
+        idContainer.classList.add('hidden');
+    }
+
+    const sigContainer = document.getElementById('staffSigExistingContainer');
+    const sigBtn = document.getElementById('staffSigViewBtn');
+    if (member.signatureUrl) {
+        sigBtn.onclick = () => viewIdModal(member.signatureUrl, `${member.name} — Signature`, '');
+        sigContainer.classList.remove('hidden');
+    } else {
+        sigContainer.classList.add('hidden');
+    }
+
+    clearStaffSignatureCanvas();
+    window.openModal('staffModal');
+    setTimeout(initStaffSignaturePad, 200);
+}
+
+// Handle Add / Edit submit
+async function handleStaffSubmit(e) {
+    e.preventDefault();
+    const editId = document.getElementById('staffEditId').value;
+    const isEdit = !!editId;
+
+    const spinner = document.getElementById('staffSubmitSpinner');
+    const btn = document.getElementById('staffSubmitBtn');
+    if (spinner) spinner.classList.remove('hidden');
+    if (btn) btn.disabled = true;
+
+    try {
+        const formData = new FormData();
+
+        const appendIf = (key, val) => {
+            if (val !== undefined && val !== null) formData.append(key, val);
+        };
+
+        appendIf('name', document.getElementById('staffNameInput').value.trim());
+        appendIf('staffCode', document.getElementById('staffCodeInput').value.trim());
+        appendIf('role', document.getElementById('staffRoleInput').value.trim());
+        appendIf('department', document.getElementById('staffDepartmentInput').value);
+        appendIf('status', document.getElementById('staffStatusInput').value);
+        appendIf('hireDate', document.getElementById('staffHireDateInput').value);
+
+        const status = document.getElementById('staffStatusInput').value;
+        if (status === 'resigned' || status === 'terminated') {
+            appendIf('endDate', document.getElementById('staffEndDateInput').value);
+        }
+
+        const shiftPreset = document.getElementById('staffShiftPreset').value;
+        const shiftVal = shiftPreset === 'custom'
+            ? document.getElementById('staffShiftCustomInput').value.trim()
+            : shiftPreset;
+        appendIf('shift', shiftVal);
+
+        appendIf('workDays', document.getElementById('staffWorkDaysInput').value.trim());
+        appendIf('salary', document.getElementById('staffSalaryInput').value);
+        appendIf('phone', document.getElementById('staffPhoneInput').value.trim());
+        appendIf('email', document.getElementById('staffEmailInput').value.trim());
+        appendIf('address', document.getElementById('staffAddressInput').value.trim());
+        appendIf('emergencyContactName', document.getElementById('staffEmergNameInput').value.trim());
+        appendIf('emergencyContactPhone', document.getElementById('staffEmergPhoneInput').value.trim());
+
+        appendIf('bankName', document.getElementById('staffBankNameInput').value.trim());
+        appendIf('accountNumber', document.getElementById('staffAccountNumInput').value.trim());
+        appendIf('accountName', document.getElementById('staffAccountNameInput').value.trim());
+
+        appendIf('guarantorName', document.getElementById('staffGuarantorNameInput').value.trim());
+        appendIf('guarantorPhone', document.getElementById('staffGuarantorPhoneInput').value.trim());
+        appendIf('guarantorRelationship', document.getElementById('staffGuarantorRelInput').value.trim());
+        appendIf('guarantorAddress', document.getElementById('staffGuarantorAddrInput').value.trim());
+
+        appendIf('idType', document.getElementById('staffIdTypeInput').value);
+        appendIf('notes', document.getElementById('staffNotesInput').value.trim());
+
+        // File uploads
+        const photoFile = document.getElementById('staffPhotoInput').files[0];
+        if (photoFile) formData.append('photo', photoFile);
+
+        const idCardFile = document.getElementById('staffIdCardInput').files[0];
+        if (idCardFile) formData.append('idCard', idCardFile);
+
+        const sigFileInput = document.getElementById('staffSignatureFileInput').files[0];
+        if (sigFileInput) {
+            formData.append('signature', sigFileInput);
+        } else if (window._staffSigPadDrawn) {
+            const canvas = document.getElementById('staffSignaturePad');
+            if (canvas) {
+                const dataUrl = canvas.toDataURL('image/png');
+                formData.append('signature', dataUrl);
+            }
+        }
+
+        const token = localStorage.getItem('adminToken');
+        const url = isEdit ? `${API_URL}/staff/${editId}` : `${API_URL}/staff`;
+        const method = isEdit ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || 'Failed to save staff record');
+        }
+
+        const result = await res.json();
+        alert(isEdit ? 'Staff member updated successfully!' : 'Staff member registered successfully!');
+        window.closeModal('staffModal');
+        await fetchStaff();
+
+        // If detail modal was open, refresh it
+        if (window._currentDetailStaff && window._currentDetailStaff.id === parseInt(editId)) {
+            viewStaffDetail(parseInt(editId));
+        }
+    } catch (err) {
+        console.error('Error saving staff:', err);
+        alert(`Error: ${err.message}`);
+    } finally {
+        if (spinner) spinner.classList.add('hidden');
+        if (btn) btn.disabled = false;
+    }
+}
+
+// View Full Employee File (Dossier)
+async function viewStaffDetail(staffId) {
+    const member = (window.allStaffList || []).find(m => m.id === staffId);
+    if (!member) return alert('Staff member not found');
+    window._currentDetailStaff = member;
+
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '-'; };
+
+    setTxt('detailStaffName', member.name);
+    setTxt('detailStaffCodeBadge', member.staffCode || `GLH-${String(member.id).padStart(3, '0')}`);
+    setTxt('detailStaffRoleDept', `${member.role} — ${member.department}`);
+    setTxt('detailStaffPhone', member.phone || 'No phone');
+    setTxt('detailStaffShift', member.shift || 'Regular Day');
+
+    // Status pill
+    const statusEl = document.getElementById('detailStaffStatusBadge');
+    if (statusEl) {
+        statusEl.innerHTML = getStaffStatusBadge(member.status);
+    }
+
+    // Avatar
+    const avatarEl = document.getElementById('detailStaffAvatar');
+    if (avatarEl) {
+        if (member.photoUrl) {
+            avatarEl.innerHTML = `<img src="${member.photoUrl}" alt="${escapeHtml(member.name)}" class="w-full h-full object-cover">`;
+        } else {
+            avatarEl.innerHTML = `<span>${escapeHtml(member.name.charAt(0).toUpperCase())}</span>`;
+        }
+    }
+
+    // Work Duration
+    const dur = formatWorkDuration(member.hireDate, member.endDate, member.status);
+    setTxt('detailStaffDuration', `${dur.text} ${dur.sub}`);
+
+    // Salary & Schedule
+    setTxt('detailStaffSalary', member.salary ? `₦${parseFloat(member.salary).toLocaleString()}` : '₦0');
+    setTxt('detailStaffWorkDays', member.workDays || 'Mon – Sat');
+    setTxt('detailStaffShiftHours', member.shift || 'Standard Shift');
+
+    // Dates & Contacts
+    setTxt('detailStaffHireDate', member.hireDate ? new Date(member.hireDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-');
+    
+    const exitRow = document.getElementById('detailStaffExitRow');
+    if (member.status === 'resigned' || member.status === 'terminated') {
+        if (exitRow) exitRow.classList.remove('hidden');
+        setTxt('detailStaffExitDate', member.endDate ? new Date(member.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date not set');
+    } else {
+        if (exitRow) exitRow.classList.add('hidden');
+    }
+
+    setTxt('detailStaffEmail', member.email || 'None');
+    setTxt('detailStaffAddress', member.address || 'None');
+    setTxt('detailStaffEmergContact', member.emergencyContactName ? `${member.emergencyContactName} (${member.emergencyContactPhone || 'No phone'})` : 'None');
+
+    // Bank
+    setTxt('detailStaffBankName', member.bankName || 'Not recorded');
+    setTxt('detailStaffAccountNum', member.accountNumber || 'Not recorded');
+    setTxt('detailStaffAccountName', member.accountName || 'Not recorded');
+
+    // Guarantor
+    setTxt('detailStaffGuarantorName', member.guarantorName || 'None logged');
+    setTxt('detailStaffGuarantorPhone', member.guarantorPhone || 'None logged');
+    setTxt('detailStaffGuarantorRel', member.guarantorRelationship || 'Not specified');
+    setTxt('detailStaffGuarantorAddr', member.guarantorAddress || 'Not specified');
+
+    // Documents
+    const idBox = document.getElementById('detailStaffIdCardBox');
+    if (idBox) {
+        if (member.idCardUrl) {
+            idBox.innerHTML = `
+                <button type="button" onclick="viewIdModal('${member.idCardUrl}', '${escapeHtml(member.name)} — ID Card', '${escapeHtml(member.idType || '')}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 font-semibold rounded-lg border border-blue-200 hover:bg-blue-100 transition shadow-sm">
+                    📄 View ID Document (${escapeHtml(member.idType || 'ID')})
+                </button>
+            `;
+        } else {
+            idBox.innerHTML = `<span class="text-gray-400 italic">No government ID uploaded</span>`;
+        }
+    }
+
+    const sigBox = document.getElementById('detailStaffSignatureBox');
+    if (sigBox) {
+        if (member.signatureUrl) {
+            sigBox.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <img src="${member.signatureUrl}" alt="Signature" class="h-10 border border-gray-200 rounded p-1 bg-white shadow-sm">
+                    <button type="button" onclick="viewIdModal('${member.signatureUrl}', '${escapeHtml(member.name)} — Signature', '')" class="text-xs text-purple-600 hover:underline font-semibold">Zoom</button>
+                </div>
+            `;
+        } else {
+            sigBox.innerHTML = `<span class="text-gray-400 italic">No signature on file</span>`;
+        }
+    }
+
+    // Notes
+    setTxt('detailStaffNotes', member.notes || 'No administrative notes recorded for this staff member.');
+
+    // Incentives Table for this staff
+    const incBody = document.getElementById('detailStaffIncentivesBody');
+    const incentives = member.incentives || [];
+    let incSum = 0;
+
+    if (!incentives || incentives.length === 0) {
+        if (incBody) incBody.innerHTML = `<tr><td colspan="7" class="px-3 py-6 text-center text-gray-400">No incentives awarded yet</td></tr>`;
+    } else {
+        incBody.innerHTML = incentives.map(inc => {
+            incSum += parseFloat(inc.amount || 0);
+            return `
+                <tr class="hover:bg-purple-50/30">
+                    <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-600">${new Date(inc.date).toLocaleDateString('en-GB')}</td>
+                    <td class="px-3 py-2 font-bold text-gray-800">${escapeHtml(inc.reason)}</td>
+                    <td class="px-3 py-2 font-bold text-purple-800 whitespace-nowrap">₦${parseFloat(inc.amount).toLocaleString()}</td>
+                    <td class="px-3 py-2 text-gray-500">${escapeHtml(inc.paymentMethod || 'Cash')}</td>
+                    <td class="px-3 py-2 text-gray-500 font-mono">${escapeHtml(inc.recordedBy || 'admin')}</td>
+                    <td class="px-3 py-2 text-gray-500 text-[11px]">${escapeHtml(inc.notes || '—')}</td>
+                    <td class="px-3 py-2 text-right">
+                        <button type="button" onclick="deleteIncentive(${inc.id}, true)" class="text-red-500 hover:text-red-700 text-xs font-semibold p-1 hover:bg-red-50 rounded">Delete</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    setTxt('detailStaffIncentivesTotal', '₦' + incSum.toLocaleString());
+    setTxt('detailStaffIncentivesCount', `${incentives.length} bonus${incentives.length === 1 ? '' : 'es'} awarded`);
+
+    window.openModal('staffDetailModal');
+}
+
+function editCurrentStaffFromDetail() {
+    if (window._currentDetailStaff) {
+        window.closeModal('staffDetailModal');
+        openEditStaffModal(window._currentDetailStaff.id);
+    }
+}
+
+function openAwardIncentiveForCurrentStaff() {
+    if (window._currentDetailStaff) {
+        const s = window._currentDetailStaff;
+        openAwardIncentiveModal(s.id, s.name, s.staffCode || `GLH-${s.id}`);
+    }
+}
+
+// Delete Staff
+async function deleteStaff(staffId, staffName) {
+    if (!confirm(`Are you sure you want to archive "${staffName}"?\n\nThis moves their file to the Superadmin Vault where it can be restored if needed.`)) {
+        return;
+    }
+
+    try {
+        const res = await authFetch(`/staff/${staffId}`, { method: 'DELETE' });
+        if (!res || !res.ok) throw new Error('Failed to archive staff');
+
+        alert(`Staff file for "${staffName}" moved to Vault.`);
+        if (window._currentDetailStaff && window._currentDetailStaff.id === staffId) {
+            window.closeModal('staffDetailModal');
+        }
+        await fetchStaff();
+    } catch (err) {
+        alert(`Error: ${err.message}`);
+    }
+}
+
+// Open Award Incentive Modal
+function openAwardIncentiveModal(staffId, staffName, staffCode) {
+    document.getElementById('awardIncentiveForm').reset();
+    document.getElementById('awardStaffId').value = staffId;
+    document.getElementById('awardStaffNameDisplay').textContent = staffName;
+    document.getElementById('awardStaffCodeDisplay').textContent = staffCode || `GLH-${staffId}`;
+    
+    document.getElementById('awardDateInput').value = new Date().toISOString().split('T')[0];
+    document.getElementById('awardReasonPreset').value = 'Employee of the Month';
+    handleIncentiveReasonChange('Employee of the Month');
+    document.getElementById('awardPaymentMethod').value = 'Bank Transfer';
+    document.getElementById('awardSyncExpenseCheckbox').checked = true;
+
+    window.openModal('awardIncentiveModal');
+}
+
+// Handle Award Incentive submit
+async function handleAwardIncentiveSubmit(e) {
+    e.preventDefault();
+    const staffId = document.getElementById('awardStaffId').value;
+    const amount = document.getElementById('awardAmountInput').value;
+    const preset = document.getElementById('awardReasonPreset').value;
+    const reason = preset === 'custom'
+        ? document.getElementById('awardReasonCustomInput').value.trim()
+        : preset;
+    const date = document.getElementById('awardDateInput').value;
+    const paymentMethod = document.getElementById('awardPaymentMethod').value;
+    const notes = document.getElementById('awardNotesInput').value.trim();
+    const syncExpense = document.getElementById('awardSyncExpenseCheckbox').checked;
+
+    if (!amount || parseFloat(amount) <= 0) {
+        return alert('Please enter a valid incentive amount');
+    }
+    if (!reason) {
+        return alert('Please enter a reason / category for the incentive');
+    }
+
+    const spinner = document.getElementById('awardSubmitSpinner');
+    const btn = document.getElementById('awardSubmitBtn');
+    if (spinner) spinner.classList.remove('hidden');
+    if (btn) btn.disabled = true;
+
+    try {
+        const res = await authFetch(`/staff/${staffId}/incentives`, {
+            method: 'POST',
+            body: JSON.stringify({
+                amount: parseFloat(amount),
+                reason,
+                date,
+                paymentMethod,
+                notes,
+                syncExpense
+            })
+        });
+
+        if (!res || !res.ok) {
+            const errData = await res?.json().catch(() => ({}));
+            throw new Error(errData.error || 'Failed to record incentive');
+        }
+
+        const data = await res.json();
+        alert(`Incentive of ₦${parseFloat(amount).toLocaleString()} awarded successfully!${data.expenseCreated ? '\n\nRecorded as Expense in Financial Module under "Staff Incentives".' : ''}`);
+        window.closeModal('awardIncentiveModal');
+        
+        await fetchStaff();
+        if (window._currentDetailStaff && window._currentDetailStaff.id === parseInt(staffId)) {
+            viewStaffDetail(parseInt(staffId));
+        }
+    } catch (err) {
+        console.error('Error awarding incentive:', err);
+        alert(`Error: ${err.message}`);
+    } finally {
+        if (spinner) spinner.classList.add('hidden');
+        if (btn) btn.disabled = false;
+    }
+}
+
+// Open All Incentives Log Modal
+async function openAllIncentivesModal() {
+    window.openModal('allIncentivesModal');
+    resetIncentivesDateFilter(false);
+    await fetchAllIncentives();
+}
+
+function resetIncentivesDateFilter(refresh = true) {
+    const from = document.getElementById('incentivesFromDate');
+    const to = document.getElementById('incentivesToDate');
+    if (from) from.value = '';
+    if (to) to.value = '';
+    if (refresh) fetchAllIncentives();
+}
+
+async function fetchAllIncentives() {
+    const tbody = document.getElementById('allIncentivesTableBody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="px-3 py-8 text-center text-gray-400">Loading incentives records...</td></tr>`;
+
+    const fromDate = document.getElementById('incentivesFromDate')?.value || '';
+    const toDate = document.getElementById('incentivesToDate')?.value || '';
+
+    let url = '/staff-incentives?';
+    if (fromDate) url += `fromDate=${fromDate}&`;
+    if (toDate) url += `toDate=${toDate}&`;
+
+    try {
+        const res = await authFetch(url);
+        if (!res || !res.ok) throw new Error('Failed to load incentives');
+
+        const data = await res.json();
+        window._allIncentivesCache = data.incentives || [];
+
+        const totalEl = document.getElementById('allIncentivesTotalSum');
+        if (totalEl) totalEl.textContent = '₦' + (data.totalAmount || 0).toLocaleString();
+
+        if (!data.incentives || data.incentives.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="px-3 py-8 text-center text-gray-400">No incentives records found for this period</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.incentives.map(inc => {
+            const staffName = inc.staff ? inc.staff.name : 'Former Staff';
+            const staffCode = inc.staff ? (inc.staff.staffCode || `GLH-${inc.staff.id}`) : '—';
+            const dept = inc.staff ? inc.staff.department : '';
+
+            return `
+                <tr class="hover:bg-purple-50/20">
+                    <td class="px-3 py-2.5 whitespace-nowrap font-medium text-gray-600">${new Date(inc.date).toLocaleDateString('en-GB')}</td>
+                    <td class="px-3 py-2.5">
+                        <div class="font-bold text-gray-900">${escapeHtml(staffName)}</div>
+                        <span class="text-[10px] text-gray-400 font-mono">${escapeHtml(staffCode)} · ${escapeHtml(dept)}</span>
+                    </td>
+                    <td class="px-3 py-2.5 font-bold text-gray-800">${escapeHtml(inc.reason)}</td>
+                    <td class="px-3 py-2.5 font-bold text-purple-800 whitespace-nowrap">₦${parseFloat(inc.amount).toLocaleString()}</td>
+                    <td class="px-3 py-2.5 text-gray-500">${escapeHtml(inc.paymentMethod || 'Cash')}</td>
+                    <td class="px-3 py-2.5 font-mono text-gray-500">${escapeHtml(inc.recordedBy || 'admin')}</td>
+                    <td class="px-3 py-2.5 text-gray-500 text-[11px]">${escapeHtml(inc.notes || '—')}</td>
+                    <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                        <button type="button" onclick="deleteIncentive(${inc.id}, false)" class="text-red-500 hover:text-red-700 text-xs font-semibold p-1 hover:bg-red-50 rounded">Delete</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Error fetching all incentives:', err);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="px-3 py-8 text-center text-red-500">Failed to load incentives log</td></tr>`;
+    }
+}
+
+// Delete incentive
+async function deleteIncentive(id, fromDetailModal = false) {
+    if (!confirm('Are you sure you want to remove this incentive entry?')) return;
+
+    try {
+        const res = await authFetch(`/staff-incentives/${id}`, { method: 'DELETE' });
+        if (!res || !res.ok) throw new Error('Failed to delete incentive');
+
+        alert('Incentive record removed.');
+        await fetchStaff();
+        if (fromDetailModal && window._currentDetailStaff) {
+            viewStaffDetail(window._currentDetailStaff.id);
+        } else {
+            fetchAllIncentives();
+        }
+    } catch (err) {
+        alert(`Error: ${err.message}`);
+    }
+}
+
+// Print Staff Directory
+function buildStaffPrint() {
+    const list = window.allStaffList || [];
+    if (!list || list.length === 0) return '<p>No staff records found.</p>';
+
+    const headers = ['#', 'ID Code', 'Staff Name', 'Position', 'Department', 'Status', 'Duration', 'Shift', 'Salary', 'Phone', 'Guarantor'];
+    const rows = list.map((m, idx) => {
+        const dur = formatWorkDuration(m.hireDate, m.endDate, m.status);
+        return [
+            idx + 1,
+            m.staffCode || `GLH-${m.id}`,
+            m.name,
+            m.role,
+            m.department,
+            m.status.toUpperCase(),
+            `${dur.text} ${dur.sub}`,
+            m.shift || 'Regular Day',
+            m.salary ? `₦${parseFloat(m.salary).toLocaleString()}` : 'N/A',
+            m.phone || 'N/A',
+            m.guarantorName ? `${m.guarantorName} (${m.guarantorPhone || 'No tel'})` : 'N/A'
+        ];
+    });
+
+    return generateTableHtml(headers, rows);
+}
+
+// Print single staff employee file
+function printSingleStaffFile() {
+    const member = window._currentDetailStaff;
+    if (!member) return;
+
+    const dur = formatWorkDuration(member.hireDate, member.endDate, member.status);
+    const code = member.staffCode || `GLH-${member.id}`;
+    let incTotal = 0;
+    (member.incentives || []).forEach(i => incTotal += parseFloat(i.amount || 0));
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; color: #111; max-width: 800px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 22px; letter-spacing: 0.5px;">GRAND LYNKS HOMES &amp; APARTMENTS</h1>
+                <p style="margin: 4px 0 0; font-size: 11px; color: #555;">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja</p>
+                <h2 style="margin: 12px 0 4px; font-size: 16px; color: #4338ca;">CONFIDENTIAL EMPLOYEE FILE — ${escapeHtml(code)}</h2>
+                <p style="margin: 0; font-size: 11px; color: #777;">Printed on ${new Date().toLocaleString('en-GB')}</p>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-bottom: 20px; align-items: center; border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
+                ${member.photoUrl ? `<img src="${member.photoUrl}" style="width: 80px; height: 80px; object-cover: cover; border-radius: 8px; border: 1px solid #ccc;">` : ''}
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 5px; font-size: 18px;">${escapeHtml(member.name)}</h3>
+                    <p style="margin: 0 0 4px; font-size: 13px; color: #444;"><strong>Position:</strong> ${escapeHtml(member.role)} &nbsp;|&nbsp; <strong>Department:</strong> ${escapeHtml(member.department)}</p>
+                    <p style="margin: 0; font-size: 12px; color: #666;"><strong>Status:</strong> ${escapeHtml(member.status.toUpperCase())} &nbsp;|&nbsp; <strong>Duration:</strong> ${dur.text} ${dur.sub}</p>
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+                <tr>
+                    <th colspan="2" style="background: #f3f4f6; padding: 6px 10px; text-align: left; font-size: 12px; border: 1px solid #ddd;">Employment &amp; Compensation</th>
+                    <th colspan="2" style="background: #f3f4f6; padding: 6px 10px; text-align: left; font-size: 12px; border: 1px solid #ddd;">Contact &amp; Emergency</th>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; width: 25%;"><strong>Hire Date:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; width: 25%;">${member.hireDate ? new Date(member.hireDate).toLocaleDateString('en-GB') : 'N/A'}</td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; width: 25%;"><strong>Phone Number:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; width: 25%;">${escapeHtml(member.phone || 'N/A')}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Shift Hours:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${escapeHtml(member.shift || 'Regular Day')}</td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Email:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${escapeHtml(member.email || 'N/A')}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Work Days:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${escapeHtml(member.workDays || 'Mon – Sat')}</td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Residential Address:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${escapeHtml(member.address || 'N/A')}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Monthly Salary:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${member.salary ? '₦' + parseFloat(member.salary).toLocaleString() : 'N/A'}</td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Emergency Contact:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${escapeHtml(member.emergencyContactName || 'N/A')} (${escapeHtml(member.emergencyContactPhone || '')})</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Bank &amp; Account:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${escapeHtml(member.bankName || 'N/A')} — ${escapeHtml(member.accountNumber || '')}</td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Total Incentives:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; font-weight: bold; color: #6b21a8;">₦${incTotal.toLocaleString()}</td>
+                </tr>
+            </table>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+                <tr>
+                    <th colspan="4" style="background: #f3f4f6; padding: 6px 10px; text-align: left; font-size: 12px; border: 1px solid #ddd;">Guarantor Information</th>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; width: 20%;"><strong>Guarantor Name:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; width: 30%;">${escapeHtml(member.guarantorName || 'None logged')}</td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; width: 20%;"><strong>Relationship:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd; width: 30%;">${escapeHtml(member.guarantorRelationship || 'N/A')}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Guarantor Phone:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${escapeHtml(member.guarantorPhone || 'N/A')}</td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;"><strong>Guarantor Address:</strong></td>
+                    <td style="padding: 6px 10px; border: 1px solid #ddd;">${escapeHtml(member.guarantorAddress || 'N/A')}</td>
+                </tr>
+            </table>
+
+            ${member.signatureUrl ? `
+                <div style="margin-top: 20px; border: 1px solid #ddd; padding: 10px; border-radius: 8px; width: 220px;">
+                    <p style="margin: 0 0 5px; font-size: 11px; font-weight: bold; color: #555;">Staff Signature on File:</p>
+                    <img src="${member.signatureUrl}" style="height: 45px; object-fit: contain;">
+                </div>
+            ` : ''}
+
+            <div style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 8px; text-align: center; font-size: 10px; color: #888;">
+                Grand Lynks Hotel Management System — Official Employee Document
+            </div>
+        </div>
+    `;
+
+    const printFrame = document.getElementById('printFrame');
+    if (printFrame) {
+        printFrame.innerHTML = html;
+        window.print();
+    }
+}
+
+// Print all incentives log
+function printAllIncentivesLog() {
+    const incentives = window._allIncentivesCache || [];
+    if (!incentives || incentives.length === 0) return alert('No incentives to print');
+
+    const headers = ['Date', 'Staff Code', 'Staff Name', 'Department', 'Reason', 'Amount', 'Payment Method', 'Authorized By'];
+    const rows = incentives.map(i => [
+        new Date(i.date).toLocaleDateString('en-GB'),
+        i.staff ? (i.staff.staffCode || `GLH-${i.staff.id}`) : '—',
+        i.staff ? i.staff.name : 'Former Staff',
+        i.staff ? i.staff.department : '—',
+        i.reason,
+        '₦' + parseFloat(i.amount).toLocaleString(),
+        i.paymentMethod || 'Cash',
+        i.recordedBy || 'admin'
+    ]);
+
+    const tableHtml = generateTableHtml(headers, rows);
+    const html = `
+        <div style="font-family: Arial, sans-serif; color: #111; padding: 20px;">
+            <div style="text-align: center; border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 22px;">GRAND LYNKS HOMES &amp; APARTMENTS</h1>
+                <p style="margin: 4px 0 0; font-size: 11px; color: #555;">80 Pa Michael Imoudu Ave, Gwarinpa, Abuja</p>
+                <h2 style="margin: 12px 0 4px; font-size: 16px;">STAFF INCENTIVES &amp; BONUSES AUDIT REPORT</h2>
+                <p style="margin: 0; font-size: 11px; color: #777;">Printed on ${new Date().toLocaleString('en-GB')}</p>
+            </div>
+            ${tableHtml}
+        </div>
+    `;
+
+    const printFrame = document.getElementById('printFrame');
+    if (printFrame) {
+        printFrame.innerHTML = html;
+        window.print();
+    }
+}
+
 
