@@ -3021,12 +3021,66 @@ window.viewIdModal = function (url, name, room) {
     const title = document.getElementById('idViewerTitle');
     const subtitle = document.getElementById('idViewerSubtitle');
     const dl = document.getElementById('idViewerDownloadLink');
+    const container = document.getElementById('idViewerContainer');
+    const sigBar = document.getElementById('sigContrastBar');
 
-    if (img) img.src = url;
+    const isSig = (name && name.toLowerCase().includes('signature')) || (url && url.includes('sig-'));
+
+    if (img) {
+        img.src = url;
+        if (isSig) {
+            // Default signatures to dark tablet pad where light/white ink is vividly visible
+            if (container) {
+                container.style.background = '#0f172a';
+                container.style.padding = '32px 16px';
+            }
+            img.style.background = '#1e1b4b';
+            img.style.padding = '24px 32px';
+            img.style.borderRadius = '16px';
+            img.style.border = '2px solid rgba(147, 51, 234, 0.4)';
+            img.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.1)';
+            img.style.filter = 'none';
+            if (sigBar) sigBar.classList.remove('hidden');
+        } else {
+            // Standard document (ID card, passport)
+            if (container) {
+                container.style.background = 'rgba(17, 24, 39, 0.05)';
+                container.style.padding = '16px';
+            }
+            img.style.background = 'transparent';
+            img.style.padding = '0';
+            img.style.borderRadius = '8px';
+            img.style.border = 'none';
+            img.style.boxShadow = 'none';
+            img.style.filter = 'none';
+            if (sigBar) sigBar.classList.add('hidden');
+        }
+    }
+
     if (title) title.textContent = name ? `${name} — ID Document` : 'Guest ID Document';
     if (subtitle) subtitle.textContent = room ? `Room ${room} Arrival Verification` : '';
     if (dl) dl.href = url;
     window.openModal('idViewerModal');
+};
+
+window.setSigViewerTheme = function (theme) {
+    const img = document.getElementById('idViewerImage');
+    const container = document.getElementById('idViewerContainer');
+    if (!img) return;
+
+    if (theme === 'paper') {
+        if (container) container.style.background = '#f1f5f9';
+        img.style.background = '#ffffff';
+        img.style.border = '2px solid #cbd5e1';
+        img.style.filter = 'invert(1) hue-rotate(180deg)';
+        img.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+    } else {
+        if (container) container.style.background = '#0f172a';
+        img.style.background = '#1e1b4b';
+        img.style.border = '2px solid rgba(147, 51, 234, 0.4)';
+        img.style.filter = 'none';
+        img.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.1)';
+    }
 };
 
 window.deleteCheckInEntry = async function (id) {

@@ -899,7 +899,39 @@
     }
 
     function getDataURL() {
-      return hasStrokes ? canvas.toDataURL('image/png') : null;
+      if (!hasStrokes) return null;
+      try {
+        // Convert kiosk signature to high-contrast document format (dark ink on white background)
+        var exportCanvas = document.createElement('canvas');
+        exportCanvas.width = canvas.width;
+        exportCanvas.height = canvas.height;
+        var expCtx = exportCanvas.getContext('2d');
+
+        // Fill crisp white background
+        expCtx.fillStyle = '#ffffff';
+        expCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+        // Read user strokes
+        var srcData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var dstData = expCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+        for (var i = 0; i < srcData.data.length; i += 4) {
+          var alpha = srcData.data[i + 3];
+          if (alpha > 10) {
+            var opacity = alpha / 255;
+            // Render stroke as deep navy/black ink: rgb(15, 23, 42)
+            dstData.data[i] = Math.round(255 * (1 - opacity) + 15 * opacity);
+            dstData.data[i + 1] = Math.round(255 * (1 - opacity) + 23 * opacity);
+            dstData.data[i + 2] = Math.round(255 * (1 - opacity) + 42 * opacity);
+            dstData.data[i + 3] = 255;
+          }
+        }
+        expCtx.putImageData(dstData, 0, 0);
+        return exportCanvas.toDataURL('image/png');
+      } catch (err) {
+        console.warn('Fallback to standard toDataURL:', err);
+        return canvas.toDataURL('image/png');
+      }
     }
 
     return { init: init, clear: clear, getDataURL: getDataURL };
