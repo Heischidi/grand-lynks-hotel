@@ -1132,7 +1132,7 @@ function renderOrders(items) {
 
         if (isBooking) {
             title = `Booking #${item.id}`;
-            const nights = Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / (1000 * 60 * 60 * 24));
+            const nights = Math.max(1, Math.round((new Date(item.endDate).setHours(0,0,0,0) - new Date(item.startDate).setHours(0,0,0,0)) / 86400000));
             itemsListHtml = `
                 <li><strong>Room Booking</strong></li>
                 <li>Room: ${item.room ? item.room.number + ' (' + item.room.type + ')' : 'N/A'}</li>
@@ -2042,7 +2042,7 @@ function renderHistoryItems(items) {
 
         if (isBooking) {
             const nights = item.startDate && item.endDate
-                ? Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / 86400000)
+                ? Math.max(1, Math.round((new Date(item.endDate).setHours(0,0,0,0) - new Date(item.startDate).setHours(0,0,0,0)) / 86400000))
                 : '?';
             const checkIn  = item.startDate ? new Date(item.startDate).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : 'N/A';
             const checkOut = item.endDate   ? new Date(item.endDate).toLocaleDateString('en-GB',   { day:'numeric', month:'short', year:'numeric' }) : 'N/A';
@@ -2274,7 +2274,7 @@ window.printGuestHistory = function(autoDownload) {
     const confirmed  = bookings.filter(b => ['confirmed','checked-in','completed'].includes(b.status)).length;
 
     const bookingCards = bookings.map(b => {
-        const nights = b.startDate && b.endDate ? Math.ceil((new Date(b.endDate) - new Date(b.startDate)) / 86400000) : '?';
+        const nights = b.startDate && b.endDate ? Math.max(1, Math.round((new Date(b.endDate).setHours(0,0,0,0) - new Date(b.startDate).setHours(0,0,0,0)) / 86400000)) : '?';
         const payRows = (b.payments||[]).map(p => `<div class="pay-row"><span>${p.method||'N/A'}${p.reference ? ' · ' + p.reference : ''}</span><span>₦${Number(p.amount||0).toLocaleString()} (${p.status})</span></div>`).join('');
         return `<div class="card booking">
             <div class="card-header">
@@ -2350,7 +2350,7 @@ window.printReceipt = function(id, type) {
 
     let bodyHtml = '';
     if (isBooking) {
-        const nights = item.startDate && item.endDate ? Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / 86400000) : '?';
+        const nights = item.startDate && item.endDate ? Math.max(1, Math.round((new Date(item.endDate).setHours(0,0,0,0) - new Date(item.startDate).setHours(0,0,0,0)) / 86400000)) : '?';
         const payRows = (item.payments||[]).map(p => `<div class="pay-row"><span>${p.method||'N/A'}${p.reference ? ' · Ref: '+p.reference : ''}</span><span>₦${Number(p.amount||0).toLocaleString()} <span style="color:#bbb">(${p.status})</span></span></div>`).join('');
         bodyHtml = `
         <div class="card booking" style="margin-bottom:0">

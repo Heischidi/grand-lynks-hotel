@@ -290,7 +290,7 @@ class BookingIntegration {
     const start = new Date(checkin);
     const end = new Date(checkout);
     const ms = end - start;
-    const nights = ms > 0 ? Math.ceil(ms / (1000 * 60 * 60 * 24)) : 0;
+    const nights = ms > 0 ? Math.max(1, Math.round((new Date(end).setHours(0,0,0,0) - new Date(start).setHours(0,0,0,0)) / 86400000)) : 0;
 
     const price = room.pricePerNight || room.price || 0;
     const discount = parseFloat(room.discount) || 0;
@@ -368,9 +368,9 @@ class BookingIntegration {
           const price = room.pricePerNight || room.price || 0;
           const discount = parseFloat(room.discount) || 0;
           const effectivePrice = discount > 0 ? price * (1 - discount / 100) : price;
-          const nights = Math.ceil(
-            (new Date(checkout) - new Date(checkin)) / (1000 * 60 * 60 * 24)
-          ) || 0;
+          const nights = Math.max(1, Math.round(
+            (new Date(checkout).setHours(0,0,0,0) - new Date(checkin).setHours(0,0,0,0)) / 86400000
+          )) || 0;
           totalEl.textContent = "\u20A6" + Math.round(effectivePrice * nights).toLocaleString();
         }
         document.getElementById("paymentNoticeStep1").style.display = "none";

@@ -1379,7 +1379,7 @@ app.post("/bookings", validateBooking, async (req, res) => {
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const nights = Math.max(1, Math.round((new Date(end).setHours(0,0,0,0) - new Date(start).setHours(0,0,0,0)) / 86400000));
     let totalAmount = room.pricePerNight * nights;
 
     // Apply room-level discount (set by admin per room)
@@ -2926,7 +2926,7 @@ if (false) app.post("/bookings_REMOVED_DUPLICATE", async (req, res) => {
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const nights = Math.max(1, Math.round((new Date(end).setHours(0,0,0,0) - new Date(start).setHours(0,0,0,0)) / 86400000));
     const pricePerNight = room.pricePerNight || room.price || 0;
     const totalAmount = pricePerNight * nights;
 
@@ -3777,7 +3777,9 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
           include: { guest: true, room: true }
         });
       } else {
-        const nights = Math.max(1, Math.ceil((outTime - inTime) / (1000 * 60 * 60 * 24)));
+        const inObj = new Date(inTime); inObj.setHours(0,0,0,0);
+        const outObj = new Date(outTime); outObj.setHours(0,0,0,0);
+        const nights = Math.max(1, Math.round((outObj - inObj) / 86400000));
         let totalAmount = (room.pricePerNight || 0) * nights;
         if (room.discount > 0) {
           totalAmount = totalAmount * (1 - room.discount / 100);
