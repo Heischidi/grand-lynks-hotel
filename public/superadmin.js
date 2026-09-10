@@ -4560,14 +4560,16 @@ async function buildStatisticsPrint(from, to) {
 // CHECK-IN LOG
 // ============================================================
 
+window._lastCheckInEntries = [];
+
 window.fetchCheckInLog = async function () {
     const tbody = document.getElementById('checkinLogTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="px-4 py-8 text-center text-gray-400">Loading...</td></tr>';
 
     const res = await authFetch('/checkin-log');
     if (!res || !res.ok) {
-        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-red-500">Failed to load records.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="px-4 py-8 text-center text-red-500">Failed to load records.</td></tr>';
         return;
     }
     const entries = await res.json();
@@ -4575,12 +4577,27 @@ window.fetchCheckInLog = async function () {
     renderCheckInLog(entries);
 };
 
+window.filterCheckInLog = function() {
+    const searchTerm = (document.getElementById('checkinSearchInput')?.value || '').toLowerCase();
+    const filtered = (window._lastCheckInEntries || []).filter(e => {
+        const guestName = (e.guestName || '').toLowerCase();
+        const phone = (e.phone || '').toLowerCase();
+        const email = (e.email || '').toLowerCase();
+        const roomNumber = String(e.roomNumber || '').toLowerCase();
+        return guestName.includes(searchTerm) || phone.includes(searchTerm) || email.includes(searchTerm) || roomNumber.includes(searchTerm);
+    });
+    renderCheckInLog(filtered);
+    
+    const countEl = document.getElementById('checkinResultCount');
+    if (countEl) countEl.textContent = `Showing ${filtered.length} of ${window._lastCheckInEntries?.length || 0} logs`;
+};
+
 function renderCheckInLog(entries) {
     const tbody = document.getElementById('checkinLogTableBody');
     if (!tbody) return;
 
     if (!entries || entries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-10 text-center text-gray-400">No check-in records yet. Once guests sign in via the kiosk, their entries will appear here.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-10 text-center text-gray-400">No check-in records yet. Once guests sign in via the kiosk, their entries will appear here.</td></tr>';
         return;
     }
 
@@ -4611,6 +4628,7 @@ function renderCheckInLog(entries) {
             <td class="px-4 py-3 text-gray-400 text-xs">${e.id}</td>
             <td class="px-4 py-3 font-semibold text-gray-800">${e.guestName}</td>
             <td class="px-4 py-3 text-gray-600">${e.phone}</td>
+            <td class="px-4 py-3 text-gray-600">${e.email || '-'}</td>
             <td class="px-4 py-3">
                 <span class="inline-block bg-blue-50 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-full">Room ${e.roomNumber}</span>
             </td>
