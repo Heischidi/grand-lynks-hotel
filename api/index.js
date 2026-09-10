@@ -3578,9 +3578,50 @@ const kioskLimiter = rateLimit({
   message: { error: "Too many check-in submissions. Please ask staff for help." }
 });
 
+// GET /kiosk-search — Public endpoint to find booking details for auto-fill in kiosk
+app.get("/kiosk-search", async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.json({ found: false });
+  
+  try {
+    let bookingId = parseInt(q);
+    let bookings = await prisma.booking.findMany({
+      where: {
+        OR: [
+          { id: isNaN(bookingId) ? undefined : bookingId },
+          { guest: { phone: { contains: q } } },
+          { guest: { email: { contains: q, mode: 'insensitive' } } }
+        ],
+        status: { in: ["pending", "confirmed"] },
+        deletedAt: null
+      },
+      include: { guest: true, room: true },
+      orderBy: { createdAt: 'desc' },
+      take: 1
+    });
+
+    if (bookings.length > 0) {
+      const b = bookings[0];
+      return res.json({
+        found: true,
+        guestName: b.guest.name,
+        phone: b.guest.phone,
+        email: b.guest.email,
+        roomNumber: b.room.number ? String(b.room.number) : b.room.type,
+        expectedCheckOut: b.endDate.toISOString().split('T')[0]
+      });
+    } else {
+      return res.json({ found: false });
+    }
+  } catch (error) {
+    console.error("Kiosk search error:", error);
+    res.status(500).json({ error: "Search failed" });
+  }
+});
+
 // POST /checkin-log — Public endpoint. Guest submits arrival details & scanned ID card from the tablet.
 app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res) => {
-  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature, idType, termsAccepted } = req.body;
+  const { guestName, phone, email, roomNumber, checkInTime, expectedCheckOut, signature, idType, termsAccepted } = req.body;
 
   if (!guestName || !phone || !roomNumber || !checkInTime || !expectedCheckOut) {
     return res.status(400).json({ error: "Missing required fields: guestName, phone, roomNumber, checkInTime, expectedCheckOut" });
@@ -3659,6 +3700,7 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
       data: {
         guestName: cleanName,
         phone: cleanPhone,
+        email: email ? String(email).trim() : null,
         roomNumber: cleanRoomNumStr,
         checkInTime: inTime,
         expectedCheckOut: outTime,
@@ -3679,7 +3721,7 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
     const upsertGuestTask = (async () => {
       if (!existingGuest) {
         const sanitizedPhone = cleanPhone.replace(/[^0-9]/g, '');
-        const guestEmail = `${sanitizedPhone || Date.now()}@guest.grandlynks.com`;
+        const guestEmail = email ? String(email).trim() : `${sanitizedPhone || Date.now()}@guest.grandlynks.com`;
         return prisma.guest.create({
           data: {
             name: cleanName,
@@ -3814,7 +3856,7 @@ app.get("/checkin-log/:id", authenticateToken, async (req, res) => {
 // PUT /checkin-log/:id — Admin only. Update check-in record & ID card, notify super admin, log to vault.
 app.put("/checkin-log/:id", authenticateToken, upload.single('idCard'), async (req, res) => {
   const id = parseInt(req.params.id);
-  const { guestName, phone, roomNumber, checkInTime, expectedCheckOut, signature, idType } = req.body;
+  const { guestName, phone, email, roomNumber, checkInTime, expectedCheckOut, signature, idType } = req.body;
   const adminUser = req.user?.username || 'admin';
 
   try {
@@ -3837,6 +3879,7 @@ app.put("/checkin-log/:id", authenticateToken, upload.single('idCard'), async (r
       data: {
         guestName: guestName ? guestName.trim() : undefined,
         phone: phone ? phone.trim() : undefined,
+        email: email !== undefined ? (email ? email.trim() : null) : undefined,
         roomNumber: roomNumber !== undefined ? String(roomNumber).trim() : undefined,
         checkInTime: checkInTime ? new Date(checkInTime) : undefined,
         expectedCheckOut: expectedCheckOut ? new Date(expectedCheckOut) : undefined,

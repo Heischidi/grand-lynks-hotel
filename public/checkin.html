@@ -105,6 +105,40 @@
       margin-bottom: clamp(8px, 1.6vh, 12px);
     }
 
+    /* ── SEARCH BAR ── */
+    .kiosk-search-wrap {
+      display: flex;
+      gap: 8px;
+      margin-bottom: clamp(12px, 2.5vh, 18px);
+      background: rgba(201,168,76,0.06);
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 10px;
+      padding: 8px;
+    }
+    .kiosk-search-wrap input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 0.8rem;
+      padding: 6px 8px;
+      outline: none;
+    }
+    .kiosk-search-wrap input::placeholder { color: rgba(255,255,255,0.4); }
+    .kiosk-search-btn {
+      background: var(--gold);
+      color: var(--dark);
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .kiosk-search-btn:hover { background: #d4b55e; }
+    .kiosk-search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
     /* ── FORM ── */
     .form-grid {
       display: grid;
@@ -616,6 +650,13 @@
     <div class="card">
       <div class="card-title">Welcome — Please Sign In</div>
       <div class="card-desc">Fill in your details below to confirm your arrival.</div>
+      
+      <!-- KIOSK SEARCH BAR -->
+      <div class="kiosk-search-wrap">
+        <input type="text" id="kiosk-search-input" placeholder="Search Booking ID, Phone or Email to auto-fill..." onkeydown="if(event.key==='Enter') searchKioskBooking()" />
+        <button type="button" class="kiosk-search-btn" id="kiosk-search-btn" onclick="searchKioskBooking()">Find Booking</button>
+      </div>
+
       <form id="checkin-form" onsubmit="submitCheckIn(event)" autocomplete="off">
         <div class="form-grid">
           <div class="field full">
@@ -625,6 +666,10 @@
           <div class="field">
             <label for="f-phone">Phone Number</label>
             <input id="f-phone" type="tel" placeholder="+234 800 000 0000" required />
+          </div>
+          <div class="field">
+            <label for="f-email">Email Address (Optional)</label>
+            <input id="f-email" type="email" placeholder="guest@example.com" />
           </div>
           <div class="field">
             <label for="f-room">Room Number</label>
@@ -1064,6 +1109,34 @@
   // Set times on page load
   setDefaultTimes();
 
+  async function searchKioskBooking() {
+    const q = document.getElementById('kiosk-search-input').value.trim();
+    if (!q) return;
+    const btn = document.getElementById('kiosk-search-btn');
+    btn.disabled = true;
+    btn.textContent = 'Searching...';
+
+    try {
+      const res = await fetch(`${API_URL}/kiosk-search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (data.found) {
+        document.getElementById('f-name').value = data.guestName || '';
+        document.getElementById('f-phone').value = data.phone || '';
+        if (document.getElementById('f-email')) document.getElementById('f-email').value = data.email || '';
+        document.getElementById('f-room').value = data.roomNumber || '';
+        if (data.expectedCheckOut) document.getElementById('f-checkout').value = data.expectedCheckOut;
+        alert('Booking found! Details auto-filled.');
+      } else {
+        alert('No active booking found with that information. Please proceed to fill in the details manually.');
+      }
+    } catch (err) {
+      alert('Search failed. Please proceed to fill in the details manually.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Find Booking';
+    }
+  }
+
   async function submitCheckIn(e) {
     e.preventDefault();
     var btn = document.getElementById('submit-btn');
@@ -1081,6 +1154,7 @@
 
     var guestName = document.getElementById('f-name').value.trim();
     var phone = document.getElementById('f-phone').value.trim();
+    var email = document.getElementById('f-email').value.trim();
     var roomNumber = document.getElementById('f-room').value.trim();
     var checkInTime = new Date(document.getElementById('f-checkin').value).toISOString();
     var checkoutDate = document.getElementById('f-checkout').value;
@@ -1105,6 +1179,7 @@
     var formData = new FormData();
     formData.append('guestName', guestName);
     formData.append('phone', phone);
+    if (email) formData.append('email', email);
     formData.append('roomNumber', roomNumber);
     formData.append('checkInTime', checkInTime);
     formData.append('expectedCheckOut', expectedCheckOut);

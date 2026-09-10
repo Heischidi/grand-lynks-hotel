@@ -355,6 +355,7 @@ model CheckInLog {
   id               Int       @id @default(autoincrement())
   guestName        String
   phone            String
+  email            String?
   roomNumber       String
   checkInTime      DateTime
   expectedCheckOut DateTime
