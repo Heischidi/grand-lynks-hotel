@@ -98,19 +98,23 @@ const adminUsernameDisplay = document.getElementById('adminUsernameDisplay');
 
 // Sidebar logic
 window.toggleSidebar = function () {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    const isOpen = !sidebar.classList.contains('-translate-x-full');
-
-    if (isOpen) {
-        sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('hidden');
-        overlay.classList.remove('opacity-100');
+    if (window.innerWidth >= 768) {
+        document.body.classList.toggle('sidebar-collapsed');
     } else {
-        sidebar.classList.remove('-translate-x-full');
-        overlay.classList.remove('hidden');
-        // Small delay to allow transition to render
-        setTimeout(() => overlay.classList.add('opacity-100'), 10);
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const isOpen = !sidebar.classList.contains('-translate-x-full');
+
+        if (isOpen) {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('opacity-100');
+        } else {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+            // Small delay to allow transition to render
+            setTimeout(() => overlay.classList.add('opacity-100'), 10);
+        }
     }
 }
 
