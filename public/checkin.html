@@ -1222,7 +1222,7 @@
       bar.style.width = ((remaining / seconds) * 100) + '%';
       if (remaining <= 0) {
         clearInterval(countdownTimer);
-        resetToForm();
+        window.location.reload();
       }
     }, 1000);
   }

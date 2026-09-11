@@ -3695,6 +3695,27 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
       guestLookupTask
     ]);
 
+    // --- PRE-CHECK FOR ROOM AVAILABILITY ---
+    if (room) {
+      const overlappingBooking = await prisma.booking.findFirst({
+        where: {
+          roomId: room.id,
+          deletedAt: null,
+          status: { in: ['pending', 'confirmed', 'checked-in'] },
+          startDate: { lt: outTime },
+          endDate: { gt: inTime }
+        }
+      });
+      
+      if (overlappingBooking) {
+        if (!existingGuest || overlappingBooking.guestId !== existingGuest.id) {
+           return res.status(400).json({ error: `Room ${cleanRoomNumStr} is already booked or occupied. Please search for your booking or choose an available room.` });
+        }
+      } else if (room.status === "occupied" || room.status === "maintenance") {
+        return res.status(400).json({ error: `Room ${cleanRoomNumStr} is currently ${room.status}. Please select an available room.` });
+      }
+    }
+
     // --- PHASE 2: Concurrently create CheckInLog, mark Room occupied, and upsert Guest ---
     const createCheckInLogTask = prisma.checkInLog.create({
       data: {
@@ -3749,17 +3770,11 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
       const existingBooking = await prisma.booking.findFirst({
         where: {
           roomId: room.id,
+          guestId: guest.id,
           deletedAt: null,
           status: { in: ['pending', 'confirmed', 'checked-in'] },
-          OR: [
-            { guestId: guest.id },
-            {
-              AND: [
-                { startDate: { lte: outTime } },
-                { endDate: { gte: inTime } }
-              ]
-            }
-          ]
+          startDate: { lt: outTime },
+          endDate: { gt: inTime }
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -3769,7 +3784,6 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
           where: { id: existingBooking.id },
           data: {
             status: "checked-in",
-            guestId: guest.id,
             checkInTime: inTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             startDate: inTime < existingBooking.startDate ? inTime : existingBooking.startDate,
             endDate: outTime > existingBooking.endDate ? outTime : existingBooking.endDate
