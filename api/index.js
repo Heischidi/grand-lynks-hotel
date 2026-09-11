@@ -3975,24 +3975,65 @@ app.delete("/checkin-log/:id", authenticateToken, async (req, res) => {
       data: { deletedAt: new Date(), deletedBy: adminUser }
     });
 
-    // Check if room should revert to available
-    const parsedRoomNum = parseInt(String(checkInLog.roomNumber).replace(/[^0-9]/g, ''));
+    // Check if room should revert to available and handle related booking
+    const cleanRoomNumStr = String(checkInLog.roomNumber).trim();
+    const parsedRoomNum = parseInt(cleanRoomNumStr.replace(/[^0-9]/g, ''));
+    let room = null;
     if (!isNaN(parsedRoomNum)) {
-      const room = await prisma.room.findFirst({ where: { number: parsedRoomNum } });
-      if (room) {
-        const otherActiveBookings = await prisma.booking.findMany({
-          where: {
-            roomId: room.id,
-            status: "checked-in",
-            deletedAt: null
-          }
-        });
-        if (otherActiveBookings.length === 0) {
-          await prisma.room.update({
-            where: { id: room.id },
-            data: { status: "available" }
+      room = await prisma.room.findFirst({ where: { number: parsedRoomNum, deletedAt: null } });
+    }
+    if (!room) {
+      room = await prisma.room.findFirst({
+        where: {
+          type: { contains: cleanRoomNumStr, mode: 'insensitive' },
+          deletedAt: null
+        }
+      });
+    }
+
+    if (room) {
+      // Find the booking linked to this check-in log
+      const guestConditions = [{ phone: checkInLog.phone }];
+      if (checkInLog.email) guestConditions.push({ email: checkInLog.email });
+
+      const relatedBooking = await prisma.booking.findFirst({
+        where: {
+          roomId: room.id,
+          status: "checked-in",
+          deletedAt: null,
+          guest: { OR: guestConditions }
+        }
+      });
+
+      if (relatedBooking) {
+        if (relatedBooking.bookedBy === "Kiosk Check-In") {
+          // Booking was created solely by this kiosk check-in, so we soft-delete it
+          await prisma.booking.update({
+            where: { id: relatedBooking.id },
+            data: { deletedAt: new Date(), deletedBy: adminUser }
+          });
+        } else {
+          // Pre-existing reservation that was just checked into via kiosk, revert status
+          await prisma.booking.update({
+            where: { id: relatedBooking.id },
+            data: { status: "confirmed" }
           });
         }
+      }
+
+      // After handling the booking, if no other active bookings exist for this room, revert room status to available
+      const otherActiveBookings = await prisma.booking.findMany({
+        where: {
+          roomId: room.id,
+          status: "checked-in",
+          deletedAt: null
+        }
+      });
+      if (otherActiveBookings.length === 0) {
+        await prisma.room.update({
+          where: { id: room.id },
+          data: { status: "available" }
+        });
       }
     }
 
