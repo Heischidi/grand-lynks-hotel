@@ -3684,8 +3684,16 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
       return r;
     })();
 
+    const guestConditions = [{ phone: cleanPhone }];
+    if (email) {
+      guestConditions.push({ email: String(email).trim() });
+    }
+
     const guestLookupTask = prisma.guest.findFirst({
-      where: { phone: cleanPhone, deletedAt: null }
+      where: { 
+        OR: guestConditions,
+        deletedAt: null 
+      }
     });
 
     const [idCardUrl, signatureUrl, room, existingGuest] = await Promise.all([
@@ -3740,20 +3748,32 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
     }) : Promise.resolve(null);
 
     const upsertGuestTask = (async () => {
-      if (!existingGuest) {
-        const sanitizedPhone = cleanPhone.replace(/[^0-9]/g, '');
-        const guestEmail = email ? String(email).trim() : `${sanitizedPhone || Date.now()}@guest.grandlynks.com`;
-        return prisma.guest.create({
+      try {
+        if (!existingGuest) {
+          const sanitizedPhone = cleanPhone.replace(/[^0-9]/g, '');
+          const guestEmail = email ? String(email).trim() : `${sanitizedPhone || Date.now()}@guest.grandlynks.com`;
+          return await prisma.guest.create({
+            data: {
+              name: cleanName,
+              phone: cleanPhone,
+              email: guestEmail
+            }
+          });
+        } else {
+          return await prisma.guest.update({
+            where: { id: existingGuest.id },
+            data: { name: cleanName, phone: cleanPhone }
+          });
+        }
+      } catch (err) {
+        console.error("Guest upsert error, falling back to random email:", err);
+        const fallbackEmail = `guest_${Date.now()}_${Math.floor(Math.random() * 1000)}@grandlynks.com`;
+        return await prisma.guest.create({
           data: {
             name: cleanName,
             phone: cleanPhone,
-            email: guestEmail
+            email: fallbackEmail
           }
-        });
-      } else {
-        return prisma.guest.update({
-          where: { id: existingGuest.id },
-          data: { name: cleanName }
         });
       }
     })();
