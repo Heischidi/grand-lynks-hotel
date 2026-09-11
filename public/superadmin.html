@@ -52,6 +52,13 @@
             body.sidebar-collapsed #admin-main {
                 margin-left: 0 !important;
             }
+            body.sidebar-collapsed #desktop-sidebar-open {
+                display: flex !important;
+            }
+        }
+
+        #desktop-sidebar-open {
+            display: none !important;
         }
 
         /* CustomScrollbar */
@@ -543,7 +550,7 @@
         <!-- MAIN CONTENT AREA -->
         <main id="admin-main" class="flex-1 bg-gray-50 px-4 py-6 pt-20 lg:p-8 relative w-full lg:ml-72 lg:pt-8 transition-all duration-300">
             <!-- Desktop Sidebar Toggle Button -->
-            <button onclick="toggleSidebar()" class="hidden lg:flex fixed top-4 left-4 z-[70] p-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 text-gray-600 transition-colors">
+            <button id="desktop-sidebar-open" onclick="toggleSidebar()" class="fixed top-4 left-4 z-[70] p-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 text-gray-600 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
 
