@@ -3769,6 +3769,138 @@ window.promptAddNewCategory = function() {
     }
 };
 
+// ---- MANAGE / RENAME CATEGORIES MODAL ----
+
+window.openManageCategoriesModal = function() {
+    renderManageCategoriesModal();
+    openModal('manageCategoriesModal');
+};
+
+function renderManageCategoriesModal() {
+    // Render predefined (read-only) badges
+    const predefinedList = document.getElementById('predefinedCategoryList');
+    if (predefinedList) {
+        predefinedList.innerHTML = PREDEFINED_CATEGORIES.map(cat =>
+            `<span class="inline-block bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full border border-gray-200">${cat}</span>`
+        ).join('');
+    }
+
+    // Render custom categories with edit/delete controls
+    const customList = document.getElementById('customCategoryList');
+    const noMsg = document.getElementById('noCustomCategoriesMsg');
+    const custom = getCustomCategories();
+
+    if (!customList) return;
+
+    if (!custom.length) {
+        customList.innerHTML = '';
+        if (noMsg) noMsg.classList.remove('hidden');
+        return;
+    }
+
+    if (noMsg) noMsg.classList.add('hidden');
+    customList.innerHTML = custom.map((cat, idx) => `
+        <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" id="cat-row-${idx}">
+            <span class="flex-1 text-sm font-medium text-gray-700 cat-label" id="cat-label-${idx}">${cat}</span>
+            <input type="text" value="${cat}" class="hidden flex-1 border border-amber-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 cat-input" id="cat-input-${idx}">
+            <button onclick="startRenameCategory(${idx})" class="text-xs text-amber-600 hover:text-amber-800 font-semibold px-2 py-1 rounded hover:bg-amber-100 transition cat-edit-btn" id="cat-edit-btn-${idx}">✏️ Rename</button>
+            <button onclick="confirmRenameCategory(${idx})" class="hidden text-xs text-green-600 hover:text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-100 transition cat-save-btn" id="cat-save-btn-${idx}">✔ Save</button>
+            <button onclick="cancelRenameCategory(${idx})" class="hidden text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition cat-cancel-btn" id="cat-cancel-btn-${idx}">✖</button>
+            <button onclick="deleteCustomCategory(${idx})" class="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition cat-del-btn" id="cat-del-btn-${idx}">🗑</button>
+        </div>
+    `).join('');
+}
+
+window.startRenameCategory = function(idx) {
+    document.getElementById(`cat-label-${idx}`).classList.add('hidden');
+    document.getElementById(`cat-input-${idx}`).classList.remove('hidden');
+    document.getElementById(`cat-edit-btn-${idx}`).classList.add('hidden');
+    document.getElementById(`cat-save-btn-${idx}`).classList.remove('hidden');
+    document.getElementById(`cat-cancel-btn-${idx}`).classList.remove('hidden');
+    document.getElementById(`cat-del-btn-${idx}`).classList.add('hidden');
+    const input = document.getElementById(`cat-input-${idx}`);
+    input.focus();
+    input.select();
+    input.onkeydown = (e) => { if (e.key === 'Enter') confirmRenameCategory(idx); if (e.key === 'Escape') cancelRenameCategory(idx); };
+};
+
+window.cancelRenameCategory = function(idx) {
+    const custom = getCustomCategories();
+    document.getElementById(`cat-input-${idx}`).value = custom[idx];
+    document.getElementById(`cat-label-${idx}`).classList.remove('hidden');
+    document.getElementById(`cat-input-${idx}`).classList.add('hidden');
+    document.getElementById(`cat-edit-btn-${idx}`).classList.remove('hidden');
+    document.getElementById(`cat-save-btn-${idx}`).classList.add('hidden');
+    document.getElementById(`cat-cancel-btn-${idx}`).classList.add('hidden');
+    document.getElementById(`cat-del-btn-${idx}`).classList.remove('hidden');
+};
+
+window.confirmRenameCategory = async function(idx) {
+    const custom = getCustomCategories();
+    const oldName = custom[idx];
+    const newName = document.getElementById(`cat-input-${idx}`).value.trim();
+
+    if (!newName) { alert('Category name cannot be empty.'); return; }
+    if (newName === oldName) { cancelRenameCategory(idx); return; }
+    if (PREDEFINED_CATEGORIES.includes(newName) || (custom.includes(newName) && newName !== oldName)) {
+        alert('A category with that name already exists.'); return;
+    }
+
+    // Update localStorage
+    custom[idx] = newName;
+    localStorage.setItem('custom_expense_categories', JSON.stringify(custom));
+
+    // Update all loaded expenses in the DB that have the old category name
+    const expensesWithOldCat = (_financeCurrentExpenses || []).filter(e => e.category === oldName);
+    if (expensesWithOldCat.length > 0) {
+        const token = localStorage.getItem('adminToken');
+        const updatePromises = expensesWithOldCat.map(exp =>
+            fetch(`${API_URL}/finance/expenses/${exp.id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category: newName })
+            })
+        );
+        try {
+            await Promise.all(updatePromises);
+            alert(`Category renamed to "${newName}". ${expensesWithOldCat.length} expense(s) updated.`);
+        } catch(err) {
+            alert('Category renamed locally but some expense updates failed. Please refresh.');
+        }
+    } else {
+        alert(`Category renamed to "${newName}".`);
+    }
+
+    // Refresh UI
+    await loadExpenses();
+    renderManageCategoriesModal();
+};
+
+window.deleteCustomCategory = function(idx) {
+    const custom = getCustomCategories();
+    const catName = custom[idx];
+    if (!confirm(`Delete the category "${catName}"? Existing expenses using this name will keep it.`)) return;
+    custom.splice(idx, 1);
+    localStorage.setItem('custom_expense_categories', JSON.stringify(custom));
+    populateCategoryDropdowns(_financeCurrentExpenses || []);
+    renderManageCategoriesModal();
+    alert(`Category "${catName}" removed.`);
+};
+
+window.addCategoryFromModal = function() {
+    const input = document.getElementById('newCategoryInput');
+    const trimmed = (input.value || '').trim();
+    if (!trimmed) { alert('Please enter a category name.'); return; }
+    if (PREDEFINED_CATEGORIES.includes(trimmed) || getCustomCategories().includes(trimmed)) {
+        alert('This category already exists.'); return;
+    }
+    saveCustomCategory(trimmed);
+    input.value = '';
+    populateCategoryDropdowns(_financeCurrentExpenses || []);
+    renderManageCategoriesModal();
+    alert(`Category "${trimmed}" added.`);
+};
+
 window.loadExpenses = async function() {
     const from = document.getElementById('finFromDate').value;
     const to   = document.getElementById('finToDate').value;

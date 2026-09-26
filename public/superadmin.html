@@ -1772,6 +1772,7 @@
                         <div class="flex items-center gap-3">
                             <span class="text-red-500 font-bold text-lg" id="expensesTotal">₦0</span>
                             <button onclick="promptAddNewCategory()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition border border-gray-300">+ Add Category</button>
+                            <button onclick="openManageCategoriesModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm font-semibold transition border border-amber-300">✏️ Edit Categories</button>
                             <button onclick="openModal('expenseModal')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">+ Add Expense</button>
                         </div>
                     </div>
@@ -1818,6 +1819,35 @@
         </section>
 
         <!-- ===== FINANCE MODALS ===== -->
+
+        <!-- Manage / Rename Categories Modal -->
+        <div id="manageCategoriesModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+                <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Manage Expense Categories</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">Rename custom categories. Predefined categories cannot be edited.</p>
+                    </div>
+                    <button onclick="closeModal('manageCategoriesModal')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+                <div class="p-6">
+                    <!-- Add new category inline -->
+                    <div class="flex gap-2 mb-5">
+                        <input type="text" id="newCategoryInput" placeholder="New category name…" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300">
+                        <button onclick="addCategoryFromModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm whitespace-nowrap">+ Add</button>
+                    </div>
+
+                    <!-- Predefined categories (read-only) -->
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Predefined (read-only)</p>
+                    <div id="predefinedCategoryList" class="flex flex-wrap gap-2 mb-5"></div>
+
+                    <!-- Custom categories (editable) -->
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Custom Categories</p>
+                    <div id="customCategoryList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                    <p id="noCustomCategoriesMsg" class="text-xs text-gray-400 italic hidden">No custom categories yet. Add one above.</p>
+                </div>
+            </div>
+        </div>
 
         <!-- Add/Edit Other Income Modal -->
         <div id="otherIncomeModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4">
