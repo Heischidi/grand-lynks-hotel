@@ -3694,6 +3694,22 @@ function saveCustomCategory(category) {
     }
 }
 
+function getPredefinedOverrides() {
+    try {
+        const stored = localStorage.getItem('predefined_category_overrides');
+        return stored ? JSON.parse(stored) : {};
+    } catch(e) { return {}; }
+}
+
+function getEffectiveCategories(expenses = []) {
+    const overrides = getPredefinedOverrides();
+    const predefined = PREDEFINED_CATEGORIES.map(cat => overrides[cat] || cat);
+    const custom = getCustomCategories();
+    const categoriesSet = new Set([...predefined, ...custom]);
+    expenses.forEach(e => { if (e.category) categoriesSet.add(e.category); });
+    return Array.from(categoriesSet);
+}
+
 function populateCategoryDropdowns(expenses = []) {
     const filterSelect = document.getElementById('expenseCategoryFilter');
     const formSelect = document.getElementById('expCategory');
@@ -3702,16 +3718,7 @@ function populateCategoryDropdowns(expenses = []) {
     const selectedFilter = filterSelect.value;
     const selectedForm = formSelect.value;
 
-    const custom = getCustomCategories();
-    const categoriesSet = new Set([...PREDEFINED_CATEGORIES, ...custom]);
-
-    expenses.forEach(e => {
-        if (e.category) {
-            categoriesSet.add(e.category);
-        }
-    });
-
-    const uniqueCategories = Array.from(categoriesSet);
+    const uniqueCategories = getEffectiveCategories(expenses);
 
     // Populate filter dropdown
     filterSelect.innerHTML = '<option value="">All Categories</option>';
@@ -3777,12 +3784,24 @@ window.openManageCategoriesModal = function() {
 };
 
 function renderManageCategoriesModal() {
-    // Render predefined (read-only) badges
+    const overrides = getPredefinedOverrides();
+
+    // Render predefined categories as editable rows
     const predefinedList = document.getElementById('predefinedCategoryList');
     if (predefinedList) {
-        predefinedList.innerHTML = PREDEFINED_CATEGORIES.map(cat =>
-            `<span class="inline-block bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full border border-gray-200">${cat}</span>`
-        ).join('');
+        predefinedList.innerHTML = PREDEFINED_CATEGORIES.map((original, idx) => {
+            const current = overrides[original] || original;
+            const isRenamed = overrides[original] && overrides[original] !== original;
+            return `
+            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2" id="pred-row-${idx}">
+                <span class="flex-1 text-sm font-medium text-gray-700" id="pred-label-${idx}">${current}${isRenamed ? ` <span class="text-[10px] text-blue-400 ml-1">(was: ${original})</span>` : ''}</span>
+                <input type="text" value="${current}" class="hidden flex-1 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" id="pred-input-${idx}">
+                <button onclick="startRenamePredefined(${idx})" class="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-100 transition" id="pred-edit-btn-${idx}">✏️ Rename</button>
+                <button onclick="confirmRenamePredefined(${idx})" class="hidden text-xs text-green-600 hover:text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-100 transition" id="pred-save-btn-${idx}">✔ Save</button>
+                <button onclick="cancelRenamePredefined(${idx})" class="hidden text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition" id="pred-cancel-btn-${idx}">✖</button>
+                ${isRenamed ? `<button onclick="resetPredefined(${idx})" class="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition" id="pred-reset-btn-${idx}" title="Reset to original">↩</button>` : ''}
+            </div>`;
+        }).join('');
     }
 
     // Render custom categories with edit/delete controls
@@ -3810,6 +3829,104 @@ function renderManageCategoriesModal() {
         </div>
     `).join('');
 }
+
+// ---- PREDEFINED CATEGORY RENAME ----
+
+window.startRenamePredefined = function(idx) {
+    document.getElementById(`pred-label-${idx}`).classList.add('hidden');
+    document.getElementById(`pred-input-${idx}`).classList.remove('hidden');
+    document.getElementById(`pred-edit-btn-${idx}`).classList.add('hidden');
+    document.getElementById(`pred-save-btn-${idx}`).classList.remove('hidden');
+    document.getElementById(`pred-cancel-btn-${idx}`).classList.remove('hidden');
+    const resetBtn = document.getElementById(`pred-reset-btn-${idx}`);
+    if (resetBtn) resetBtn.classList.add('hidden');
+    const input = document.getElementById(`pred-input-${idx}`);
+    input.focus(); input.select();
+    input.onkeydown = (e) => { if (e.key === 'Enter') confirmRenamePredefined(idx); if (e.key === 'Escape') cancelRenamePredefined(idx); };
+};
+
+window.cancelRenamePredefined = function(idx) {
+    const overrides = getPredefinedOverrides();
+    const original = PREDEFINED_CATEGORIES[idx];
+    document.getElementById(`pred-input-${idx}`).value = overrides[original] || original;
+    document.getElementById(`pred-label-${idx}`).classList.remove('hidden');
+    document.getElementById(`pred-input-${idx}`).classList.add('hidden');
+    document.getElementById(`pred-edit-btn-${idx}`).classList.remove('hidden');
+    document.getElementById(`pred-save-btn-${idx}`).classList.add('hidden');
+    document.getElementById(`pred-cancel-btn-${idx}`).classList.add('hidden');
+    const resetBtn = document.getElementById(`pred-reset-btn-${idx}`);
+    if (resetBtn) resetBtn.classList.remove('hidden');
+};
+
+window.confirmRenamePredefined = async function(idx) {
+    const original = PREDEFINED_CATEGORIES[idx];
+    const overrides = getPredefinedOverrides();
+    const oldName = overrides[original] || original;
+    const newName = document.getElementById(`pred-input-${idx}`).value.trim();
+
+    if (!newName) { alert('Category name cannot be empty.'); return; }
+    if (newName === oldName) { cancelRenamePredefined(idx); return; }
+    // Check for name collision across all effective categories
+    const allEffective = getEffectiveCategories();
+    if (allEffective.includes(newName) && newName !== oldName) {
+        alert('A category with that name already exists.'); return;
+    }
+
+    // Save override
+    overrides[original] = newName;
+    localStorage.setItem('predefined_category_overrides', JSON.stringify(overrides));
+
+    // Update all loaded expenses in the DB that have the old category name
+    const expensesWithOldCat = (_financeCurrentExpenses || []).filter(e => e.category === oldName);
+    if (expensesWithOldCat.length > 0) {
+        const token = localStorage.getItem('adminToken');
+        const updatePromises = expensesWithOldCat.map(exp =>
+            fetch(`${API_URL}/finance/expenses/${exp.id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category: newName })
+            })
+        );
+        try {
+            await Promise.all(updatePromises);
+            alert(`Category renamed to "${newName}". ${expensesWithOldCat.length} expense(s) updated.`);
+        } catch(err) {
+            alert('Category renamed locally but some expense updates failed. Please refresh.');
+        }
+    } else {
+        alert(`Category renamed to "${newName}".`);
+    }
+
+    await loadExpenses();
+    renderManageCategoriesModal();
+};
+
+window.resetPredefined = async function(idx) {
+    const original = PREDEFINED_CATEGORIES[idx];
+    const overrides = getPredefinedOverrides();
+    const currentName = overrides[original] || original;
+    if (!confirm(`Reset "${currentName}" back to its original name "${original}"?`)) return;
+
+    // Update expenses in DB back to original name
+    const expensesWithCurrent = (_financeCurrentExpenses || []).filter(e => e.category === currentName);
+    if (expensesWithCurrent.length > 0) {
+        const token = localStorage.getItem('adminToken');
+        try {
+            await Promise.all(expensesWithCurrent.map(exp =>
+                fetch(`${API_URL}/finance/expenses/${exp.id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: original })
+                })
+            ));
+        } catch(err) { alert('Some expense updates failed. Please refresh.'); }
+    }
+
+    delete overrides[original];
+    localStorage.setItem('predefined_category_overrides', JSON.stringify(overrides));
+    await loadExpenses();
+    renderManageCategoriesModal();
+};
 
 window.startRenameCategory = function(idx) {
     document.getElementById(`cat-label-${idx}`).classList.add('hidden');
