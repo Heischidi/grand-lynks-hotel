@@ -3707,7 +3707,12 @@ function getEffectiveCategories(expenses = []) {
     const custom = getCustomCategories();
     const categoriesSet = new Set([...predefined, ...custom]);
     expenses.forEach(e => { if (e.category) categoriesSet.add(e.category); });
-    return Array.from(categoriesSet);
+    // Sort alphabetically, keeping 'Others' pinned at the very end
+    return Array.from(categoriesSet).sort((a, b) => {
+        if (a === 'Others') return 1;
+        if (b === 'Others') return -1;
+        return a.localeCompare(b);
+    });
 }
 
 function populateCategoryDropdowns(expenses = []) {
