@@ -3600,7 +3600,7 @@ async function loadFinanceSummary(qStr = '') {
     const netEl = document.getElementById('kpiNetPL');
     const netVal = d.netProfitLoss || 0;
     netEl.textContent = (netVal < 0 ? '-' : '') + fmt(netVal);
-    netEl.className = 'text-2xl font-black ' + (netVal >= 0 ? 'text-emerald-600' : 'text-red-500');
+    netEl.className = 'text-sm sm:text-xl lg:text-2xl font-black break-all leading-tight ' + (netVal >= 0 ? 'text-emerald-600' : 'text-red-500');
     document.getElementById('kpiNetPLLabel').textContent = netVal >= 0 ? '✅ Profitable period' : '⚠️ Loss this period';
     document.getElementById('kpiBookingsOrders').textContent = `${d.bookingCount || 0} / ${d.orderCount || 0}`;
 
