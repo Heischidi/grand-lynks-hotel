@@ -4075,9 +4075,20 @@ function renderExpenses(expenses) {
 window.openEditExpense = function(id) {
     const exp = _financeCurrentExpenses.find(e => e.id === id);
     if (!exp) return;
+    // Repopulate the category dropdown so all categories (predefined + custom + renamed)
+    // are present before we try to set the saved category value.
+    populateCategoryDropdowns(_financeCurrentExpenses || []);
     document.getElementById('expenseModalTitle').textContent = 'Edit Expense';
     document.getElementById('editExpenseId').value = exp.id;
-    document.getElementById('expCategory').value = exp.category;
+    // If the expense's category isn't in the dropdown (edge case), insert it temporarily
+    const catSelect = document.getElementById('expCategory');
+    if (exp.category && !Array.from(catSelect.options).some(o => o.value === exp.category)) {
+        const opt = document.createElement('option');
+        opt.value = exp.category;
+        opt.textContent = exp.category;
+        catSelect.insertBefore(opt, catSelect.lastElementChild);
+    }
+    catSelect.value = exp.category;
     document.getElementById('expAmount').value = exp.amount;
     document.getElementById('expDate').value = exp.date ? exp.date.slice(0,10) : '';
     document.getElementById('expDescription').value = exp.description || '';
