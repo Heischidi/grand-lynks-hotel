@@ -3790,12 +3790,27 @@ window.openManageCategoriesModal = function() {
 
 function renderManageCategoriesModal() {
     const overrides = getPredefinedOverrides();
-    const custom = getCustomCategories();
+
+    // --- SYNC: pull any expense-record categories into custom localStorage so they appear ---
+    // Categories that exist in expense records but are NOT predefined and NOT already in custom
+    const predefinedEffectiveSet = new Set(PREDEFINED_CATEGORIES.map(cat => overrides[cat] || cat));
+    let custom = getCustomCategories();
+    const allExpenseCategories = getEffectiveCategories(_financeCurrentExpenses || []);
+    let synced = false;
+    allExpenseCategories.forEach(cat => {
+        if (!predefinedEffectiveSet.has(cat) && !custom.includes(cat)) {
+            custom.push(cat);
+            synced = true;
+        }
+    });
+    if (synced) {
+        localStorage.setItem('custom_expense_categories', JSON.stringify(custom));
+    }
+
     const noMsg = document.getElementById('noCustomCategoriesMsg');
     if (noMsg) noMsg.classList.add('hidden');
 
-    // Build a unified sorted list of all categories
-    // Each entry: { displayName, type: 'predefined'|'custom', predIdx, customIdx, original, isRenamed }
+    // Build unified sorted list
     const allEntries = [];
 
     PREDEFINED_CATEGORIES.forEach((original, idx) => {
@@ -3804,6 +3819,8 @@ function renderManageCategoriesModal() {
         allEntries.push({ displayName: current, type: 'predefined', predIdx: idx, original, isRenamed });
     });
 
+    // Re-read custom (may have been updated by sync above)
+    custom = getCustomCategories();
     custom.forEach((cat, idx) => {
         allEntries.push({ displayName: cat, type: 'custom', customIdx: idx, original: cat, isRenamed: false });
     });
@@ -3820,7 +3837,7 @@ function renderManageCategoriesModal() {
     const predefinedList = document.getElementById('predefinedCategoryList');
     if (!predefinedList) return;
 
-    predefinedList.innerHTML = allEntries.map((entry, i) => {
+    predefinedList.innerHTML = allEntries.map((entry) => {
         if (entry.type === 'predefined') {
             const { predIdx, displayName, original, isRenamed } = entry;
             return `
