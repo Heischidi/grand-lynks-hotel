@@ -206,6 +206,22 @@ module.exports = function registerFinanceRoutes(app, prisma, authenticateSuperAd
     } catch (err) { console.error('Create expense error:', err); res.status(500).json({ error: 'Internal server error' }); }
   });
 
+  // Batch rename category across all expenses in DB
+  app.put('/finance/expenses/rename-category', authenticateSuperAdmin, async (req, res) => {
+    try {
+      const { oldCategory, newCategory } = req.body;
+      if (!oldCategory || !newCategory) return res.status(400).json({ error: 'oldCategory and newCategory required' });
+      const result = await prisma.expense.updateMany({
+        where: { category: oldCategory },
+        data: { category: newCategory }
+      });
+      res.json({ message: 'Category renamed', updatedCount: result.count });
+    } catch (err) {
+      console.error('Rename category error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.put('/finance/expenses/:id', authenticateSuperAdmin, uploadReceipt.single('receipt'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);

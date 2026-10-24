@@ -3652,27 +3652,40 @@ function renderBarChart(months) {
 // ---- EXPENSES ----
 
 const PREDEFINED_CATEGORIES = [
-    'Requisition/Acquisition',
-    'Taxes/Levies/Statutory',
-    'Internet/Subscriptions',
-    'Website',
+    'Acquisition',
     'Airtime/Data',
+    'Booking.com Invoices',
+    'Charity',
+    'Cleaning Supplies',
+    'Consumables',
+    'Diesel',
     'DStv/Gotv/Free TV',
-    'Loan Repayment',
-    'Honorarium/Charity, etc',
-    'Maintenance Auto',
     'Fuelling',
-    'Salaries',
     'Generator',
-    'Utilities',
+    'Grand Lynks (Kubwa Renovation)',
+    'Grand Lynks, Kafe, Block 8, Flat 5',
+    'Guest Refund',
+    'Honorarium/Charity, etc',
+    'Internet/Subscriptions',
+    'Kitchen/Bar Stock',
+    'Laundry',
+    'Legal',
+    'Loan',
+    'Loan Repayment',
+    'Maintenance Auto',
+    'Marketing',
+    'Medical',
     'Renovations',
     'Repairs & Maintenance',
-    'Cleaning Supplies',
-    'Kitchen/Bar Stock',
+    'Requisition',
+    'Requisition/Acquisition',
+    'Salaries',
+    'Security',
     'Staff Incentives',
-    'Marketing',
+    'Taxes/Levies/Statutory',
     'Transportation',
-    'Laundry',
+    'Utilities',
+    'Website',
     'Others'
 ];
 
@@ -3791,27 +3804,12 @@ window.openManageCategoriesModal = function() {
 function renderManageCategoriesModal() {
     const overrides = getPredefinedOverrides();
 
-    // --- SYNC: pull any expense-record categories into custom localStorage so they appear ---
-    // Categories that exist in expense records but are NOT predefined and NOT already in custom
-    const predefinedEffectiveSet = new Set(PREDEFINED_CATEGORIES.map(cat => overrides[cat] || cat));
-    let custom = getCustomCategories();
-    const allExpenseCategories = getEffectiveCategories(_financeCurrentExpenses || []);
-    let synced = false;
-    allExpenseCategories.forEach(cat => {
-        if (!predefinedEffectiveSet.has(cat) && !custom.includes(cat)) {
-            custom.push(cat);
-            synced = true;
-        }
-    });
-    if (synced) {
-        localStorage.setItem('custom_expense_categories', JSON.stringify(custom));
-    }
-
     const noMsg = document.getElementById('noCustomCategoriesMsg');
     if (noMsg) noMsg.classList.add('hidden');
 
     // Build unified sorted list
     const allEntries = [];
+    const activePredefinedNames = new Set(PREDEFINED_CATEGORIES.map(cat => overrides[cat] || cat));
 
     PREDEFINED_CATEGORIES.forEach((original, idx) => {
         const current = overrides[original] || original;
@@ -3819,10 +3817,22 @@ function renderManageCategoriesModal() {
         allEntries.push({ displayName: current, type: 'predefined', predIdx: idx, original, isRenamed });
     });
 
-    // Re-read custom (may have been updated by sync above)
-    custom = getCustomCategories();
+    // Custom categories (excluding anything already in predefined or overrides)
+    const custom = getCustomCategories().filter(cat => !activePredefinedNames.has(cat) && !PREDEFINED_CATEGORIES.includes(cat));
     custom.forEach((cat, idx) => {
         allEntries.push({ displayName: cat, type: 'custom', customIdx: idx, original: cat, isRenamed: false });
+    });
+
+    // Any category present in loaded expenses not yet captured
+    const existingDisplayNames = new Set(allEntries.map(e => e.displayName));
+    (_financeCurrentExpenses || []).forEach(e => {
+        if (e.category && !existingDisplayNames.has(e.category)) {
+            existingDisplayNames.add(e.category);
+            saveCustomCategory(e.category);
+            const updatedCustom = getCustomCategories();
+            const newIdx = updatedCustom.indexOf(e.category);
+            allEntries.push({ displayName: e.category, type: 'custom', customIdx: newIdx >= 0 ? newIdx : custom.length, original: e.category, isRenamed: false });
+        }
     });
 
     // Sort alphabetically, 'Others' always last
@@ -3862,6 +3872,40 @@ function renderManageCategoriesModal() {
             </div>`;
         }
     }).join('');
+}
+
+// Shared helper to batch update category name in the DB
+async function renameCategoryInDB(oldName, newName) {
+    try {
+        const res = await authFetch('/finance/expenses/rename-category', {
+            method: 'PUT',
+            body: JSON.stringify({ oldCategory: oldName, newCategory: newName })
+        });
+        if (res && res.ok) {
+            const data = await res.json();
+            return { ok: true, count: data.updatedCount !== undefined ? data.updatedCount : 0 };
+        }
+    } catch (err) {
+        console.warn('Batch rename endpoint unavailable, using fallback:', err);
+    }
+    // Fallback: update loaded expenses if batch endpoint is unavailable
+    const expensesWithOldCat = (_financeCurrentExpenses || []).filter(e => e.category === oldName);
+    if (expensesWithOldCat.length > 0) {
+        const token = localStorage.getItem('adminToken');
+        try {
+            await Promise.all(expensesWithOldCat.map(exp =>
+                fetch(`${API_URL}/finance/expenses/${exp.id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: newName })
+                })
+            ));
+            return { ok: true, count: expensesWithOldCat.length };
+        } catch(e) {
+            return { ok: false, count: 0 };
+        }
+    }
+    return { ok: true, count: 0 };
 }
 
 // ---- PREDEFINED CATEGORY RENAME ----
@@ -3910,23 +3954,10 @@ window.confirmRenamePredefined = async function(idx) {
     overrides[original] = newName;
     localStorage.setItem('predefined_category_overrides', JSON.stringify(overrides));
 
-    // Update all loaded expenses in the DB that have the old category name
-    const expensesWithOldCat = (_financeCurrentExpenses || []).filter(e => e.category === oldName);
-    if (expensesWithOldCat.length > 0) {
-        const token = localStorage.getItem('adminToken');
-        const updatePromises = expensesWithOldCat.map(exp =>
-            fetch(`${API_URL}/finance/expenses/${exp.id}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ category: newName })
-            })
-        );
-        try {
-            await Promise.all(updatePromises);
-            alert(`Category renamed to "${newName}". ${expensesWithOldCat.length} expense(s) updated.`);
-        } catch(err) {
-            alert('Category renamed locally but some expense updates failed. Please refresh.');
-        }
+    // Update expenses in DB
+    const res = await renameCategoryInDB(oldName, newName);
+    if (res.count > 0) {
+        alert(`Category renamed to "${newName}". ${res.count} expense(s) updated.`);
     } else {
         alert(`Category renamed to "${newName}".`);
     }
@@ -3942,19 +3973,7 @@ window.resetPredefined = async function(idx) {
     if (!confirm(`Reset "${currentName}" back to its original name "${original}"?`)) return;
 
     // Update expenses in DB back to original name
-    const expensesWithCurrent = (_financeCurrentExpenses || []).filter(e => e.category === currentName);
-    if (expensesWithCurrent.length > 0) {
-        const token = localStorage.getItem('adminToken');
-        try {
-            await Promise.all(expensesWithCurrent.map(exp =>
-                fetch(`${API_URL}/finance/expenses/${exp.id}`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category: original })
-                })
-            ));
-        } catch(err) { alert('Some expense updates failed. Please refresh.'); }
-    }
+    await renameCategoryInDB(currentName, original);
 
     delete overrides[original];
     localStorage.setItem('predefined_category_overrides', JSON.stringify(overrides));
@@ -4001,23 +4020,10 @@ window.confirmRenameCategory = async function(idx) {
     custom[idx] = newName;
     localStorage.setItem('custom_expense_categories', JSON.stringify(custom));
 
-    // Update all loaded expenses in the DB that have the old category name
-    const expensesWithOldCat = (_financeCurrentExpenses || []).filter(e => e.category === oldName);
-    if (expensesWithOldCat.length > 0) {
-        const token = localStorage.getItem('adminToken');
-        const updatePromises = expensesWithOldCat.map(exp =>
-            fetch(`${API_URL}/finance/expenses/${exp.id}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ category: newName })
-            })
-        );
-        try {
-            await Promise.all(updatePromises);
-            alert(`Category renamed to "${newName}". ${expensesWithOldCat.length} expense(s) updated.`);
-        } catch(err) {
-            alert('Category renamed locally but some expense updates failed. Please refresh.');
-        }
+    // Update expenses in DB
+    const res = await renameCategoryInDB(oldName, newName);
+    if (res.count > 0) {
+        alert(`Category renamed to "${newName}". ${res.count} expense(s) updated.`);
     } else {
         alert(`Category renamed to "${newName}".`);
     }
@@ -4071,20 +4077,40 @@ function renderExpenses(expenses) {
     const catColors = { 
         Salaries:'bg-blue-100 text-blue-700', 
         Fuel:'bg-orange-100 text-orange-700', 
+        Fuelling:'bg-orange-100 text-orange-700', 
+        Diesel:'bg-amber-100 text-amber-800',
         Generator:'bg-yellow-100 text-yellow-700', 
         Utilities:'bg-cyan-100 text-cyan-700', 
         Internet:'bg-indigo-100 text-indigo-700', 
-        Renovations:'bg-purple-100 text-purple-700', 
-        'Requisition/Acquisition':'bg-emerald-100 text-emerald-700',
-        'Taxes/Levies/Statutory':'bg-red-100 text-red-700',
         'Internet/Subscriptions':'bg-indigo-100 text-indigo-700',
+        Renovations:'bg-purple-100 text-purple-700', 
+        'Grand Lynks (Kubwa Renovation)':'bg-purple-100 text-purple-700',
+        'Grand Lynks, Kafe, Block 8, Flat 5':'bg-indigo-100 text-indigo-700',
+        'Repairs & Maintenance':'bg-rose-100 text-rose-700',
+        'Maintenance Auto':'bg-rose-100 text-rose-700',
+        'Cleaning Supplies':'bg-cyan-100 text-cyan-700',
+        'Kitchen/Bar Stock':'bg-amber-100 text-amber-800',
+        Consumables:'bg-lime-100 text-lime-800',
+        Marketing:'bg-pink-100 text-pink-700',
         Website:'bg-teal-100 text-teal-700',
         'Airtime/Data':'bg-pink-100 text-pink-700',
         'DStv/Gotv/Free TV':'bg-violet-100 text-violet-700',
         'Loan Repayment':'bg-amber-100 text-amber-700',
+        Loan:'bg-amber-100 text-amber-700',
         'Honorarium/Charity, etc':'bg-fuchsia-100 text-fuchsia-700',
-        'Maintenance Auto':'bg-rose-100 text-rose-700',
-        Fuelling:'bg-orange-100 text-orange-700',
+        Charity:'bg-fuchsia-100 text-fuchsia-700',
+        'Staff Incentives':'bg-emerald-100 text-emerald-800',
+        'Taxes/Levies/Statutory':'bg-red-100 text-red-700',
+        Transportation:'bg-sky-100 text-sky-700',
+        Laundry:'bg-blue-100 text-blue-700',
+        Acquisition:'bg-emerald-100 text-emerald-700',
+        Requisition:'bg-teal-100 text-teal-700',
+        'Requisition/Acquisition':'bg-emerald-100 text-emerald-700',
+        Security:'bg-slate-200 text-slate-800',
+        Medical:'bg-red-100 text-red-700',
+        Legal:'bg-stone-200 text-stone-800',
+        'Guest Refund':'bg-rose-100 text-rose-700',
+        'Booking.com Invoices':'bg-sky-100 text-sky-800',
         Others:'bg-gray-100 text-gray-700' 
     };
     tbody.innerHTML = expenses.map(e => {
