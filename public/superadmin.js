@@ -3790,49 +3790,61 @@ window.openManageCategoriesModal = function() {
 
 function renderManageCategoriesModal() {
     const overrides = getPredefinedOverrides();
-
-    // Render predefined categories as editable rows
-    const predefinedList = document.getElementById('predefinedCategoryList');
-    if (predefinedList) {
-        predefinedList.innerHTML = PREDEFINED_CATEGORIES.map((original, idx) => {
-            const current = overrides[original] || original;
-            const isRenamed = overrides[original] && overrides[original] !== original;
-            return `
-            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2" id="pred-row-${idx}">
-                <span class="flex-1 text-sm font-medium text-gray-700" id="pred-label-${idx}">${current}${isRenamed ? ` <span class="text-[10px] text-blue-400 ml-1">(was: ${original})</span>` : ''}</span>
-                <input type="text" value="${current}" class="hidden flex-1 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" id="pred-input-${idx}">
-                <button onclick="startRenamePredefined(${idx})" class="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-100 transition" id="pred-edit-btn-${idx}">✏️ Rename</button>
-                <button onclick="confirmRenamePredefined(${idx})" class="hidden text-xs text-green-600 hover:text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-100 transition" id="pred-save-btn-${idx}">✔ Save</button>
-                <button onclick="cancelRenamePredefined(${idx})" class="hidden text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition" id="pred-cancel-btn-${idx}">✖</button>
-                ${isRenamed ? `<button onclick="resetPredefined(${idx})" class="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition" id="pred-reset-btn-${idx}" title="Reset to original">↩</button>` : ''}
-            </div>`;
-        }).join('');
-    }
-
-    // Render custom categories with edit/delete controls
-    const customList = document.getElementById('customCategoryList');
-    const noMsg = document.getElementById('noCustomCategoriesMsg');
     const custom = getCustomCategories();
-
-    if (!customList) return;
-
-    if (!custom.length) {
-        customList.innerHTML = '';
-        if (noMsg) noMsg.classList.remove('hidden');
-        return;
-    }
-
+    const noMsg = document.getElementById('noCustomCategoriesMsg');
     if (noMsg) noMsg.classList.add('hidden');
-    customList.innerHTML = custom.map((cat, idx) => `
-        <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" id="cat-row-${idx}">
-            <span class="flex-1 text-sm font-medium text-gray-700 cat-label" id="cat-label-${idx}">${cat}</span>
-            <input type="text" value="${cat}" class="hidden flex-1 border border-amber-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 cat-input" id="cat-input-${idx}">
-            <button onclick="startRenameCategory(${idx})" class="text-xs text-amber-600 hover:text-amber-800 font-semibold px-2 py-1 rounded hover:bg-amber-100 transition cat-edit-btn" id="cat-edit-btn-${idx}">✏️ Rename</button>
-            <button onclick="confirmRenameCategory(${idx})" class="hidden text-xs text-green-600 hover:text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-100 transition cat-save-btn" id="cat-save-btn-${idx}">✔ Save</button>
-            <button onclick="cancelRenameCategory(${idx})" class="hidden text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition cat-cancel-btn" id="cat-cancel-btn-${idx}">✖</button>
-            <button onclick="deleteCustomCategory(${idx})" class="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition cat-del-btn" id="cat-del-btn-${idx}">🗑</button>
-        </div>
-    `).join('');
+
+    // Build a unified sorted list of all categories
+    // Each entry: { displayName, type: 'predefined'|'custom', predIdx, customIdx, original, isRenamed }
+    const allEntries = [];
+
+    PREDEFINED_CATEGORIES.forEach((original, idx) => {
+        const current = overrides[original] || original;
+        const isRenamed = !!(overrides[original] && overrides[original] !== original);
+        allEntries.push({ displayName: current, type: 'predefined', predIdx: idx, original, isRenamed });
+    });
+
+    custom.forEach((cat, idx) => {
+        allEntries.push({ displayName: cat, type: 'custom', customIdx: idx, original: cat, isRenamed: false });
+    });
+
+    // Sort alphabetically, 'Others' always last
+    allEntries.sort((a, b) => {
+        const aN = a.displayName.toLowerCase();
+        const bN = b.displayName.toLowerCase();
+        if (aN === 'others') return 1;
+        if (bN === 'others') return -1;
+        return aN.localeCompare(bN);
+    });
+
+    const predefinedList = document.getElementById('predefinedCategoryList');
+    if (!predefinedList) return;
+
+    predefinedList.innerHTML = allEntries.map((entry, i) => {
+        if (entry.type === 'predefined') {
+            const { predIdx, displayName, original, isRenamed } = entry;
+            return `
+            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2" id="pred-row-${predIdx}">
+                <span class="flex-1 text-sm font-medium text-gray-700" id="pred-label-${predIdx}">${displayName}${isRenamed ? ` <span class="text-[10px] text-blue-400 ml-1">(was: ${original})</span>` : ''}</span>
+                <input type="text" value="${displayName}" class="hidden flex-1 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" id="pred-input-${predIdx}">
+                <button onclick="startRenamePredefined(${predIdx})" class="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-100 transition" id="pred-edit-btn-${predIdx}">✏️ Rename</button>
+                <button onclick="confirmRenamePredefined(${predIdx})" class="hidden text-xs text-green-600 hover:text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-100 transition" id="pred-save-btn-${predIdx}">✔ Save</button>
+                <button onclick="cancelRenamePredefined(${predIdx})" class="hidden text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition" id="pred-cancel-btn-${predIdx}">✖</button>
+                ${isRenamed ? `<button onclick="resetPredefined(${predIdx})" class="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition" id="pred-reset-btn-${predIdx}" title="Reset to original">↩</button>` : ''}
+            </div>`;
+        } else {
+            const { customIdx, displayName } = entry;
+            return `
+            <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" id="cat-row-${customIdx}">
+                <span class="flex-1 text-sm font-medium text-gray-700 cat-label" id="cat-label-${customIdx}">${displayName}</span>
+                <input type="text" value="${displayName}" class="hidden flex-1 border border-amber-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 cat-input" id="cat-input-${customIdx}">
+                <button onclick="startRenameCategory(${customIdx})" class="text-xs text-amber-600 hover:text-amber-800 font-semibold px-2 py-1 rounded hover:bg-amber-100 transition cat-edit-btn" id="cat-edit-btn-${customIdx}">✏️ Rename</button>
+                <button onclick="confirmRenameCategory(${customIdx})" class="hidden text-xs text-green-600 hover:text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-100 transition cat-save-btn" id="cat-save-btn-${customIdx}">✔ Save</button>
+                <button onclick="cancelRenameCategory(${customIdx})" class="hidden text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition cat-cancel-btn" id="cat-cancel-btn-${customIdx}">✖</button>
+                <button onclick="deleteCustomCategory(${customIdx})" class="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition cat-del-btn" id="cat-del-btn-${customIdx}">🗑</button>
+            </div>`;
+        }
+    }).join('');
 }
 
 // ---- PREDEFINED CATEGORY RENAME ----
