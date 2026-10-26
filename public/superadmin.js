@@ -304,7 +304,10 @@ function switchTab(tabName) {
         if (tabName === 'tracker') fetchRoomsForTracker();
         if (tabName === 'finance') window.initFinanceTab();
         if (tabName === 'checkinlog') fetchCheckInLog();
-        if (tabName === 'staff') fetchStaff();
+        if (tabName === 'staff') {
+            fetchStaff();
+            if (window.fetchSuperAdminShiftLogs) window.fetchSuperAdminShiftLogs();
+        }
     }
 }
 
@@ -6443,5 +6446,107 @@ function printAllIncentivesLog() {
         window.print();
     }
 }
+
+// ============================================================
+// SUPER ADMIN: SHIFT SIGN-OUT & ATTENDANCE LOGS
+// ============================================================
+
+window.allSuperAdminShiftLogs = [];
+
+window.fetchSuperAdminShiftLogs = async function() {
+    const tbody = document.getElementById('saShiftLogTableBody');
+    if (!tbody) return;
+
+    try {
+        const res = await authFetch('/staff-shifts?limit=100');
+        if (!res || !res.ok) throw new Error('Failed to load shift records');
+
+        const data = await res.json();
+        window.allSuperAdminShiftLogs = data.logs || [];
+        renderSuperAdminShiftLogs(window.allSuperAdminShiftLogs);
+    } catch (err) {
+        console.error('Error fetching shift logs for superadmin:', err);
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error loading shift records: ${escapeHtml(err.message || '')}</td></tr>`;
+    }
+};
+
+function renderSuperAdminShiftLogs(logs) {
+    const tbody = document.getElementById('saShiftLogTableBody');
+    if (!tbody) return;
+
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">No shift sign-out records found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = logs.map(log => {
+        const d = new Date(log.checkOutTime);
+        const timeStr = !isNaN(d.getTime())
+            ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '—';
+        const dateStr = !isNaN(d.getTime())
+            ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+            : '—';
+
+        return `
+            <tr class="hover:bg-amber-50/20 transition-colors">
+                <td class="px-4 py-3.5 font-semibold text-gray-900 flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 text-xs font-bold flex items-center justify-center">
+                        ${escapeHtml(log.staffName.charAt(0).toUpperCase())}
+                    </span>
+                    <span>${escapeHtml(log.staffName)}</span>
+                </td>
+                <td class="px-4 py-3.5 whitespace-nowrap">
+                    <div class="text-xs font-semibold text-gray-800">${timeStr}</div>
+                    <div class="text-[11px] text-gray-400">${dateStr}</div>
+                </td>
+                <td class="px-4 py-3.5">
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                        ${escapeHtml(log.shift || 'Regular Shift')}
+                    </span>
+                </td>
+                <td class="px-4 py-3.5 text-xs text-gray-600 max-w-xs truncate" title="${escapeHtml(log.notes || '')}">
+                    ${escapeHtml(log.notes || '—')}
+                </td>
+                <td class="px-4 py-3.5 whitespace-nowrap text-xs text-gray-400">
+                    ${escapeHtml(log.recordedBy || 'Self')}
+                </td>
+                <td class="px-4 py-3.5 whitespace-nowrap text-right">
+                    <button onclick="deleteShiftLog(${log.id})" class="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition">
+                        🗑️ Delete
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.filterSuperAdminShiftLogs = function() {
+    const q = (document.getElementById('saShiftLogSearch')?.value || '').toLowerCase().trim();
+    const logs = window.allSuperAdminShiftLogs || [];
+    if (!q) {
+        renderSuperAdminShiftLogs(logs);
+        return;
+    }
+    const filtered = logs.filter(l => (l.staffName || '').toLowerCase().includes(q) || (l.notes || '').toLowerCase().includes(q));
+    renderSuperAdminShiftLogs(filtered);
+};
+
+window.deleteShiftLog = async function(id) {
+    if (!confirm('Are you sure you want to remove this shift record?')) return;
+
+    try {
+        const res = await authFetch(`/staff-shifts/${id}`, { method: 'DELETE' });
+        if (!res || !res.ok) throw new Error('Failed to delete shift record');
+
+        if (window.UI && typeof window.UI.toast === 'function') {
+            window.UI.toast('Shift record deleted', 'info');
+        }
+        window.fetchSuperAdminShiftLogs();
+    } catch (e) {
+        alert(e.message || 'Error deleting shift log');
+    }
+};
+
 
 

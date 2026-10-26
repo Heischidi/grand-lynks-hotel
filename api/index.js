@@ -2912,6 +2912,131 @@ app.delete("/staff-incentives/:id", authenticateSuperAdmin, async (req, res) => 
   }
 });
 
+// ============================================================
+// STAFF SHIFT ATTENDANCE & SIGN-OUT LOGS
+// ============================================================
+
+// POST /staff-shifts/sign-out - Staff records their end-of-shift departure
+app.post("/staff-shifts/sign-out", async (req, res) => {
+  try {
+    const { staffName, checkOutTime, shift, notes, recordedBy } = req.body;
+
+    if (!staffName || typeof staffName !== "string" || !staffName.trim()) {
+      return res.status(400).json({ error: "Staff name is required for shift sign out." });
+    }
+
+    const trimmedName = staffName.trim();
+
+    // Parse checkout time (default to current time if missing or invalid)
+    let parsedTime = new Date();
+    if (checkOutTime) {
+      const d = new Date(checkOutTime);
+      if (!isNaN(d.getTime())) {
+        parsedTime = d;
+      }
+    }
+
+    // Try finding matching active staff to obtain department/shift if not passed
+    let assignedShift = shift || null;
+    try {
+      const match = await prisma.staff.findFirst({
+        where: {
+          name: { equals: trimmedName, mode: "insensitive" },
+          deletedAt: null
+        }
+      });
+      if (match && !assignedShift && match.shift) {
+        assignedShift = match.shift;
+      }
+    } catch (e) {
+      // Continue even if lookup fails
+    }
+
+    // Determine who recorded this (if logged in or self)
+    const recorder = recordedBy || "Staff Self-Signout";
+
+    const log = await prisma.staffShiftLog.create({
+      data: {
+        staffName: trimmedName,
+        checkOutTime: parsedTime,
+        shift: assignedShift,
+        notes: notes && typeof notes === "string" ? notes.trim() : null,
+        recordedBy: recorder
+      }
+    });
+
+    console.log(`[Shift Sign-Out] Recorded: ${log.staffName} at ${log.checkOutTime.toISOString()}`);
+
+    res.status(201).json({
+      success: true,
+      message: `Shift sign-out recorded successfully for ${log.staffName}`,
+      log
+    });
+  } catch (error) {
+    console.error("Error recording staff shift sign-out:", error);
+    res.status(500).json({ error: "Failed to record shift sign-out. Please try again." });
+  }
+});
+
+// GET /staff-shifts - Fetch shift sign-out history
+app.get("/staff-shifts", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const search = req.query.search ? req.query.search.trim() : null;
+
+    const where = {
+      deletedAt: null
+    };
+
+    if (search) {
+      where.staffName = {
+        contains: search,
+        mode: "insensitive"
+      };
+    }
+
+    const logs = await prisma.staffShiftLog.findMany({
+      where,
+      orderBy: { checkOutTime: "desc" },
+      take: limit
+    });
+
+    const totalCount = await prisma.staffShiftLog.count({ where });
+
+    res.json({
+      success: true,
+      count: logs.length,
+      total: totalCount,
+      logs
+    });
+  } catch (error) {
+    console.error("Error fetching staff shift logs:", error);
+    res.status(500).json({ error: "Failed to fetch staff shift logs" });
+  }
+});
+
+// DELETE /staff-shifts/:id - Soft-delete a shift sign-out record (Super Admin only)
+app.delete("/staff-shifts/:id", authenticateSuperAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid shift log ID" });
+
+    await prisma.staffShiftLog.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: req.user ? req.user.username : "superadmin"
+      }
+    });
+
+    res.json({ success: true, message: "Shift log record deleted" });
+  } catch (error) {
+    console.error("Error deleting staff shift log:", error);
+    res.status(500).json({ error: "Failed to delete shift log" });
+  }
+});
+
+
 
 // NOTE: Duplicate POST /bookings route removed — the primary route at line ~1172
 // handles all booking creation (with overlap detection, email, walk-in support).

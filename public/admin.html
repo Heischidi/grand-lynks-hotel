@@ -200,6 +200,15 @@
                     Access Dashboard
                 </button>
             </form>
+
+            <!-- END OF SHIFT SIGN-OUT (Quick access for departing staff) -->
+            <div class="mt-6 pt-5 border-t border-gray-100 text-center">
+                <p class="text-xs text-gray-500 mb-2">Finishing your shift? Sign out below:</p>
+                <button type="button" onclick="openStaffSignOutModal(false)"
+                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-900 border border-amber-300 rounded-lg text-sm font-semibold transition-all shadow-sm">
+                    <span class="text-base">⏱️</span> Staff Shift Sign-Out
+                </button>
+            </div>
         </div>
     </section>
 
@@ -301,9 +310,9 @@
                         <p class="text-xs text-gray-500">Administrator</p>
                     </div>
                 </div>
-                <button onclick="handleLogout()"
-                    class="w-full text-center px-4 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 text-sm transition-colors">
-                    Log Out
+                <button onclick="openStaffSignOutModal(true)"
+                    class="w-full text-center px-4 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 text-sm transition-colors flex items-center justify-center gap-1.5 font-medium">
+                    <span>🚪</span> Sign Out / End Shift
                 </button>
             </div>
         </aside>
@@ -871,6 +880,44 @@
                             </thead>
                             <tbody id="adminStaffTableBody" class="divide-y divide-gray-50 text-gray-700">
                                 <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Loading staff records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Shift Sign-Out & Attendance Records -->
+                <div class="mt-8 bg-white rounded-xl shadow overflow-hidden border border-gray-100">
+                    <div class="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-amber-50/50 to-white">
+                        <div>
+                            <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                <span>⏱️</span> Shift Sign-Out &amp; Departure Logs
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Recorded checkout times and departure timestamps for hotel staff</p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <input type="text" id="shiftLogSearch" oninput="filterShiftSignOutLogs()" placeholder="Filter by staff name..."
+                                class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-amber-400 focus:outline-none w-full sm:w-48">
+                            <button onclick="fetchShiftSignOutLogs()" class="px-3 py-1.5 bg-white border border-gray-200 text-xs text-gray-600 rounded-lg hover:bg-gray-50 transition shadow-sm font-medium flex items-center gap-1">
+                                ↻ Refresh
+                            </button>
+                            <button onclick="openStaffSignOutModal(true)" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-xs text-white rounded-lg transition shadow-sm font-semibold flex items-center gap-1 whitespace-nowrap">
+                                + Record Sign-Out
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-100 text-left text-sm">
+                            <thead class="bg-gray-50/80">
+                                <tr>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Staff Name</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-Out Time</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Shift</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Remarks / Notes</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Logged By</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shiftSignOutTableBody" class="divide-y divide-gray-50 text-gray-700">
+                                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">Loading shift sign-out logs...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1637,6 +1684,129 @@
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button type="button" onclick="closeModal('checkoutModal')" class="px-5 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Cancel</button>
                     <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition shadow-md font-semibold">Complete Checkout</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- STAFF SHIFT SIGN-OUT MODAL -->
+    <div id="staffSignOutModal"
+        class="hidden fixed inset-0 bg-gray-900/70 backdrop-blur-sm overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4"
+        onclick="if(event.target === this) closeStaffSignOutModal()">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden border border-gray-100 transform transition-all"
+            onclick="event.stopPropagation()">
+            
+            <!-- Modal Header -->
+            <div class="p-6 bg-gradient-to-r from-amber-500 to-amber-600 text-white relative">
+                <button type="button" onclick="closeStaffSignOutModal()"
+                    class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-lg transition">
+                    &times;
+                </button>
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center text-2xl shadow-inner">
+                        ⏱️
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold tracking-tight">Staff Shift Sign-Out</h3>
+                        <p class="text-amber-100 text-xs mt-0.5">Record departure &amp; checkout time</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form id="staffSignOutForm" onsubmit="submitStaffSignOut(event)" class="p-6 space-y-4">
+                
+                <!-- Notice Banner -->
+                <div class="bg-amber-50 border border-amber-200 text-amber-900 px-3.5 py-2.5 rounded-lg text-xs flex items-start gap-2.5">
+                    <span class="text-base leading-none">ℹ️</span>
+                    <div>
+                        <span class="font-semibold">End-of-Shift Checkout:</span>
+                        Please provide your name and confirm your check-out time before ending your shift.
+                    </div>
+                </div>
+
+                <!-- Staff Name -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Staff Name <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="shiftStaffName" list="staffDatalist" required
+                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors"
+                            placeholder="Type or select your full name" autocomplete="off">
+                        <datalist id="staffDatalist">
+                            <!-- Populated with active staff names -->
+                        </datalist>
+                    </div>
+                    <p class="text-[11px] text-gray-400 mt-1">Start typing to pick from active registered staff.</p>
+                </div>
+
+                <!-- Check-Out Time -->
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Check-Out Time <span class="text-red-500">*</span>
+                        </label>
+                        <button type="button" onclick="setSignOutTimeToNow()"
+                            class="text-[11px] text-amber-700 hover:text-amber-900 font-semibold underline">
+                            Reset to Current Time
+                        </button>
+                    </div>
+                    <input type="datetime-local" id="shiftCheckOutTime" required
+                        class="w-full px-3.5 py-2.5 text-sm font-mono border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors">
+                    <p id="shiftTimeDisplay" class="text-[11px] text-emerald-600 font-medium mt-1">Current time pre-filled automatically</p>
+                </div>
+
+                <!-- Shift Type (Optional) -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Shift (Optional)
+                    </label>
+                    <select id="shiftTypeSelect"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors">
+                        <option value="">Auto-detect from profile or select...</option>
+                        <option value="Morning (7:00 AM – 3:00 PM)">Morning (7:00 AM – 3:00 PM)</option>
+                        <option value="Day Shift (8:00 AM – 5:00 PM)">Day Shift (8:00 AM – 5:00 PM)</option>
+                        <option value="Afternoon / Evening">Afternoon / Evening</option>
+                        <option value="Night (10:00 PM – 7:00 AM)">Night (10:00 PM – 7:00 AM)</option>
+                        <option value="Custom / Other">Custom / Other</option>
+                    </select>
+                </div>
+
+                <!-- Optional Notes -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Notes / Handover Remarks <span class="text-xs text-gray-400 font-normal lowercase">(optional)</span>
+                    </label>
+                    <textarea id="shiftNotes" rows="2"
+                        class="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors"
+                        placeholder="Any brief message, notes, or remarks for next shift (optional)..."></textarea>
+                </div>
+
+                <!-- Error message -->
+                <div id="staffSignOutError" class="hidden text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200 text-center font-medium"></div>
+
+                <!-- Success message -->
+                <div id="staffSignOutSuccess" class="hidden text-xs text-emerald-700 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 text-center font-medium"></div>
+
+                <!-- Buttons -->
+                <div class="pt-2 flex flex-col gap-2">
+                    <button type="submit" id="submitSignOutBtn"
+                        class="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-md transition-colors flex items-center justify-center gap-2">
+                        <span>✅</span> Confirm Sign-Out
+                    </button>
+                    
+                    <div class="flex items-center justify-between text-xs pt-1">
+                        <button type="button" onclick="closeStaffSignOutModal()"
+                            class="text-gray-500 hover:text-gray-700 font-medium px-2 py-1">
+                            Cancel
+                        </button>
+                        <!-- Only visible if logged in: allows quick exit -->
+                        <button type="button" id="quickLogoutBtn" onclick="handleQuickLogout()"
+                            class="text-gray-400 hover:text-red-600 font-medium px-2 py-1 hidden transition-colors">
+                            Skip &amp; Quick Logout
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

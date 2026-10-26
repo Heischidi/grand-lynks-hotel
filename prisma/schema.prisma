@@ -371,3 +371,22 @@ model CheckInLog {
 
   @@map("check_in_logs")
 }
+
+// ============================================================
+// STAFF SHIFT ATTENDANCE & SIGN-OUT LOG
+// ============================================================
+model StaffShiftLog {
+  id           Int       @id @default(autoincrement())
+  staffName    String
+  checkOutTime DateTime  @default(now())
+  shift        String?   // e.g. Morning, Evening, Night, Day
+  notes        String?   // Optional remarks or handover notes
+  recordedBy   String?   // Admin username if signed in, or "Self"
+  deletedAt    DateTime? // Soft-delete timestamp
+  deletedBy    String?   // Admin username who soft-deleted
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  @@map("staff_shift_logs")
+}
+

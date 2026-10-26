@@ -291,7 +291,7 @@ function switchTab(tabName) {
         if (tabName === 'settings') fetchSettings();
         if (tabName === 'tracker') fetchRoomsForTracker();
         if (tabName === 'checkinlog') fetchCheckInLog();
-        if (tabName === 'staff') fetchAdminStaff();
+        if (tabName === 'staff') { fetchAdminStaff(); if (window.fetchShiftSignOutLogs) window.fetchShiftSignOutLogs(); }
     }
 }
 
@@ -3282,4 +3282,304 @@ function renderAdminStaffTable(list) {
         `;
     }).join('');
 }
+
+// ============================================================
+// STAFF SHIFT SIGN-OUT & ATTENDANCE LOGIC
+// ============================================================
+
+let isSignOutFromDashboard = false;
+window.allShiftSignOutLogs = [];
+
+// Helper to get local date string formatted for datetime-local (YYYY-MM-DDTHH:mm)
+function getLocalDatetimeString(date = new Date()) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const mm = pad(date.getMonth() + 1);
+    const dd = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+// Open the Staff Sign-Out Modal
+window.openStaffSignOutModal = async function(fromDashboard = false) {
+    isSignOutFromDashboard = !!fromDashboard;
+    const modal = document.getElementById('staffSignOutModal');
+    if (!modal) return;
+
+    // Reset messages & form
+    const errorEl = document.getElementById('staffSignOutError');
+    const successEl = document.getElementById('staffSignOutSuccess');
+    if (errorEl) errorEl.classList.add('hidden');
+    if (successEl) successEl.classList.add('hidden');
+
+    const form = document.getElementById('staffSignOutForm');
+    if (form) form.reset();
+
+    // Quick logout button (only shown if user is currently inside dashboard)
+    const quickBtn = document.getElementById('quickLogoutBtn');
+    if (quickBtn) {
+        if (isSignOutFromDashboard) quickBtn.classList.remove('hidden');
+        else quickBtn.classList.add('hidden');
+    }
+
+    // Pre-fill check-out time to current moment
+    window.setSignOutTimeToNow();
+
+    // Populate staff datalist for autocomplete
+    await populateStaffDatalist();
+
+    // If logged in, prefill name if matching admin user
+    if (isSignOutFromDashboard) {
+        try {
+            const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
+            const nameInput = document.getElementById('shiftStaffName');
+            if (nameInput && user.username && user.username !== 'admin' && user.username !== 'superadmin') {
+                nameInput.value = user.username;
+            }
+        } catch (e) {}
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        document.getElementById('shiftStaffName')?.focus();
+    }, 100);
+};
+
+// Close modal
+window.closeStaffSignOutModal = function() {
+    const modal = document.getElementById('staffSignOutModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+// Reset Check-Out Time to current timestamp
+window.setSignOutTimeToNow = function() {
+    const timeInput = document.getElementById('shiftCheckOutTime');
+    const timeDisplay = document.getElementById('shiftTimeDisplay');
+    const now = new Date();
+    if (timeInput) {
+        timeInput.value = getLocalDatetimeString(now);
+    }
+    if (timeDisplay) {
+        timeDisplay.textContent = `Pre-filled: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, ${now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+};
+
+// Populate datalist with active registered staff members
+async function populateStaffDatalist() {
+    const datalist = document.getElementById('staffDatalist');
+    if (!datalist) return;
+
+    try {
+        let staffList = window.adminStaffList;
+        if (!staffList || staffList.length === 0) {
+            const res = await fetch(`${API_URL}/staff`);
+            if (res.ok) {
+                staffList = await res.json();
+                window.adminStaffList = staffList;
+            }
+        }
+
+        if (Array.isArray(staffList) && staffList.length > 0) {
+            datalist.innerHTML = staffList
+                .filter(m => (m.status || 'active').toLowerCase() === 'active')
+                .map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.role || 'Staff')} — ${escapeHtml(m.department || '')}</option>`)
+                .join('');
+        }
+    } catch (e) {
+        console.warn('Could not populate staff datalist:', e);
+    }
+}
+
+// Quick logout without sign-out record
+window.handleQuickLogout = function() {
+    closeStaffSignOutModal();
+    handleLogout();
+};
+
+// Submit Staff Shift Sign-Out
+window.submitStaffSignOut = async function(event) {
+    if (event) event.preventDefault();
+
+    const nameInput = document.getElementById('shiftStaffName');
+    const timeInput = document.getElementById('shiftCheckOutTime');
+    const shiftSelect = document.getElementById('shiftTypeSelect');
+    const notesInput = document.getElementById('shiftNotes');
+    const errorEl = document.getElementById('staffSignOutError');
+    const successEl = document.getElementById('staffSignOutSuccess');
+    const submitBtn = document.getElementById('submitSignOutBtn');
+
+    if (errorEl) errorEl.classList.add('hidden');
+    if (successEl) successEl.classList.add('hidden');
+
+    const staffName = nameInput ? nameInput.value.trim() : '';
+    const checkOutTime = timeInput ? timeInput.value : '';
+    const shift = shiftSelect ? shiftSelect.value : '';
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    if (!staffName) {
+        if (errorEl) {
+            errorEl.textContent = 'Please enter your full name.';
+            errorEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    if (!checkOutTime) {
+        if (errorEl) {
+            errorEl.textContent = 'Please confirm your check-out date and time.';
+            errorEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span>⏳</span> Recording Sign-Out...`;
+    }
+
+    try {
+        let recordedBy = 'Staff Self-Signout';
+        try {
+            const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
+            if (user && user.username) recordedBy = user.username;
+        } catch (e) {}
+
+        const res = await fetch(`${API_URL}/staff-shifts/sign-out`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                staffName,
+                checkOutTime,
+                shift,
+                notes,
+                recordedBy
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || 'Failed to record shift sign-out');
+        }
+
+        if (successEl) {
+            successEl.textContent = `✅ Sign-Out confirmed for ${escapeHtml(staffName)} at ${new Date(checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Thank you!`;
+            successEl.classList.remove('hidden');
+        }
+
+        if (window.UI && typeof window.UI.toast === 'function') {
+            window.UI.toast(`Shift sign-out recorded for ${staffName}!`, 'success');
+        }
+
+        // Refresh shift logs table if on staff tab
+        if (typeof window.fetchShiftSignOutLogs === 'function') {
+            window.fetchShiftSignOutLogs();
+        }
+
+        // If from dashboard, log out user after brief confirmation
+        if (isSignOutFromDashboard) {
+            setTimeout(() => {
+                closeStaffSignOutModal();
+                handleLogout();
+            }, 1200);
+        } else {
+            // Close after 2 seconds
+            setTimeout(() => {
+                closeStaffSignOutModal();
+            }, 2000);
+        }
+
+    } catch (err) {
+        console.error('Error submitting staff sign-out:', err);
+        if (errorEl) {
+            errorEl.textContent = err.message || 'Error recording sign-out. Please try again.';
+            errorEl.classList.remove('hidden');
+        }
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>✅</span> Confirm Sign-Out`;
+        }
+    }
+};
+
+// Fetch shift sign out logs for display in Staff on Duty tab
+window.fetchShiftSignOutLogs = async function() {
+    const tbody = document.getElementById('shiftSignOutTableBody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch(`${API_URL}/staff-shifts?limit=50`);
+        if (!res.ok) throw new Error('Failed to load logs');
+
+        const data = await res.json();
+        window.allShiftSignOutLogs = data.logs || [];
+        renderShiftSignOutLogs(window.allShiftSignOutLogs);
+    } catch (err) {
+        console.error('Error fetching shift logs:', err);
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Could not load shift logs: ${escapeHtml(err.message || '')}</td></tr>`;
+    }
+};
+
+// Render shift sign-out logs into table
+function renderShiftSignOutLogs(logs) {
+    const tbody = document.getElementById('shiftSignOutTableBody');
+    if (!tbody) return;
+
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No shift sign-out records found. Use "+ Record Sign-Out" above to log a departure.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = logs.map(log => {
+        const d = new Date(log.checkOutTime);
+        const timeStr = !isNaN(d.getTime())
+            ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '—';
+        const dateStr = !isNaN(d.getTime())
+            ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+            : '—';
+
+        return `
+            <tr class="hover:bg-amber-50/30 transition-colors">
+                <td class="px-4 py-3 font-semibold text-gray-900 flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-amber-100 text-amber-800 text-xs font-bold flex items-center justify-center">
+                        ${escapeHtml(log.staffName.charAt(0).toUpperCase())}
+                    </span>
+                    <span>${escapeHtml(log.staffName)}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="text-xs font-semibold text-gray-800">${timeStr}</div>
+                    <div class="text-[11px] text-gray-400">${dateStr}</div>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                        ${escapeHtml(log.shift || 'Regular Shift')}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-600 max-w-xs truncate" title="${escapeHtml(log.notes || '')}">
+                    ${escapeHtml(log.notes || '—')}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-400">
+                    ${escapeHtml(log.recordedBy || 'Self')}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Filter shift logs by search input
+window.filterShiftSignOutLogs = function() {
+    const query = (document.getElementById('shiftLogSearch')?.value || '').toLowerCase().trim();
+    const logs = window.allShiftSignOutLogs || [];
+    if (!query) {
+        renderShiftSignOutLogs(logs);
+        return;
+    }
+
+    const filtered = logs.filter(l => (l.staffName || '').toLowerCase().includes(query) || (l.notes || '').toLowerCase().includes(query));
+    renderShiftSignOutLogs(filtered);
+};
+
 
