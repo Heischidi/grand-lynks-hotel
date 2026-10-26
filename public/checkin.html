@@ -634,6 +634,106 @@
     }
     /* Spin animation for fast loading */
     @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* ── KIOSK MODE TOGGLE (Sign In vs Sign Out) ── */
+    .kiosk-mode-toggle {
+      display: flex;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(201, 168, 76, 0.3);
+      border-radius: 999px;
+      padding: 4px;
+      margin-bottom: clamp(10px, 2vh, 16px);
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .mode-btn {
+      flex: 1;
+      padding: clamp(7px, 1.4vh, 10px) 14px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.72rem, 1.4vw, 0.85rem);
+      font-weight: 600;
+      border-radius: 999px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.25s ease;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, var(--burgundy) 0%, var(--burgundy-light) 100%);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(176, 37, 64, 0.4);
+    }
+
+    /* ── QUICK STAY CHIPS (Sign Out) ── */
+    .quick-chips-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .stay-chip {
+      background: rgba(201, 168, 76, 0.08);
+      border: 1px solid rgba(201, 168, 76, 0.25);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .stay-chip:hover, .stay-chip.selected {
+      background: rgba(139, 29, 48, 0.4);
+      border-color: var(--burgundy-light);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(176,37,64,0.45);
+    }
+    .stay-chip-room {
+      background: var(--gold);
+      color: var(--dark);
+      font-weight: 700;
+      font-size: 0.65rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .so-stay-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 12px;
+      padding: 12px;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .so-stay-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .so-room-badge {
+      background: var(--gold);
+      color: var(--dark);
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .so-guest-name {
+      font-weight: 600;
+      color: #fff;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
@@ -645,98 +745,198 @@
     <div class="hotel-header">
       <div class="hotel-name">Grand Lynks</div>
       <div class="divider"></div>
-      <div class="hotel-sub">Guest Arrival Registration</div>
+      <div class="hotel-sub" id="kiosk-sub-title">Guest Arrival Registration</div>
     </div>
+
+    <!-- KIOSK MODE TOGGLE -->
+    <div style="display: flex; justify-content: center; width: 100%;">
+      <div class="kiosk-mode-toggle">
+        <button type="button" class="mode-btn active" id="btn-mode-signin" onclick="switchKioskMode('signin')">
+          <span>🏨</span> Sign In (Arrival)
+        </button>
+        <button type="button" class="mode-btn" id="btn-mode-signout" onclick="switchKioskMode('signout')">
+          <span>👋</span> Sign Out (Departure)
+        </button>
+      </div>
+    </div>
+
     <div class="card">
-      <div class="card-title">Welcome — Please Sign In</div>
-      <div class="card-desc">Fill in your details below to confirm your arrival.</div>
-      
+      <!-- SIGN IN (ARRIVAL) CONTAINER -->
+      <div id="signin-container">
+        <div class="card-title">Welcome — Please Sign In</div>
+        <div class="card-desc">Fill in your details below to confirm your arrival.</div>
 
+        <form id="checkin-form" onsubmit="submitCheckIn(event)" autocomplete="off">
+          <div class="form-grid">
+            <div class="field full">
+              <label for="f-name">Full Name</label>
+              <input id="f-name" type="text" placeholder="e.g. Aisha Bello" required />
+            </div>
+            <div class="field">
+              <label for="f-phone">Phone Number</label>
+              <input id="f-phone" type="tel" placeholder="+234 800 000 0000" required />
+            </div>
+            <div class="field">
+              <label for="f-email">Email Address (Optional)</label>
+              <input id="f-email" type="email" placeholder="guest@example.com" />
+            </div>
+            <div class="field">
+              <label for="f-room">Room Number</label>
+              <input id="f-room" type="text" placeholder="e.g. 203" required />
+            </div>
+            <div class="field">
+              <label for="f-checkin">Check-In Time</label>
+              <input id="f-checkin" type="datetime-local" required />
+            </div>
+            <div class="field">
+              <label for="f-checkout">Expected Check-Out</label>
+              <input id="f-checkout" type="date" required />
+            </div>
 
-      <form id="checkin-form" onsubmit="submitCheckIn(event)" autocomplete="off">
-        <div class="form-grid">
-          <div class="field full">
-            <label for="f-name">Full Name</label>
-            <input id="f-name" type="text" placeholder="e.g. Aisha Bello" required />
-          </div>
-          <div class="field">
-            <label for="f-phone">Phone Number</label>
-            <input id="f-phone" type="tel" placeholder="+234 800 000 0000" required />
-          </div>
-          <div class="field">
-            <label for="f-email">Email Address (Optional)</label>
-            <input id="f-email" type="email" placeholder="guest@example.com" />
-          </div>
-          <div class="field">
-            <label for="f-room">Room Number</label>
-            <input id="f-room" type="text" placeholder="e.g. 203" required />
-          </div>
-          <div class="field">
-            <label for="f-checkin">Check-In Time</label>
-            <input id="f-checkin" type="datetime-local" required />
-          </div>
-          <div class="field">
-            <label for="f-checkout">Expected Check-Out</label>
-            <input id="f-checkout" type="date" required />
-          </div>
-
-          <!-- ID SCANNING / CAMERA CAPTURE -->
-          <div class="field full">
-            <label>Guest ID Document (Staff Camera Scan)</label>
-            <input type="file" id="f-id-card" accept="image/*" capture="environment" style="display:none" onchange="handleIdPhotoCaptured(event)" />
-            <div class="id-scan-box" id="id-scan-box" onclick="triggerIdCapture()">
-              <div id="id-empty-state" class="id-scan-left">
-                <span class="id-scan-icon">🪪</span>
-                <div>
-                  <div class="id-scan-title">Scan / Take Photo of ID Card</div>
-                  <div class="id-scan-sub">NIN, Driver's License, Passport, or Voter Card</div>
+            <!-- ID SCANNING / CAMERA CAPTURE -->
+            <div class="field full">
+              <label>Guest ID Document (Staff Camera Scan)</label>
+              <input type="file" id="f-id-card" accept="image/*" capture="environment" style="display:none" onchange="handleIdPhotoCaptured(event)" />
+              <div class="id-scan-box" id="id-scan-box" onclick="triggerIdCapture()">
+                <div id="id-empty-state" class="id-scan-left">
+                  <span class="id-scan-icon">🪪</span>
+                  <div>
+                    <div class="id-scan-title">Scan / Take Photo of ID Card</div>
+                    <div class="id-scan-sub">NIN, Driver's License, Passport, or Voter Card</div>
+                  </div>
+                </div>
+                <span id="id-scan-action-btn" class="id-scan-btn">📷 Scan ID</span>
+                <div id="id-preview-state" class="id-preview-container" style="display:none;">
+                  <img id="id-thumb-img" src="" alt="ID Thumbnail" class="id-preview-thumb" />
+                  <div class="id-preview-text">
+                    <div class="id-preview-name">✓ ID Card Captured</div>
+                    <button type="button" class="id-retake-btn" onclick="event.stopPropagation(); retakeIdPhoto();">Retake Photo</button>
+                  </div>
                 </div>
               </div>
-              <span id="id-scan-action-btn" class="id-scan-btn">📷 Scan ID</span>
-              <div id="id-preview-state" class="id-preview-container" style="display:none;">
-                <img id="id-thumb-img" src="" alt="ID Thumbnail" class="id-preview-thumb" />
-                <div class="id-preview-text">
-                  <div class="id-preview-name">✓ ID Card Captured</div>
-                  <button type="button" class="id-retake-btn" onclick="event.stopPropagation(); retakeIdPhoto();">Retake Photo</button>
+            </div>
+
+            <!-- TERMS & CONDITIONS + SIGNATURE -->
+            <div class="field full" style="display:flex; flex-direction:column; gap:8px;">
+
+              <!-- Step 1: Read T&C -->
+              <div class="terms-section">
+                <div class="terms-header">
+                  <div class="terms-label">📋 Terms &amp; Conditions</div>
+                  <span class="terms-status pending" id="tc-status-badge">Not Read</span>
                 </div>
+                <button type="button" class="terms-read-btn" id="tc-open-btn" onclick="openTermsModal()">
+                  👆 Tap here to read the Hotel Terms &amp; Conditions (Required)
+                </button>
               </div>
+
+              <!-- Step 2: Sign on tablet -->
+              <div class="sig-section locked" id="sig-section">
+                <div class="sig-header">
+                  <div class="sig-title">✍️ Guest Signature</div>
+                  <button type="button" class="sig-clear-btn" id="sig-clear-btn" onclick="clearSignature()">Clear</button>
+                </div>
+                <canvas class="sig-canvas" id="sig-canvas" height="90"></canvas>
+                <div class="sig-hint" id="sig-hint">Sign with your finger or stylus above</div>
+              </div>
+              <div class="sig-required-note" id="sig-required-note">Please draw your signature above to continue.</div>
+
+              <input type="hidden" id="f-confirm" value="" />
             </div>
           </div>
+          <button type="submit" class="btn-submit" id="submit-btn">Confirm Arrival</button>
+        </form>
+      </div>
 
-          <!-- TERMS & CONDITIONS + SIGNATURE -->
-          <div class="field full" style="display:flex; flex-direction:column; gap:8px;">
+      <!-- SIGN OUT (DEPARTURE) CONTAINER -->
+      <div id="signout-container" style="display:none;">
+        <div class="card-title">Customer Departure — Sign Out</div>
+        <div class="card-desc">Select your occupied room or search by room number to complete check-out.</div>
 
-            <!-- Step 1: Read T&C -->
-            <div class="terms-section">
-              <div class="terms-header">
-                <div class="terms-label">📋 Terms &amp; Conditions</div>
-                <span class="terms-status pending" id="tc-status-badge">Not Read</span>
-              </div>
-              <button type="button" class="terms-read-btn" id="tc-open-btn" onclick="openTermsModal()">
-                👆 Tap here to read the Hotel Terms &amp; Conditions (Required)
-              </button>
-            </div>
-
-            <!-- Step 2: Sign on tablet -->
-            <div class="sig-section locked" id="sig-section">
-              <div class="sig-header">
-                <div class="sig-title">✍️ Guest Signature</div>
-                <button type="button" class="sig-clear-btn" id="sig-clear-btn" onclick="clearSignature()">Clear</button>
-              </div>
-              <canvas class="sig-canvas" id="sig-canvas" height="90"></canvas>
-              <div class="sig-hint" id="sig-hint">Sign with your finger or stylus above</div>
-            </div>
-            <div class="sig-required-note" id="sig-required-note">Please draw your signature above to continue.</div>
-
-            <input type="hidden" id="f-confirm" value="" />
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-size:0.67rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px;">
+            Search Room or Guest Name
+          </label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="so-search-input" placeholder="e.g. 101 or Aisha" 
+                   style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:8px; color:#fff; font-family:'Inter',sans-serif; font-size:0.88rem; padding:8px 10px; outline:none;" 
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();searchActiveStays();}" />
+            <button type="button" id="so-search-btn" onclick="searchActiveStays()"
+                    style="padding:0 14px; background:rgba(201,168,76,0.15); border:1px solid rgba(201,168,76,0.4); border-radius:8px; color:var(--gold); font-size:0.8rem; font-weight:600; cursor:pointer;">
+              🔍 Find
+            </button>
           </div>
         </div>
-        <button type="submit" class="btn-submit" id="submit-btn">Confirm Arrival</button>
-      </form>
+
+        <div style="margin-bottom: 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-secondary);">
+              Active Checked-In Rooms (Tap to Select)
+            </span>
+            <span id="so-refresh-btn" onclick="loadActiveStays()" style="font-size:0.68rem; color:var(--gold); cursor:pointer; text-decoration:underline;">🔄 Refresh</span>
+          </div>
+          <div class="quick-chips-wrap" id="so-quick-chips">
+            <div style="font-size:0.75rem; color:var(--text-secondary); padding:4px 0;">Loading active rooms...</div>
+          </div>
+        </div>
+
+        <!-- STAY DETAILS & CONFIRMATION -->
+        <div id="so-stay-card" class="so-stay-card" style="display:none; margin-bottom:12px;">
+          <div class="so-stay-header">
+            <div>
+              <span class="so-room-badge" id="so-card-room">Room —</span>
+              <span class="so-guest-name" id="so-card-guest" style="margin-left:8px;">—</span>
+            </div>
+            <button type="button" onclick="clearStaySelection()" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.75rem;">✕ Deselect</button>
+          </div>
+          
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; font-size:0.75rem; color:rgba(255,255,255,0.7);">
+            <div>
+              <div style="font-size:0.62rem; text-transform:uppercase; color:var(--text-secondary);">Arrival Check-In</div>
+              <div id="so-card-checkin" style="font-weight:600; color:#fff; margin-top:2px;">—</div>
+            </div>
+            <div>
+              <div style="font-size:0.62rem; text-transform:uppercase; color:var(--text-secondary);">Expected Check-Out</div>
+              <div id="so-card-expected" style="font-weight:600; color:#fff; margin-top:2px;">—</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label style="display:block; font-size:0.65rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:3px;">
+              Departure Time (Now)
+            </label>
+            <input type="datetime-local" id="so-checkout-time" 
+                   style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:8px; color:#fff; font-size:0.85rem; padding:6px 10px; outline:none;" />
+          </div>
+
+          <div style="margin-top:10px;">
+            <label style="display:block; font-size:0.65rem; font-weight:600; text-transform:uppercase; color:var(--text-secondary); margin-bottom:3px;">
+              Departure Remarks / Feedback (Optional)
+            </label>
+            <input type="text" id="so-checkout-notes" placeholder="e.g. Excellent stay, all keys returned"
+                   style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:8px; color:#fff; font-size:0.85rem; padding:6px 10px; outline:none;" />
+          </div>
+
+          <div style="margin-top:12px; display:flex; align-items:center; gap:8px; background:rgba(201,168,76,0.06); border:1px solid rgba(201,168,76,0.2); border-radius:8px; padding:8px 10px;">
+            <input type="checkbox" id="so-key-returned" checked style="width:16px; height:16px; accent-color:var(--burgundy-light); cursor:pointer;" />
+            <label for="so-key-returned" style="font-size:0.75rem; color:#fff; cursor:pointer; user-select:none;">
+              🔑 Key card / physical room key returned to Front Desk
+            </label>
+          </div>
+
+          <button type="button" class="btn-submit" id="so-submit-btn" onclick="submitCustomerSignOut()" style="margin-top:14px;">
+            Confirm Departure &amp; Sign Out
+          </button>
+        </div>
+
+        <div id="so-no-selection" style="text-align:center; padding:16px 10px; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:10px; color:var(--text-secondary); font-size:0.78rem;">
+          👆 Tap your room chip above or search by room number to complete your departure sign-out.
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- SUCCESS SCREEN -->
+  <!-- ARRIVAL SUCCESS SCREEN -->
   <div class="screen" id="success-screen">
     <div class="card">
       <div class="success-icon">&#10003;</div>
@@ -746,6 +946,26 @@
         <div class="countdown-bar" id="countdown-bar"></div>
       </div>
       <div class="countdown-label">Resetting in <span id="countdown-num">8</span> seconds...</div>
+    </div>
+  </div>
+
+  <!-- DEPARTURE SUCCESS SCREEN -->
+  <div class="screen" id="signout-success-screen">
+    <div class="card">
+      <div class="success-icon" style="background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold);">&#10003;</div>
+      <div class="success-name" id="so-success-name">Thank You!</div>
+      <div class="success-sub" id="so-success-sub">
+        Your departure has been recorded successfully.<br>
+        Room has been marked for housekeeping.<br>
+        We hope you enjoyed your stay at Grand Lynks and look forward to welcoming you again!
+      </div>
+      <div class="countdown-bar-wrap">
+        <div class="countdown-bar" id="so-countdown-bar" style="background:linear-gradient(90deg, var(--gold) 0%, #fff 100%);"></div>
+      </div>
+      <div class="countdown-label">Resetting in <span id="so-countdown-num">8</span> seconds...</div>
+      <button type="button" onclick="resetToForm()" style="margin-top:14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:#fff; padding:6px 16px; font-size:0.8rem; cursor:pointer;">
+        Return to Kiosk Home
+      </button>
     </div>
   </div>
 
@@ -1222,7 +1442,211 @@
     }, 1000);
   }
 
-  // Also reset T&C + signature state when form resets
+  // ── CUSTOMER DEPARTURE (SIGN OUT) LOGIC ──
+  var currentKioskMode = 'signin';
+  var activeStays = [];
+  var selectedStay = null;
+  var soCountdownTimer = null;
+
+  function switchKioskMode(mode) {
+    currentKioskMode = mode;
+    var btnSignIn = document.getElementById('btn-mode-signin');
+    var btnSignOut = document.getElementById('btn-mode-signout');
+    var subTitle = document.getElementById('kiosk-sub-title');
+    var signInCont = document.getElementById('signin-container');
+    var signOutCont = document.getElementById('signout-container');
+
+    if (mode === 'signout') {
+      if (btnSignIn) btnSignIn.classList.remove('active');
+      if (btnSignOut) btnSignOut.classList.add('active');
+      if (subTitle) subTitle.textContent = 'Customer Departure Sign-Out';
+      if (signInCont) signInCont.style.display = 'none';
+      if (signOutCont) signOutCont.style.display = 'block';
+      loadActiveStays();
+
+      // Pre-set departure time to current local time
+      var now = new Date();
+      var local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      var coInput = document.getElementById('so-checkout-time');
+      if (coInput) coInput.value = local;
+    } else {
+      if (btnSignOut) btnSignOut.classList.remove('active');
+      if (btnSignIn) btnSignIn.classList.add('active');
+      if (subTitle) subTitle.textContent = 'Guest Arrival Registration';
+      if (signOutCont) signOutCont.style.display = 'none';
+      if (signInCont) signInCont.style.display = 'block';
+    }
+  }
+
+  async function loadActiveStays(query) {
+    var chipsWrap = document.getElementById('so-quick-chips');
+    if (!chipsWrap) return;
+    chipsWrap.innerHTML = '<div style="font-size:0.75rem; color:var(--text-secondary); padding:4px 0;">Loading active rooms...</div>';
+
+    try {
+      var url = API_URL + '/kiosk-active-stays' + (query ? '?q=' + encodeURIComponent(query) : '');
+      var res = await fetch(url);
+      var data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to load stays');
+
+      activeStays = data.stays || [];
+      renderActiveStayChips(activeStays);
+
+      // If search query returned exactly 1 stay, auto-select it
+      if (query && activeStays.length === 1) {
+        selectStay(activeStays[0]);
+      } else if (selectedStay) {
+        var found = activeStays.find(function(s) { return s.id === selectedStay.id; });
+        if (!found) clearStaySelection();
+      }
+    } catch (err) {
+      console.error('Error loading active stays:', err);
+      chipsWrap.innerHTML = '<div style="font-size:0.75rem; color:#f87171; padding:4px 0;">Failed to load active rooms. Tap Refresh to retry.</div>';
+    }
+  }
+
+  function renderActiveStayChips(stays) {
+    var chipsWrap = document.getElementById('so-quick-chips');
+    if (!chipsWrap) return;
+    if (!stays || stays.length === 0) {
+      chipsWrap.innerHTML = '<div style="font-size:0.75rem; color:var(--text-secondary); padding:4px 0;">No active checked-in stays found.</div>';
+      return;
+    }
+
+    chipsWrap.innerHTML = '';
+    stays.forEach(function(stay) {
+      var chip = document.createElement('div');
+      chip.className = 'stay-chip' + (selectedStay && selectedStay.id === stay.id ? ' selected' : '');
+      chip.id = 'stay-chip-' + stay.id;
+      chip.onclick = function() { selectStay(stay); };
+      chip.innerHTML = '<span class="stay-chip-room">' + (stay.roomNumber || 'Room') + '</span><span>' + (stay.guestName || 'Guest') + '</span>';
+      chipsWrap.appendChild(chip);
+    });
+  }
+
+  function selectStay(stay) {
+    selectedStay = stay;
+
+    // Update chip styling
+    document.querySelectorAll('.stay-chip').forEach(function(c) { c.classList.remove('selected'); });
+    var chip = document.getElementById('stay-chip-' + stay.id);
+    if (chip) chip.classList.add('selected');
+
+    // Populate stay details card
+    document.getElementById('so-card-room').textContent = stay.roomNumber ? 'Room ' + stay.roomNumber : 'Room —';
+    document.getElementById('so-card-guest').textContent = stay.guestName || 'Guest';
+
+    // Format arrival / expected departure
+    var checkInDate = stay.checkInTime ? new Date(stay.checkInTime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    var checkOutDate = stay.expectedCheckOut ? new Date(stay.expectedCheckOut).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+
+    document.getElementById('so-card-checkin').textContent = checkInDate;
+    document.getElementById('so-card-expected').textContent = checkOutDate;
+
+    // Default checkout time to now
+    var now = new Date();
+    var local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('so-checkout-time').value = local;
+
+    // Show stay card and hide empty hint
+    document.getElementById('so-stay-card').style.display = 'block';
+    document.getElementById('so-no-selection').style.display = 'none';
+
+    document.getElementById('so-stay-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function clearStaySelection() {
+    selectedStay = null;
+    document.querySelectorAll('.stay-chip').forEach(function(c) { c.classList.remove('selected'); });
+    var card = document.getElementById('so-stay-card');
+    if (card) card.style.display = 'none';
+    var noSel = document.getElementById('so-no-selection');
+    if (noSel) noSel.style.display = 'block';
+  }
+
+  function searchActiveStays() {
+    var q = document.getElementById('so-search-input').value.trim();
+    loadActiveStays(q);
+  }
+
+  async function submitCustomerSignOut() {
+    if (!selectedStay) {
+      alert('Please select your room or stay first.');
+      return;
+    }
+
+    var keyReturned = document.getElementById('so-key-returned').checked;
+    if (!keyReturned) {
+      if (!confirm('Please confirm: Have you returned the room key/key card to the front desk?')) {
+        return;
+      }
+    }
+
+    var coTimeInput = document.getElementById('so-checkout-time').value;
+    var actualCheckOutTime = coTimeInput ? new Date(coTimeInput).toISOString() : new Date().toISOString();
+    var checkoutNotes = document.getElementById('so-checkout-notes').value.trim();
+
+    var btn = document.getElementById('so-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><svg style="width:16px;height:16px;animation:spin 1s linear infinite;display:inline-block;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>Processing Sign-Out...</span>';
+
+    try {
+      var res = await fetch(API_URL + '/kiosk-signout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: selectedStay.id || selectedStay.bookingId,
+          roomId: selectedStay.roomId,
+          roomNumber: selectedStay.roomNumber,
+          guestName: selectedStay.guestName,
+          actualCheckOutTime: actualCheckOutTime,
+          checkOutTime: actualCheckOutTime,
+          checkoutNotes: checkoutNotes,
+          notes: checkoutNotes,
+          keyReturned: keyReturned
+        })
+      });
+
+      var data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to complete departure sign-out.');
+      }
+
+      // Show Sign Out Success Screen
+      document.getElementById('so-success-name').textContent = 'Safe Travels, ' + selectedStay.guestName + '!';
+      document.getElementById('so-success-sub').innerHTML = 
+        'Your departure from <strong>Room ' + (selectedStay.roomNumber || '') + '</strong> has been confirmed.<br>' +
+        'Room is now released and scheduled for housekeeping.<br>' +
+        'Thank you for choosing Grand Lynks Homes &amp; Apartments. We hope to see you again soon!';
+      showScreen('signout-success-screen');
+      startSignOutCountdown(8);
+    } catch (err) {
+      alert('Could not complete sign-out: ' + err.message + '\nPlease notify Front Desk.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm Departure & Sign Out';
+    }
+  }
+
+  function startSignOutCountdown(seconds) {
+    var remaining = seconds;
+    var bar = document.getElementById('so-countdown-bar');
+    var num = document.getElementById('so-countdown-num');
+    if (bar) bar.style.width = '100%';
+    if (num) num.textContent = remaining;
+    clearInterval(soCountdownTimer);
+    soCountdownTimer = setInterval(function() {
+      remaining--;
+      if (num) num.textContent = remaining;
+      if (bar) bar.style.width = ((remaining / seconds) * 100) + '%';
+      if (remaining <= 0) {
+        clearInterval(soCountdownTimer);
+        resetToForm();
+      }
+    }, 1000);
+  }
+
+  // Also reset T&C + signature state + departure state when form resets
   var _origResetToForm = resetToForm;
   function resetToForm() {
     _origResetToForm();
@@ -1241,6 +1665,22 @@
     var note = document.getElementById('sig-required-note');
     if (note) note.style.display = 'none';
     document.getElementById('submit-btn').disabled = true;
+
+    // Departure Sign Out resets
+    clearInterval(countdownTimer);
+    clearInterval(soCountdownTimer);
+    clearStaySelection();
+    var soInput = document.getElementById('so-search-input');
+    if (soInput) soInput.value = '';
+    var soNotes = document.getElementById('so-checkout-notes');
+    if (soNotes) soNotes.value = '';
+    var soBtn = document.getElementById('so-submit-btn');
+    if (soBtn) {
+      soBtn.disabled = false;
+      soBtn.textContent = 'Confirm Departure & Sign Out';
+    }
+    // Return to Sign In mode
+    switchKioskMode('signin');
   }
 </script>
 </body>

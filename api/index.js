@@ -3744,6 +3744,179 @@ app.get("/kiosk-search", async (req, res) => {
   }
 });
 
+// GET /kiosk-active-stays — Public kiosk endpoint to lookup current checked-in guests for sign-out
+app.get("/kiosk-active-stays", async (req, res) => {
+  const { q } = req.query;
+  try {
+    const queryStr = q ? String(q).trim() : "";
+    const roomNum = parseInt(queryStr);
+
+    const where = {
+      status: "checked-in",
+      deletedAt: null
+    };
+
+    if (queryStr) {
+      where.OR = [
+        { room: { number: !isNaN(roomNum) ? roomNum : undefined } },
+        { room: { type: { contains: queryStr, mode: "insensitive" } } },
+        { guest: { name: { contains: queryStr, mode: "insensitive" } } },
+        { guest: { phone: { contains: queryStr } } }
+      ];
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where,
+      include: {
+        guest: true,
+        room: true
+      },
+      orderBy: { startDate: "desc" },
+      take: 20
+    });
+
+    const stays = bookings.map(b => ({
+      id: b.id,
+      bookingId: b.id,
+      roomId: b.roomId,
+      guestName: b.guest ? b.guest.name : "Guest",
+      phone: b.guest ? b.guest.phone : "",
+      email: b.guest ? b.guest.email : "",
+      roomNumber: b.room ? (b.room.number ? String(b.room.number) : b.room.type) : "Room",
+      roomType: b.room ? b.room.type : "",
+      startDate: b.startDate,
+      endDate: b.endDate,
+      checkInTime: b.checkInTime || b.startDate.toISOString(),
+      expectedCheckOut: b.endDate.toISOString().split("T")[0]
+    }));
+
+    res.json({
+      success: true,
+      found: stays.length > 0,
+      count: stays.length,
+      stays
+    });
+  } catch (error) {
+    console.error("Kiosk active stays lookup error:", error);
+    res.status(500).json({ error: "Failed to search active stays" });
+  }
+});
+
+// POST /kiosk-signout — Public kiosk endpoint for customer departure / sign-out
+app.post("/kiosk-signout", kioskLimiter, async (req, res) => {
+  const bookingId = req.body.bookingId || req.body.id;
+  const roomNumber = req.body.roomNumber;
+  const guestName = req.body.guestName;
+  const checkOutTime = req.body.checkOutTime || req.body.actualCheckOutTime;
+  const notes = req.body.notes || req.body.checkoutNotes;
+  const keyReturned = req.body.keyReturned !== false;
+
+  if (!roomNumber && !bookingId) {
+    return res.status(400).json({ error: "Room number or booking reference is required for departure sign-out." });
+  }
+
+  try {
+    const cleanRoomStr = String(roomNumber || "").trim();
+    const cleanGuestName = String(guestName || "").trim();
+    const parsedRoomNum = parseInt(cleanRoomStr);
+    const departureTime = checkOutTime ? new Date(checkOutTime) : new Date();
+
+    let targetBooking = null;
+
+    // 1. Try finding booking by ID if provided
+    if (bookingId) {
+      targetBooking = await prisma.booking.findFirst({
+        where: { id: parseInt(bookingId), deletedAt: null },
+        include: { guest: true, room: true }
+      });
+    }
+
+    // 2. Fallback: find active checked-in booking matching room number
+    if (!targetBooking) {
+      targetBooking = await prisma.booking.findFirst({
+        where: {
+          status: "checked-in",
+          deletedAt: null,
+          OR: [
+            { room: { number: !isNaN(parsedRoomNum) ? parsedRoomNum : undefined } },
+            { room: { type: { contains: cleanRoomStr, mode: "insensitive" } } }
+          ]
+        },
+        include: { guest: true, room: true },
+        orderBy: { startDate: "desc" }
+      });
+    }
+
+    const noteDetails = [
+      "Customer Self Sign-Out at Kiosk",
+      keyReturned ? "Room Key Returned: Yes" : "Room Key Returned: Acknowledged",
+      notes ? `Remarks: ${notes.trim()}` : null
+    ].filter(Boolean).join(" | ");
+
+    let confirmedRoomName = cleanRoomStr;
+    let confirmedGuestName = cleanGuestName;
+
+    if (targetBooking) {
+      confirmedRoomName = targetBooking.room ? (targetBooking.room.number ? String(targetBooking.room.number) : targetBooking.room.type) : cleanRoomStr;
+      confirmedGuestName = targetBooking.guest ? targetBooking.guest.name : cleanGuestName;
+
+      // Update booking to checked-out
+      await prisma.booking.update({
+        where: { id: targetBooking.id },
+        data: {
+          status: "checked-out",
+          actualCheckOutTime: departureTime,
+          checkoutNotes: noteDetails
+        }
+      });
+
+      // Update room status to available (ready for housekeeping cleaning)
+      if (targetBooking.roomId) {
+        await prisma.room.update({
+          where: { id: targetBooking.roomId },
+          data: { status: "available" }
+        });
+      }
+    } else if (!isNaN(parsedRoomNum)) {
+      // If room found without active booking, still free up room
+      const roomObj = await prisma.room.findFirst({ where: { number: parsedRoomNum } });
+      if (roomObj) {
+        await prisma.room.update({
+          where: { id: roomObj.id },
+          data: { status: "available" }
+        });
+        confirmedRoomName = String(roomObj.number);
+      }
+    }
+
+    console.log(`[Customer Sign-Out] Guest ${confirmedGuestName} checked out of Room ${confirmedRoomName} at ${departureTime.toISOString()}`);
+
+    // Notify staff/admin via email (fire and forget)
+    sendAdminNotificationEmail({
+      type: "booking",
+      details: `
+        <strong>Customer Departure Sign-Out (Kiosk):</strong><br>
+        <strong>Guest Name:</strong> ${confirmedGuestName}<br>
+        <strong>Room:</strong> ${confirmedRoomName}<br>
+        <strong>Departure Time:</strong> ${departureTime.toLocaleString()}<br>
+        <strong>Notes:</strong> ${noteDetails}<br>
+        <strong>Room Status:</strong> Marked Available for Housekeeping
+      `
+    }).catch(console.error);
+
+    res.json({
+      success: true,
+      message: `Departure confirmed for Room ${confirmedRoomName}. Thank you for staying at Grand Lynks Hotel!`,
+      guestName: confirmedGuestName,
+      roomNumber: confirmedRoomName,
+      checkOutTime: departureTime.toISOString()
+    });
+  } catch (error) {
+    console.error("Error processing customer kiosk sign-out:", error);
+    res.status(500).json({ error: "Failed to complete departure sign-out. Please ask front desk staff for assistance." });
+  }
+});
+
 // POST /checkin-log — Public endpoint. Guest submits arrival details & scanned ID card from the tablet.
 app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res) => {
   const { guestName, phone, email, roomNumber, checkInTime, expectedCheckOut, signature, idType, termsAccepted } = req.body;
