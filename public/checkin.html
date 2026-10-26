@@ -1516,9 +1516,11 @@
 
     chipsWrap.innerHTML = '';
     stays.forEach(function(stay) {
+      var chipKey = stay.roomId ? 'room-' + stay.roomId : (stay.id ? 'stay-' + stay.id : 'room-' + (stay.roomNumber || ''));
+      var isSelected = selectedStay && ((stay.roomId && selectedStay.roomId === stay.roomId) || (stay.id && selectedStay.id === stay.id));
       var chip = document.createElement('div');
-      chip.className = 'stay-chip' + (selectedStay && selectedStay.id === stay.id ? ' selected' : '');
-      chip.id = 'stay-chip-' + stay.id;
+      chip.className = 'stay-chip' + (isSelected ? ' selected' : '');
+      chip.id = 'chip-' + chipKey;
       chip.onclick = function() { selectStay(stay); };
       chip.innerHTML = '<span class="stay-chip-room">' + (stay.roomNumber || 'Room') + '</span><span>' + (stay.guestName || 'Guest') + '</span>';
       chipsWrap.appendChild(chip);
@@ -1530,7 +1532,8 @@
 
     // Update chip styling
     document.querySelectorAll('.stay-chip').forEach(function(c) { c.classList.remove('selected'); });
-    var chip = document.getElementById('stay-chip-' + stay.id);
+    var chipKey = stay.roomId ? 'room-' + stay.roomId : (stay.id ? 'stay-' + stay.id : 'room-' + (stay.roomNumber || ''));
+    var chip = document.getElementById('chip-' + chipKey);
     if (chip) chip.classList.add('selected');
 
     // Populate stay details card

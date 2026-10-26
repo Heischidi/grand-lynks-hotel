@@ -3748,47 +3748,112 @@ app.get("/kiosk-search", async (req, res) => {
 app.get("/kiosk-active-stays", async (req, res) => {
   const { q } = req.query;
   try {
-    const queryStr = q ? String(q).trim() : "";
-    const roomNum = parseInt(queryStr);
+    const cleanQ = q ? String(q).trim() : "";
+    const parsedRoomNum = parseInt(cleanQ.replace(/[^0-9]/g, ''));
 
-    const where = {
-      status: "checked-in",
-      deletedAt: null
-    };
-
-    if (queryStr) {
-      where.OR = [
-        { room: { number: !isNaN(roomNum) ? roomNum : undefined } },
-        { room: { type: { contains: queryStr, mode: "insensitive" } } },
-        { guest: { name: { contains: queryStr, mode: "insensitive" } } },
-        { guest: { phone: { contains: queryStr } } }
-      ];
-    }
-
-    const bookings = await prisma.booking.findMany({
-      where,
-      include: {
-        guest: true,
-        room: true
+    // 1. Find all occupied rooms matching room number/type if queried, or all occupied rooms
+    const occupiedRooms = await prisma.room.findMany({
+      where: {
+        status: "occupied",
+        deletedAt: null,
+        ...(cleanQ ? {
+          OR: [
+            { number: !isNaN(parsedRoomNum) ? parsedRoomNum : undefined },
+            { type: { contains: cleanQ, mode: "insensitive" } }
+          ]
+        } : {})
       },
+      include: {
+        bookings: {
+          where: {
+            deletedAt: null,
+            status: { in: ["checked-in", "confirmed", "pending"] }
+          },
+          include: { guest: true },
+          orderBy: { id: "desc" },
+          take: 1
+        }
+      }
+    });
+
+    // 2. Also find any bookings explicitly with active status
+    const activeBookings = await prisma.booking.findMany({
+      where: {
+        deletedAt: null,
+        status: { in: ["checked-in", "confirmed"] },
+        ...(cleanQ ? {
+          OR: [
+            { room: { number: !isNaN(parsedRoomNum) ? parsedRoomNum : undefined } },
+            { room: { type: { contains: cleanQ, mode: "insensitive" } } },
+            { guest: { name: { contains: cleanQ, mode: "insensitive" } } },
+            { guest: { phone: { contains: cleanQ } } }
+          ]
+        } : {})
+      },
+      include: { guest: true, room: true },
       orderBy: { startDate: "desc" },
       take: 20
     });
 
-    const stays = bookings.map(b => ({
-      id: b.id,
-      bookingId: b.id,
-      roomId: b.roomId,
-      guestName: b.guest ? b.guest.name : "Guest",
-      phone: b.guest ? b.guest.phone : "",
-      email: b.guest ? b.guest.email : "",
-      roomNumber: b.room ? (b.room.number ? String(b.room.number) : b.room.type) : "Room",
-      roomType: b.room ? b.room.type : "",
-      startDate: b.startDate,
-      endDate: b.endDate,
-      checkInTime: b.checkInTime || b.startDate.toISOString(),
-      expectedCheckOut: b.endDate.toISOString().split("T")[0]
-    }));
+    // 3. If searching by guest name/phone text and not found above, query bookings
+    let guestMatchedBookings = [];
+    if (cleanQ && isNaN(parsedRoomNum)) {
+      guestMatchedBookings = await prisma.booking.findMany({
+        where: {
+          deletedAt: null,
+          status: { in: ["checked-in", "confirmed", "pending"] },
+          OR: [
+            { guest: { name: { contains: cleanQ, mode: "insensitive" } } },
+            { guest: { phone: { contains: cleanQ } } }
+          ]
+        },
+        include: { guest: true, room: true },
+        orderBy: { id: "desc" },
+        take: 10
+      });
+    }
+
+    const stayMap = new Map();
+
+    const formatStay = (booking, room) => ({
+      id: booking ? booking.id : null,
+      bookingId: booking ? booking.id : null,
+      roomId: room ? room.id : (booking ? booking.roomId : null),
+      roomNumber: room ? (room.number ? String(room.number) : room.type) : (booking && booking.room ? (booking.room.number ? String(booking.room.number) : booking.room.type) : "Room"),
+      roomType: room ? room.type : (booking && booking.room ? booking.room.type : ""),
+      guestName: booking && booking.guest ? booking.guest.name : "Occupied Room Guest",
+      phone: booking && booking.guest ? booking.guest.phone : "",
+      email: booking && booking.guest ? booking.guest.email : "",
+      startDate: booking ? booking.startDate : new Date(),
+      endDate: booking ? booking.endDate : new Date(),
+      checkInTime: booking && booking.checkInTime ? booking.checkInTime : (room ? room.updatedAt.toISOString() : new Date().toISOString()),
+      expectedCheckOut: booking && booking.endDate ? booking.endDate.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+    });
+
+    // Add occupied rooms
+    for (const r of occupiedRooms) {
+      const b = r.bookings && r.bookings[0];
+      const key = `room-${r.id}`;
+      stayMap.set(key, formatStay(b, r));
+    }
+
+    // Add active bookings
+    for (const b of activeBookings) {
+      const key = b.roomId ? `room-${b.roomId}` : `booking-${b.id}`;
+      if (!stayMap.has(key)) {
+        stayMap.set(key, formatStay(b, b.room));
+      }
+    }
+
+    // Add guest matched bookings
+    for (const b of guestMatchedBookings) {
+      const key = b.roomId ? `room-${b.roomId}` : `booking-${b.id}`;
+      if (!stayMap.has(key)) {
+        stayMap.set(key, formatStay(b, b.room));
+      }
+    }
+
+    const stays = Array.from(stayMap.values());
 
     res.json({
       success: true,
@@ -3805,20 +3870,21 @@ app.get("/kiosk-active-stays", async (req, res) => {
 // POST /kiosk-signout — Public kiosk endpoint for customer departure / sign-out
 app.post("/kiosk-signout", kioskLimiter, async (req, res) => {
   const bookingId = req.body.bookingId || req.body.id;
+  const roomId = req.body.roomId;
   const roomNumber = req.body.roomNumber;
   const guestName = req.body.guestName;
   const checkOutTime = req.body.checkOutTime || req.body.actualCheckOutTime;
   const notes = req.body.notes || req.body.checkoutNotes;
   const keyReturned = req.body.keyReturned !== false;
 
-  if (!roomNumber && !bookingId) {
+  if (!roomNumber && !bookingId && !roomId) {
     return res.status(400).json({ error: "Room number or booking reference is required for departure sign-out." });
   }
 
   try {
     const cleanRoomStr = String(roomNumber || "").trim();
     const cleanGuestName = String(guestName || "").trim();
-    const parsedRoomNum = parseInt(cleanRoomStr);
+    const parsedRoomNum = parseInt(cleanRoomStr.replace(/[^0-9]/g, ''));
     const departureTime = checkOutTime ? new Date(checkOutTime) : new Date();
 
     let targetBooking = null;
@@ -3831,19 +3897,20 @@ app.post("/kiosk-signout", kioskLimiter, async (req, res) => {
       });
     }
 
-    // 2. Fallback: find active checked-in booking matching room number
+    // 2. Fallback: find active stay booking matching room number or roomId
     if (!targetBooking) {
       targetBooking = await prisma.booking.findFirst({
         where: {
-          status: "checked-in",
           deletedAt: null,
+          status: { in: ["checked-in", "confirmed", "pending"] },
           OR: [
+            { roomId: roomId ? parseInt(roomId) : undefined },
             { room: { number: !isNaN(parsedRoomNum) ? parsedRoomNum : undefined } },
             { room: { type: { contains: cleanRoomStr, mode: "insensitive" } } }
           ]
         },
         include: { guest: true, room: true },
-        orderBy: { startDate: "desc" }
+        orderBy: { id: "desc" }
       });
     }
 
@@ -3877,15 +3944,21 @@ app.post("/kiosk-signout", kioskLimiter, async (req, res) => {
           data: { status: "available" }
         });
       }
-    } else if (!isNaN(parsedRoomNum)) {
-      // If room found without active booking, still free up room
-      const roomObj = await prisma.room.findFirst({ where: { number: parsedRoomNum } });
+    } else {
+      // Direct room release if no booking found
+      const targetRoomId = roomId ? parseInt(roomId) : null;
+      let roomObj = null;
+      if (targetRoomId) {
+        roomObj = await prisma.room.findUnique({ where: { id: targetRoomId } });
+      } else if (!isNaN(parsedRoomNum)) {
+        roomObj = await prisma.room.findFirst({ where: { number: parsedRoomNum, deletedAt: null } });
+      }
       if (roomObj) {
         await prisma.room.update({
           where: { id: roomObj.id },
           data: { status: "available" }
         });
-        confirmedRoomName = String(roomObj.number);
+        confirmedRoomName = String(roomObj.number || roomObj.type);
       }
     }
 
