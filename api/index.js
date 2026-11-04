@@ -4234,6 +4234,299 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
 
 // GET /checkin-log — Admin only. Returns all active check-in log entries, newest first.
 app.get("/checkin-log", authenticateToken, async (req, res) => {
+  const { sort } = req.query;
+  try {
+    let orderBy = { createdAt: "desc" };
+    if (sort === "name" || sort === "alpha-asc") {
+      orderBy = { guestName: "asc" };
+    } else if (sort === "alpha-desc") {
+      orderBy = { guestName: "desc" };
+    } else if (sort === "oldest") {
+      orderBy = { createdAt: "asc" };
+    }
+
+    const entries = await prisma.checkInLog.findMany({
+      where: { deletedAt: null },
+      orderBy,
+      take: 200
+    });
+    return res.json(entries);
+  } catch (error) {
+    console.error("Error fetching check-in log:", error);
+    return res.status(500).json({ error: "Failed to fetch check-in records." });
+  }
+});
+
+// GET /checkin-log/guest-details/:id — Admin only. Returns aggregated guest history, visit count, stay-by-stay sign-in/out, signatures, and ID/NIN/address details.
+app.get("/checkin-log/guest-details/:id", authenticateToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+
+  try {
+    const targetLog = await prisma.checkInLog.findUnique({ where: { id } });
+    if (!targetLog || targetLog.deletedAt) {
+      return res.status(404).json({ error: "Check-in log record not found" });
+    }
+
+    const cleanName = (targetLog.guestName || "").trim();
+    const cleanPhone = (targetLog.phone || "").trim();
+    const cleanEmail = (targetLog.email || "").trim();
+
+    // 1. Find all check-in logs for this guest (by phone OR email OR guestName)
+    const logConditions = [];
+    if (cleanPhone) logConditions.push({ phone: cleanPhone });
+    if (cleanEmail) logConditions.push({ email: cleanEmail });
+    if (cleanName) logConditions.push({ guestName: { equals: cleanName, mode: "insensitive" } });
+
+    const relatedLogs = await prisma.checkInLog.findMany({
+      where: {
+        OR: logConditions.length > 0 ? logConditions : [{ id }],
+        deletedAt: null
+      },
+      orderBy: { checkInTime: "desc" }
+    });
+
+    // 2. Find matching Guest record
+    const guestConditions = [];
+    if (cleanPhone) guestConditions.push({ phone: cleanPhone });
+    if (cleanEmail) guestConditions.push({ email: cleanEmail });
+    if (cleanName) guestConditions.push({ name: { equals: cleanName, mode: "insensitive" } });
+
+    const guest = guestConditions.length > 0 ? await prisma.guest.findFirst({
+      where: {
+        OR: guestConditions,
+        deletedAt: null
+      },
+      include: {
+        bookings: {
+          include: { room: true },
+          where: { deletedAt: null },
+          orderBy: { startDate: "desc" }
+        }
+      }
+    }) : null;
+
+    // Additional bookings lookup by guest phone/email if guest record wasn't found or had no bookings
+    let bookings = guest?.bookings || [];
+    if (bookings.length === 0 && (cleanPhone || cleanEmail)) {
+      bookings = await prisma.booking.findMany({
+        where: {
+          deletedAt: null,
+          OR: [
+            ...(cleanPhone ? [{ guest: { phone: cleanPhone } }] : []),
+            ...(cleanEmail ? [{ guest: { email: cleanEmail } }] : [])
+          ]
+        },
+        include: { room: true },
+        orderBy: { startDate: "desc" }
+      });
+    }
+
+    // 3. ID Card, NIN, Address resolution
+    const logWithIdCard = relatedLogs.find(l => Boolean(l.idCardUrl)) || targetLog;
+    const idCardUrl = logWithIdCard.idCardUrl || null;
+    const idType = logWithIdCard.idType || (guest?.idNumber ? "National ID (NIN)" : "Government ID");
+    const idNumber = guest?.idNumber || null;
+    const address = guest?.address || null;
+
+    // 4. Gather all distinct signatures
+    const signatures = [];
+    const seenSigUrls = new Set();
+    relatedLogs.forEach(l => {
+      if (l.signatureUrl && !seenSigUrls.has(l.signatureUrl)) {
+        seenSigUrls.add(l.signatureUrl);
+        signatures.push({
+          id: l.id,
+          signatureUrl: l.signatureUrl,
+          signatureText: l.signature || "Signed on kiosk tablet — T&C accepted",
+          capturedAt: l.checkInTime || l.createdAt,
+          roomNumber: l.roomNumber
+        });
+      }
+    });
+
+    // 5. Correlate stays
+    const stays = relatedLogs.map(l => {
+      const lInTime = new Date(l.checkInTime || l.createdAt).getTime();
+      const matchingBooking = bookings.find(b => {
+        const bRoomStr = b.room ? (b.room.number ? String(b.room.number) : b.room.type) : "";
+        const sameRoom = bRoomStr.toLowerCase() === String(l.roomNumber).toLowerCase() ||
+                         String(l.roomNumber).includes(bRoomStr) || bRoomStr.includes(String(l.roomNumber));
+        const bInTime = new Date(b.startDate || b.createdAt).getTime();
+        const diffDays = Math.abs(lInTime - bInTime) / (1000 * 60 * 60 * 24);
+        return sameRoom && diffDays <= 3;
+      });
+
+      const inTime = l.checkInTime || l.createdAt;
+      let outTime = null;
+      let outStatus = "past";
+      let isActualCheckout = false;
+      let notes = null;
+
+      if (matchingBooking) {
+        if (matchingBooking.actualCheckOutTime) {
+          outTime = matchingBooking.actualCheckOutTime;
+          outStatus = "checked-out";
+          isActualCheckout = true;
+          notes = matchingBooking.checkoutNotes;
+        } else if (matchingBooking.status === "checked-out") {
+          outTime = matchingBooking.actualCheckOutTime || matchingBooking.checkOutTime || matchingBooking.endDate;
+          outStatus = "checked-out";
+          notes = matchingBooking.checkoutNotes;
+        } else if (matchingBooking.status === "checked-in") {
+          const now = new Date();
+          const expOut = new Date(matchingBooking.endDate || l.expectedCheckOut);
+          if (now < expOut) {
+            outTime = expOut;
+            outStatus = "active";
+          } else {
+            outTime = expOut;
+            outStatus = "checked-out";
+          }
+        } else {
+          outTime = matchingBooking.endDate || l.expectedCheckOut;
+          outStatus = matchingBooking.status;
+        }
+      } else {
+        const now = new Date();
+        const expOut = l.expectedCheckOut ? new Date(l.expectedCheckOut) : null;
+        if (expOut && now < expOut) {
+          outTime = expOut;
+          outStatus = "active";
+        } else {
+          outTime = expOut;
+          outStatus = "checked-out";
+        }
+      }
+
+      return {
+        logId: l.id,
+        bookingId: matchingBooking?.id || null,
+        roomNumber: l.roomNumber,
+        signedIn: inTime,
+        signedOut: outTime,
+        signedOutActual: isActualCheckout,
+        status: outStatus,
+        notes: notes,
+        signatureUrl: l.signatureUrl || null,
+        signatureText: l.signature || null,
+        idCardUrl: l.idCardUrl || null,
+        idType: l.idType || null,
+        createdAt: l.createdAt
+      };
+    });
+
+    // Also include any bookings that don't have a kiosk checkInLog entry
+    bookings.forEach(b => {
+      const alreadyIncluded = stays.some(s => s.bookingId === b.id);
+      if (!alreadyIncluded) {
+        const bRoomStr = b.room ? (b.room.number ? String(b.room.number) : b.room.type) : "Room";
+        const inTime = b.checkInTime || b.startDate;
+        const outTime = b.actualCheckOutTime || b.checkOutTime || b.endDate;
+        const isActive = b.status === "checked-in";
+        stays.push({
+          logId: null,
+          bookingId: b.id,
+          roomNumber: bRoomStr,
+          signedIn: inTime,
+          signedOut: outTime,
+          signedOutActual: Boolean(b.actualCheckOutTime),
+          status: isActive ? "active" : b.status,
+          notes: b.checkoutNotes,
+          signatureUrl: null,
+          signatureText: null,
+          idCardUrl: null,
+          idType: null,
+          createdAt: b.createdAt
+        });
+      }
+    });
+
+    stays.sort((a, b) => new Date(b.signedIn) - new Date(a.signedIn));
+
+    res.json({
+      success: true,
+      logId: targetLog.id,
+      guestId: guest?.id || null,
+      guestName: cleanName,
+      phone: cleanPhone,
+      email: cleanEmail || guest?.email || "",
+      idNumber: idNumber || "",
+      address: address || "",
+      idType: idType || "Government ID / NIN",
+      idCardUrl: idCardUrl,
+      isBlacklisted: guest?.isBlacklisted || false,
+      totalStays: stays.length,
+      signatures: signatures,
+      stays: stays
+    });
+  } catch (error) {
+    console.error("Error fetching check-in guest details:", error);
+    res.status(500).json({ error: "Failed to fetch guest stay details." });
+  }
+});
+
+// PUT /checkin-log/guest-identity/:id — Admin only. Update NIN (idNumber), ID type and Address for the guest.
+app.put("/checkin-log/guest-identity/:id", authenticateToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { idNumber, address, idType } = req.body;
+  try {
+    const log = await prisma.checkInLog.findUnique({ where: { id } });
+    if (!log) return res.status(404).json({ error: "Record not found" });
+
+    if (idType !== undefined) {
+      await prisma.checkInLog.update({
+        where: { id },
+        data: { idType: String(idType).trim() }
+      });
+    }
+
+    const cleanPhone = (log.phone || "").trim();
+    const cleanEmail = (log.email || "").trim();
+    const cleanName = (log.guestName || "").trim();
+
+    const existingGuest = await prisma.guest.findFirst({
+      where: {
+        OR: [
+          ...(cleanPhone ? [{ phone: cleanPhone }] : []),
+          ...(cleanEmail ? [{ email: cleanEmail }] : []),
+          { name: { equals: cleanName, mode: "insensitive" } }
+        ],
+        deletedAt: null
+      }
+    });
+
+    if (existingGuest) {
+      await prisma.guest.update({
+        where: { id: existingGuest.id },
+        data: {
+          ...(idNumber !== undefined && { idNumber: String(idNumber).trim() }),
+          ...(address !== undefined && { address: String(address).trim() })
+        }
+      });
+    } else {
+      const sanitizedPhone = cleanPhone.replace(/[^0-9]/g, "");
+      const guestEmail = cleanEmail || (sanitizedPhone || Date.now()) + "@guest.grandlynks.com";
+      await prisma.guest.create({
+        data: {
+          name: cleanName,
+          phone: cleanPhone,
+          email: guestEmail,
+          idNumber: idNumber ? String(idNumber).trim() : null,
+          address: address ? String(address).trim() : null
+        }
+      });
+    }
+
+    res.json({ success: true, message: "Guest identity & address updated successfully." });
+  } catch (error) {
+    console.error("Error updating guest identity:", error);
+    res.status(500).json({ error: "Failed to update guest identity." });
+  }
+});
+
+/* OLD UNUSED CHECKIN BLOCK
+    }
   try {
     const entries = await prisma.checkInLog.findMany({
       where: { deletedAt: null },
@@ -4248,6 +4541,7 @@ app.get("/checkin-log", authenticateToken, async (req, res) => {
 });
 
 // GET /checkin-log/:id — Admin only. Returns single record for edit form.
+*/
 app.get("/checkin-log/:id", authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
   try {

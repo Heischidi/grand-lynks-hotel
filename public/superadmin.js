@@ -4906,6 +4906,526 @@ window.fetchCheckInLog = async function () {
 
 window.filterCheckInLog = function() {
     const searchTerm = (document.getElementById('checkinSearchInput')?.value || '').toLowerCase();
+    const sortVal = document.getElementById('checkinSortSelect')?.value || 'recent';
+
+    const sourceEntries = window._lastCheckInEntries || window.allCheckInLogs || [];
+    let filtered = sourceEntries.filter(e => {
+        const guestName = (e.guestName || '').toLowerCase();
+        const phone = (e.phone || '').toLowerCase();
+        const email = (e.email || '').toLowerCase();
+        const roomNumber = String(e.roomNumber || '').toLowerCase();
+        return guestName.includes(searchTerm) || phone.includes(searchTerm) || email.includes(searchTerm) || roomNumber.includes(searchTerm);
+    });
+
+    // Sort logs according to user selection
+    filtered.sort((a, b) => {
+        if (sortVal === 'alpha-asc') {
+            return (a.guestName || '').localeCompare(b.guestName || '', undefined, { sensitivity: 'base' });
+        } else if (sortVal === 'alpha-desc') {
+            return (b.guestName || '').localeCompare(a.guestName || '', undefined, { sensitivity: 'base' });
+        } else if (sortVal === 'oldest') {
+            return new Date(a.checkInTime || a.createdAt) - new Date(b.checkInTime || b.createdAt);
+        } else {
+            // default 'recent'
+            return new Date(b.checkInTime || b.createdAt) - new Date(a.checkInTime || a.createdAt);
+        }
+    });
+
+    renderCheckInLog(filtered);
+    
+    const countEl = document.getElementById('checkinResultCount');
+    if (countEl) countEl.textContent = `Showing ${filtered.length} of ${sourceEntries.length} logs`;
+};
+
+function renderCheckInLog(entries) {
+    const tbody = document.getElementById('checkinLogTableBody');
+    if (!tbody) return;
+
+    if (!entries || entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-10 text-center text-gray-400">No check-in records yet. Once guests sign in via the kiosk, their entries will appear here.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+    entries.forEach(function(e) {
+        const checkIn = e.checkInTime ? new Date(e.checkInTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+        const checkOut = e.expectedCheckOut ? new Date(e.expectedCheckOut).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+        const loggedAt = e.createdAt ? new Date(e.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+
+        // Time-since badge
+        const msAgo = Date.now() - new Date(e.createdAt);
+        const hrsAgo = Math.floor(msAgo / 3600000);
+        const minsAgo = Math.floor(msAgo / 60000);
+        const agoText = hrsAgo > 0 ? hrsAgo + 'h ago' : (minsAgo > 0 ? minsAgo + 'm ago' : 'just now');
+
+        const escapedName = (e.guestName || '').replace(/'/g, "\\'");
+        const idBadge = e.idCardUrl
+            ? `<button onclick="viewIdModal('${e.idCardUrl}', '${escapedName}', '${e.roomNumber || ''}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs rounded-lg border border-emerald-200 transition shadow-sm">🪪 View ID</button>`
+            : `<span class="text-xs text-gray-400">No ID</span>`;
+
+        const sigBadge = e.signatureUrl
+            ? `<button onclick="viewIdModal('${e.signatureUrl}', '${escapedName} \u2014 Signature', '')" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-xs rounded-lg border border-purple-200 transition shadow-sm">✍️ View Sig</button>`
+            : (e.signature && e.signature.includes('Signed') ? `<span class="inline-flex items-center gap-1 text-xs text-purple-600 font-medium">✓ Signed</span>` : `<span class="text-xs text-gray-400">No Sig</span>`);
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 transition-colors';
+        tr.innerHTML = `
+            <td class="px-4 py-3 text-gray-400 text-xs">${e.id}</td>
+            <td class="px-4 py-3 font-semibold text-gray-900">
+                <button onclick="openCheckInGuestModal(${e.id})" class="text-left font-bold text-gray-900 hover:text-blue-600 hover:underline transition flex items-center gap-1.5 group" title="Click to view stay history & ID profile">
+                    <span>${e.guestName}</span>
+                    <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </button>
+            </td>
+            <td class="px-4 py-3 text-gray-600">${e.phone}</td>
+            <td class="px-4 py-3 text-gray-600">${e.email || '-'}</td>
+            <td class="px-4 py-3">
+                <span class="inline-block bg-blue-50 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-full">Room ${e.roomNumber}</span>
+            </td>
+            <td class="px-4 py-3">${idBadge}</td>
+            <td class="px-4 py-3">${sigBadge}</td>
+            <td class="px-4 py-3 text-gray-700 text-xs">${checkIn}</td>
+            <td class="px-4 py-3 text-gray-700 text-xs">${checkOut}</td>
+            <td class="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">${loggedAt} <span class="ml-1 text-emerald-600 font-medium">${agoText}</span></td>
+            <td class="px-4 py-3 whitespace-nowrap space-x-2">
+                <button onclick="openCheckInGuestModal(${e.id})" class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-semibold hover:underline transition" title="View stays, timestamps & credentials">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    View Stay Log
+                </button>
+                <button onclick="openEditCheckInModal(${e.id})" class="text-gray-600 hover:text-gray-900 text-xs font-semibold hover:underline transition">Edit</button>
+                <button onclick="deleteCheckInEntry(${e.id})" class="text-red-400 hover:text-red-600 text-xs font-medium hover:underline transition">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// --- CHECK-IN GUEST DETAILS & STAY HISTORY MODAL ---
+window.currentCheckInGuest = null;
+
+window.openCheckInGuestModal = async function(logId) {
+    openModal('checkinGuestModal');
+    
+    // Set initial loading state
+    document.getElementById('cgGuestName').textContent = 'Loading Stay Profile...';
+    document.getElementById('cgAvatar').textContent = '...';
+    document.getElementById('cgBlacklistBadge').classList.add('hidden');
+    document.getElementById('cgStayCountBadge').textContent = 'Loading...';
+    document.getElementById('cgGuestPhone').textContent = '';
+    document.getElementById('cgGuestEmail').textContent = '';
+    document.getElementById('cgStatTotalStays').textContent = '...';
+    document.getElementById('cgStatFirstStay').textContent = '-';
+    document.getElementById('cgStatLatestStay').textContent = '-';
+    document.getElementById('cgStatSigStatus').textContent = '-';
+    
+    document.getElementById('cgIdNumberVal').textContent = 'Loading...';
+    document.getElementById('cgIdTypeVal').textContent = 'Government ID';
+    document.getElementById('cgAddressVal').textContent = 'Loading...';
+    document.getElementById('cgIdImageContainer').innerHTML = '<div class="animate-pulse text-xs text-gray-400">Loading ID...</div>';
+    
+    document.getElementById('cgSignatureList').innerHTML = '<div class="col-span-full py-4 text-center text-gray-400 text-xs animate-pulse">Loading signatures...</div>';
+    document.getElementById('cgStaysTableBody').innerHTML = '<tr><td colspan="6" class="px-3 py-6 text-center text-gray-400 text-xs animate-pulse">Loading stay history...</td></tr>';
+    
+    toggleEditGuestIdentityForm(false);
+
+    try {
+        const res = await authFetch('/checkin-log/guest-details/' + logId);
+        if (!res || !res.ok) {
+            throw new Error('Failed to fetch guest details.');
+        }
+        const data = await res.json();
+        window.currentCheckInGuest = data;
+
+        // Header info
+        document.getElementById('cgGuestName').textContent = data.guestName || 'Guest';
+        
+        // Avatar initials
+        const nameParts = (data.guestName || 'G L').trim().split(/\\s+/);
+        const initials = ((nameParts[0] ? nameParts[0][0] : 'G') + (nameParts[1] ? nameParts[1][0] : '')).toUpperCase();
+        document.getElementById('cgAvatar').textContent = initials;
+
+        if (data.isBlacklisted) {
+            document.getElementById('cgBlacklistBadge').classList.remove('hidden');
+        } else {
+            document.getElementById('cgBlacklistBadge').classList.add('hidden');
+        }
+
+        const staysCount = data.totalStays || (data.stays ? data.stays.length : 0);
+        document.getElementById('cgStayCountBadge').textContent = `${staysCount} Stay${staysCount === 1 ? '' : 's'}`;
+        document.getElementById('cgGuestPhone').textContent = data.phone || 'No phone recorded';
+        document.getElementById('cgGuestEmail').textContent = data.email || 'No email recorded';
+
+        // KPI stats bar
+        document.getElementById('cgStatTotalStays').textContent = staysCount;
+        
+        const sortedStays = [...(data.stays || [])].sort((a, b) => new Date(a.signedIn) - new Date(b.signedIn));
+        if (sortedStays.length > 0) {
+            const firstDate = new Date(sortedStays[0].signedIn);
+            document.getElementById('cgStatFirstStay').textContent = firstDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            
+            const lastDate = new Date(sortedStays[sortedStays.length - 1].signedIn);
+            document.getElementById('cgStatLatestStay').textContent = lastDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        } else {
+            document.getElementById('cgStatFirstStay').textContent = 'N/A';
+            document.getElementById('cgStatLatestStay').textContent = 'N/A';
+        }
+
+        const sigs = data.signatures || [];
+        document.getElementById('cgSignatureCount').textContent = `${sigs.length} signature${sigs.length === 1 ? '' : 's'} on file`;
+        if (sigs.length > 0) {
+            document.getElementById('cgStatSigStatus').innerHTML = '<span class="text-emerald-600 font-bold">✓ Captured</span>';
+        } else {
+            document.getElementById('cgStatSigStatus').innerHTML = '<span class="text-amber-500 font-medium">Pending</span>';
+        }
+
+        // Section 1: Official Identification & Address
+        const idNumber = data.idNumber || '';
+        const idNumberEl = document.getElementById('cgIdNumberVal');
+        const copyNinBtn = document.getElementById('cgCopyNinBtn');
+        if (idNumber) {
+            idNumberEl.textContent = idNumber;
+            idNumberEl.className = 'font-mono text-sm font-bold text-gray-900 bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200';
+            if (copyNinBtn) copyNinBtn.classList.remove('hidden');
+        } else {
+            idNumberEl.textContent = 'Not recorded yet (Click "Edit NIN / Address" to add)';
+            idNumberEl.className = 'text-xs text-gray-400 italic';
+            if (copyNinBtn) copyNinBtn.classList.add('hidden');
+        }
+
+        document.getElementById('cgIdTypeVal').textContent = data.idType || 'Government ID / NIN';
+        document.getElementById('cgIdTypeLabel').textContent = data.idType || 'Government ID';
+
+        const addressEl = document.getElementById('cgAddressVal');
+        if (data.address) {
+            addressEl.textContent = data.address;
+            addressEl.className = 'text-sm text-gray-800 font-medium';
+        } else {
+            addressEl.textContent = 'No residential address on file (Click "Edit NIN / Address" to add)';
+            addressEl.className = 'text-xs text-gray-400 italic';
+        }
+
+        // ID Card Image
+        const idImgContainer = document.getElementById('cgIdImageContainer');
+        if (data.idCardUrl) {
+            const escapedName = (data.guestName || '').replace(/'/g, "\\\\'");
+            idImgContainer.innerHTML = `
+                <img src="${data.idCardUrl}" alt="ID Document" class="w-full h-full object-cover">
+                <div onclick="viewIdModal('${data.idCardUrl}', '${escapedName} — ID Document', '${data.idType || ''}')" 
+                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    Enlarge ID
+                </div>
+            `;
+        } else {
+            idImgContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-3 text-center text-gray-400">
+                    <svg class="w-8 h-8 mb-1 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
+                    <span class="text-xs">No ID photo uploaded</span>
+                </div>
+            `;
+        }
+
+        // Section 2: Digital Signatures
+        const sigListEl = document.getElementById('cgSignatureList');
+        if (sigs.length === 0) {
+            sigListEl.innerHTML = '<div class="col-span-full p-4 bg-white rounded-lg border border-gray-200 text-center text-gray-400 text-xs">No digital signatures recorded for this guest.</div>';
+        } else {
+            sigListEl.innerHTML = sigs.map(s => {
+                const dateStr = s.capturedAt ? new Date(s.capturedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'On file';
+                const escapedName = (data.guestName || '').replace(/'/g, "\\\\'");
+                return `
+                    <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm flex flex-col justify-between">
+                        <div class="h-20 bg-slate-900 rounded-md p-2 flex items-center justify-center overflow-hidden border border-purple-900/30 mb-2 cursor-pointer relative group"
+                             onclick="viewIdModal('${s.signatureUrl}', '${escapedName} — Signature', '')">
+                            <img src="${s.signatureUrl}" alt="Signature" class="max-h-full max-w-full object-contain filter invert brightness-200">
+                            <div class="absolute inset-0 bg-purple-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1">
+                                🔍 Zoom
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-semibold text-gray-700 flex items-center justify-between">
+                                <span>Room ${s.roomNumber || 'Stay'}</span>
+                                <span class="text-[10px] text-emerald-600 font-bold">✓ Signed</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">${dateStr}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Section 3: Stay History (Only signed in and signed out)
+        const staysTableBody = document.getElementById('cgStaysTableBody');
+        const stays = data.stays || [];
+        document.getElementById('cgStayTimelineCount').textContent = `${stays.length} Visit${stays.length === 1 ? '' : 's'}`;
+
+        if (stays.length === 0) {
+            staysTableBody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 text-xs">No stay logs recorded.</td></tr>';
+        } else {
+            staysTableBody.innerHTML = stays.map((s, idx) => {
+                const stayNum = stays.length - idx;
+                const inStr = s.signedIn ? new Date(s.signedIn).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+                
+                let outStr = 'N/A';
+                let outBadge = '';
+                if (s.status === 'active') {
+                    const exp = s.signedOut ? new Date(s.signedOut).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                    outBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">🟢 In-House (Exp: ${exp})</span>`;
+                    outStr = `<span class="text-green-700 font-medium">Currently In-House</span>`;
+                } else if (s.signedOut) {
+                    const outDate = new Date(s.signedOut).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    outStr = `<span class="font-semibold text-gray-800">${outDate}</span>`;
+                    outBadge = s.signedOutActual 
+                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">Checked Out</span>`
+                        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Departed</span>`;
+                }
+
+                // Credentials badges
+                let credsHtml = '';
+                const escapedName = (data.guestName || '').replace(/'/g, "\\\\'");
+                if (s.signatureUrl) {
+                    credsHtml += `<button onclick="viewIdModal('${s.signatureUrl}', '${escapedName} — Signature', '')" class="text-xs text-purple-600 hover:text-purple-800 font-semibold hover:underline mr-2">✍️ Sig</button>`;
+                }
+                if (s.idCardUrl) {
+                    credsHtml += `<button onclick="viewIdModal('${s.idCardUrl}', '${escapedName} — ID', '${s.idType || ''}')" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold hover:underline">🪪 ID</button>`;
+                }
+                if (!credsHtml) credsHtml = '<span class="text-xs text-gray-400">-</span>';
+
+                return `
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="px-3 py-3 font-bold text-gray-500 text-xs">#${stayNum}</td>
+                        <td class="px-3 py-3 font-semibold text-gray-900">
+                            <span class="inline-block bg-blue-50 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-full">Room ${s.roomNumber}</span>
+                        </td>
+                        <td class="px-3 py-3 text-xs text-gray-700 whitespace-nowrap">
+                            <div class="font-semibold text-gray-900">${inStr}</div>
+                            <div class="text-[10px] text-gray-400">Sign-In / Arrival</div>
+                        </td>
+                        <td class="px-3 py-3 text-xs text-gray-700 whitespace-nowrap">
+                            <div>${outStr}</div>
+                            <div class="text-[10px] text-gray-400">Sign-Out / Departure</div>
+                        </td>
+                        <td class="px-3 py-3 text-xs whitespace-nowrap">
+                            ${outBadge}
+                            ${s.notes ? `<div class="text-[10px] text-gray-400 mt-0.5 truncate max-w-[140px]" title="${s.notes}">${s.notes}</div>` : ''}
+                        </td>
+                        <td class="px-3 py-3 text-xs text-center whitespace-nowrap">
+                            ${credsHtml}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+    } catch (err) {
+        console.error('Error opening check-in guest modal:', err);
+        alert('Could not load guest stay profile: ' + err.message);
+        closeModal('checkinGuestModal');
+    }
+};
+
+window.toggleEditGuestIdentityForm = function(show) {
+    const viewEl = document.getElementById('cgIdentityViewMode');
+    const formEl = document.getElementById('cgIdentityEditForm');
+    const btnEl = document.getElementById('cgEditIdentityBtn');
+    if (!viewEl || !formEl) return;
+
+    const isShowing = show !== undefined ? show : formEl.classList.contains('hidden');
+    if (isShowing) {
+        viewEl.classList.add('hidden');
+        formEl.classList.remove('hidden');
+        if (btnEl) btnEl.textContent = '✖ Cancel Edit';
+        
+        const g = window.currentCheckInGuest || {};
+        document.getElementById('cgEditIdNumber').value = g.idNumber || '';
+        document.getElementById('cgEditIdType').value = g.idType || 'National ID (NIN)';
+        document.getElementById('cgEditAddress').value = g.address || '';
+    } else {
+        viewEl.classList.remove('hidden');
+        formEl.classList.add('hidden');
+        if (btnEl) btnEl.textContent = '✏️ Edit NIN / Address';
+    }
+};
+
+window.saveGuestIdentity = async function(e) {
+    if (e) e.preventDefault();
+    const g = window.currentCheckInGuest;
+    if (!g || !g.logId) {
+        alert('No active guest record selected.');
+        return;
+    }
+
+    const newIdNumber = (document.getElementById('cgEditIdNumber').value || '').trim();
+    const newIdType = document.getElementById('cgEditIdType').value;
+    const newAddress = (document.getElementById('cgEditAddress').value || '').trim();
+
+    try {
+        const res = await authFetch(`/checkin-log/guest-identity/${g.logId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                idNumber: newIdNumber,
+                idType: newIdType,
+                address: newAddress
+            })
+        });
+
+        if (!res || !res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || 'Failed to update identity.');
+        }
+
+        g.idNumber = newIdNumber;
+        g.idType = newIdType;
+        g.address = newAddress;
+
+        const idNumberEl = document.getElementById('cgIdNumberVal');
+        const copyNinBtn = document.getElementById('cgCopyNinBtn');
+        if (newIdNumber) {
+            idNumberEl.textContent = newIdNumber;
+            idNumberEl.className = 'font-mono text-sm font-bold text-gray-900 bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200';
+            if (copyNinBtn) copyNinBtn.classList.remove('hidden');
+        } else {
+            idNumberEl.textContent = 'Not recorded yet';
+            idNumberEl.className = 'text-xs text-gray-400 italic';
+            if (copyNinBtn) copyNinBtn.classList.add('hidden');
+        }
+
+        document.getElementById('cgIdTypeVal').textContent = newIdType;
+        document.getElementById('cgIdTypeLabel').textContent = newIdType;
+
+        const addressEl = document.getElementById('cgAddressVal');
+        if (newAddress) {
+            addressEl.textContent = newAddress;
+            addressEl.className = 'text-sm text-gray-800 font-medium';
+        } else {
+            addressEl.textContent = 'No address on file';
+            addressEl.className = 'text-xs text-gray-400 italic';
+        }
+
+        toggleEditGuestIdentityForm(false);
+        alert('Guest NIN & Address updated successfully!');
+    } catch (err) {
+        console.error('Error saving guest identity:', err);
+        alert('Could not update identity: ' + err.message);
+    }
+};
+
+window.copyGuestNIN = function() {
+    const g = window.currentCheckInGuest;
+    if (!g || !g.idNumber) return;
+    navigator.clipboard.writeText(g.idNumber).then(() => {
+        const btn = document.getElementById('cgCopyNinBtn');
+        if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = orig; }, 2000);
+        }
+    }).catch(err => {
+        alert('NIN: ' + g.idNumber);
+    });
+};
+
+window.printCheckInGuestStayLog = function() {
+    const g = window.currentCheckInGuest;
+    if (!g) {
+        alert('No guest data loaded to print.');
+        return;
+    }
+
+    const stays = g.stays || [];
+    const sigs = g.signatures || [];
+
+    const stayRows = stays.map((s, idx) => {
+        const stayNum = stays.length - idx;
+        const inStr = s.signedIn ? new Date(s.signedIn).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+        const outStr = s.status === 'active' ? '🟢 Currently In-House' : (s.signedOut ? new Date(s.signedOut).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A');
+        return `
+            <tr>
+                <td style="padding:8px;border:1px solid #e5e7eb;text-align:center;">#${stayNum}</td>
+                <td style="padding:8px;border:1px solid #e5e7eb;font-weight:bold;">Room ${s.roomNumber}</td>
+                <td style="padding:8px;border:1px solid #e5e7eb;">${inStr}</td>
+                <td style="padding:8px;border:1px solid #e5e7eb;">${outStr}</td>
+                <td style="padding:8px;border:1px solid #e5e7eb;text-align:center;">${s.status}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const sigImages = sigs.map(s => {
+        return `
+            <div style="display:inline-block;margin:6px;padding:8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;text-align:center;">
+                <img src="${s.signatureUrl}" style="height:60px;display:block;margin:0 auto;" />
+                <div style="font-size:10px;color:#6b7280;margin-top:4px;">Room ${s.roomNumber || ''} • Signed</div>
+            </div>
+        `;
+    }).join('');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Stay & Check-In Log — ${g.guestName}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; padding: 24px; max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #8b1d30; padding-bottom: 12px; margin-bottom: 16px; }
+        .title { font-size: 20px; font-weight: bold; color: #8b1d30; }
+        .sub { font-size: 12px; color: #6b7280; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; font-size: 12px; }
+        .box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        th { background: #f3f4f6; padding: 8px; border: 1px solid #e5e7eb; text-align: left; font-size: 11px; text-transform: uppercase; }
+        .footer { font-size: 10px; color: #9ca3af; text-align: center; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+    </style></head><body>
+        <div class="header">
+            <div>
+                <div class="title">Grand Lynks Homes &amp; Apartments</div>
+                <div class="sub">Guest Check-In &amp; Departure Stay History Report</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-weight:bold;font-size:14px;">${g.guestName}</div>
+                <div class="sub">Total Visits: ${stays.length}</div>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="box">
+                <div style="font-weight:bold;margin-bottom:4px;">Guest Credentials</div>
+                <div>Phone: <strong>${g.phone || 'N/A'}</strong></div>
+                <div>Email: <strong>${g.email || 'N/A'}</strong></div>
+                <div>NIN / ID: <strong>${g.idNumber || 'Not recorded'}</strong></div>
+                <div>ID Type: <strong>${g.idType || 'Government ID'}</strong></div>
+            </div>
+            <div class="box">
+                <div style="font-weight:bold;margin-bottom:4px;">Address &amp; Status</div>
+                <div>Address: <strong>${g.address || 'Not specified'}</strong></div>
+                <div>Member Status: <strong>${g.isBlacklisted ? 'BLACKLISTED' : 'Active Guest'}</strong></div>
+                <div>Report Date: <strong>${new Date().toLocaleDateString('en-GB')}</strong></div>
+            </div>
+        </div>
+        <h4 style="font-size:14px;margin-bottom:4px;">Recorded Stay Timelines (Sign-In &amp; Sign-Out)</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:center;">Stay #</th>
+                    <th>Room</th>
+                    <th>Signed In (Arrival)</th>
+                    <th>Signed Out (Departure)</th>
+                    <th style="text-align:center;">Status</th>
+                </tr>
+            </thead>
+            <tbody>${stayRows || '<tr><td colspan="5" style="text-align:center;padding:12px;">No stays recorded</td></tr>'}</tbody>
+        </table>
+        ${sigs.length > 0 ? `<h4 style="font-size:14px;margin-top:20px;margin-bottom:4px;">Signature Log on File</h4><div>${sigImages}</div>` : ''}
+        <div class="footer">Grand Lynks Hotel &bull; Computer-generated guest stay record &bull; Official hotel document</div>
+    </body></html>`;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+        printWin.document.open();
+        printWin.document.write(html);
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(() => { printWin.print(); }, 350);
+    }
+};
+
+/* OLD FILTER CHECKIN LOG FUNCTION
+    const searchTerm = (document.getElementById('checkinSearchInput')?.value || '').toLowerCase();
     const filtered = (window._lastCheckInEntries || []).filter(e => {
         const guestName = (e.guestName || '').toLowerCase();
         const phone = (e.phone || '').toLowerCase();
@@ -4973,6 +5493,7 @@ function renderCheckInLog(entries) {
     });
 }
 
+*/
 window.openEditCheckInModal = async function (id) {
     const res = await authFetch('/checkin-log/' + id);
     if (!res || !res.ok) {
