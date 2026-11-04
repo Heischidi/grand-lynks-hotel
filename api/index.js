@@ -303,6 +303,128 @@ async function sendAdminNotificationEmail({ type, details }) {
   }
 }
 
+const crypto = require("crypto");
+
+// ── GUEST LOYALTY & PERMANENT QR PASS HELPERS ──
+function generateGuestPassCode(guest) {
+  if (!guest || !guest.id) return null;
+  const secret = process.env.JWT_SECRET || "grand-lynks-kiosk-pass-secret";
+  const hash = crypto
+    .createHash("sha256")
+    .update(`${guest.id}-${guest.email || guest.phone || "guest"}-${secret}`)
+    .digest("hex")
+    .substring(0, 8)
+    .toUpperCase();
+  return `GLK-PASS-${guest.id}-${hash}`;
+}
+
+function verifyGuestPassCode(code) {
+  if (!code || typeof code !== "string") return null;
+  const cleanCode = code.trim();
+  const match = cleanCode.match(/GLK-PASS-(\d+)-([A-F0-9]{8})/i);
+  if (!match) return null;
+  return {
+    guestId: parseInt(match[1]),
+    hash: match[2].toUpperCase(),
+    fullCode: `GLK-PASS-${match[1]}-${match[2].toUpperCase()}`
+  };
+}
+
+async function sendGuestQrPassEmail(guest) {
+  if (!guest || !guest.email) {
+    console.warn("[QR Pass Email] Guest missing email, skipping email delivery.");
+    return { success: false, reason: "No email provided" };
+  }
+  if (guest.email.includes("@guest.grandlynks.com")) {
+    return { success: false, reason: "Placeholder email" };
+  }
+
+  const passCode = generateGuestPassCode(guest);
+  const checkinUrl = `https://grand-lynks-hotel.vercel.app/checkin.html?pass=${encodeURIComponent(passCode)}`;
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(checkinUrl)}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Grand Lynks Hotel <bookings@grandlynkshomesandapartments.com>',
+      replyTo: 'reservations@grandlynkshomesandapartments.com',
+      to: guest.email,
+      subject: `Your Grand Lynks Express Pass & Loyalty QR Code — Ref #${passCode}`,
+      headers: {
+        'List-Unsubscribe': '<mailto:unsubscribe@grandlynkshomesandapartments.com>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        'X-Mailer': 'Grand Lynks Reservations & Loyalty System',
+      },
+      text: `Dear ${guest.name},\n\nHere is your permanent Grand Lynks VIP Express Check-In Pass & Loyalty QR Code.\n\nPass Ref: ${passCode}\n\nKeep this email or take a screenshot of your QR code on your phone. Whenever you arrive at Grand Lynks Homes & Apartments, simply tap "Scan QR Code" on our lobby kiosk tablet. Your details and stay history will instantly load, and you only need to draw your signature to complete check-in!\n\nWarm regards,\nThe Grand Lynks Team\n80 Pa Michael Imoudu Ave, Gwarinpa, Abuja\n+234 814 223 4691`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; background: #0d0608; color: #f5f0f1; border-radius: 16px; overflow: hidden; border: 1px solid rgba(201,168,76,0.3); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #180b0f 0%, #2a0812 100%); padding: 28px 24px 20px; text-align: center; border-bottom: 2px solid #8b1d30;">
+            <div style="font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase; color: #c9a84c; font-weight: 700; margin-bottom: 6px;">Grand Lynks Homes &amp; Apartments</div>
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.02em;">VIP Express Check-In Pass</h1>
+            <div style="display: inline-block; background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.35); border-radius: 999px; padding: 4px 14px; margin-top: 10px; font-size: 11px; color: #c9a84c; font-weight: 600;">
+              Permanent Guest Loyalty Card
+            </div>
+          </div>
+
+          <!-- Card Body -->
+          <div style="padding: 28px 24px; background: #12070a;">
+            <p style="font-size: 15px; margin-top: 0; color: #f5f0f1;">Dear <strong>${guest.name}</strong>,</p>
+            <p style="font-size: 13px; line-height: 1.6; color: #d1c4c7;">
+              Welcome to the Grand Lynks VIP experience. Here is your permanent, lifetime Express Check-In Pass. You can use this QR code anytime you visit our hotel.
+            </p>
+
+            <!-- Digital Loyalty QR Box -->
+            <div style="background: #180b0f; border: 1.5px solid #8b1d30; border-radius: 14px; padding: 22px; margin: 24px 0; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+              <div style="font-size: 11px; color: #c9a84c; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 700; margin-bottom: 12px;">
+                Scan At Lobby Kiosk Tablet
+              </div>
+              <div style="display: inline-block; padding: 12px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                <img src="${qrImageUrl}" alt="Guest QR Pass" width="220" height="220" style="display: block; width: 220px; height: 220px;" />
+              </div>
+              <div style="margin-top: 14px;">
+                <div style="font-family: monospace; font-size: 15px; font-weight: 700; color: #ffffff; letter-spacing: 0.1em;">${passCode}</div>
+                <div style="font-size: 11px; color: #a89096; margin-top: 4px;">Lifetime Guest ID • ${guest.phone || 'Registered'}</div>
+              </div>
+            </div>
+
+            <!-- How it works -->
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; margin: 20px 0;">
+              <div style="font-size: 12px; font-weight: 700; color: #c9a84c; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">⚡ How to use on your next visit:</div>
+              <ol style="margin: 0; padding-left: 20px; font-size: 12px; line-height: 1.7; color: #e5dcdf;">
+                <li>Take a screenshot or save this QR code to your phone's photos.</li>
+                <li>When you arrive at Grand Lynks, walk up to our lobby kiosk tablet.</li>
+                <li>Tap <strong>"Scan Guest QR Pass"</strong> and present this code to the camera.</li>
+                <li>Your details, ID verification, and stay history load automatically — just provide your digital signature to receive your room keys!</li>
+              </ol>
+            </div>
+
+            <div style="text-align: center; margin: 24px 0 10px;">
+              <a href="${checkinUrl}" style="display: inline-block; background: linear-gradient(135deg, #8b1d30 0%, #b02540 100%); color: #ffffff; padding: 12px 26px; border-radius: 8px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 15px rgba(139,29,48,0.5);">
+                Open Mobile Pass View
+              </a>
+            </div>
+
+            <div style="margin-top: 28px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: #8e7d82; text-align: center;">
+              Grand Lynks Homes &amp; Apartments &bull; 80 Pa Michael Imoudu Ave, Gwarinpa, Abuja &bull; +234 814 223 4691<br>
+              <em>Don't see our emails? Please check your Spam folder and mark as "Not Spam."</em>
+            </div>
+          </div>
+        </div>
+      `
+    });
+
+    if (error) {
+      console.error("[QR Pass Email] Delivery failed:", error);
+      return { success: false, error };
+    }
+    console.log("[QR Pass Email] Sent successfully via Resend to", guest.email, "ID:", data?.id);
+    return { success: true, id: data?.id };
+  } catch (err) {
+    console.error("[QR Pass Email] Unexpected error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
 const SECRET_KEY = process.env.JWT_SECRET || "your_super_secret_key_change_in_production";
 
 const multer = require("multer");
@@ -1124,10 +1246,33 @@ app.post("/guests", validateGuest, async (req, res) => {
     });
 
     const isNew = new Date() - new Date(guest.createdAt) < 5000; // rough check
+    if (guest.email && !guest.email.includes("@guest.grandlynks.com")) {
+      sendGuestQrPassEmail(guest).catch(console.error);
+    }
     res.json({ message: isNew ? "Guest created" : "Guest record found and updated", guest });
   } catch (error) {
     console.error("Error creating/upserting guest:", error);
     res.status(500).json({ error: "Failed to create guest" });
+  }
+});
+
+// POST /guests/:id/send-qr-pass — Admin / Superadmin manually emails the permanent loyalty QR pass
+app.post("/guests/:id/send-qr-pass", authenticateToken, async (req, res) => {
+  try {
+    const guest = await prisma.guest.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!guest) return res.status(404).json({ error: "Guest not found" });
+    if (!guest.email || guest.email.includes("@guest.grandlynks.com")) {
+      return res.status(400).json({ error: "Guest does not have a valid email address recorded." });
+    }
+
+    const result = await sendGuestQrPassEmail(guest);
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || "Failed to send QR pass email." });
+    }
+    res.json({ success: true, message: `Loyalty QR Pass email sent to ${guest.email}` });
+  } catch (err) {
+    console.error("Error sending guest QR pass:", err);
+    res.status(500).json({ error: "Failed to send QR pass email." });
   }
 });
 
@@ -3745,6 +3890,184 @@ app.get("/kiosk-search", async (req, res) => {
 });
 
 // GET /kiosk-active-stays — Public kiosk endpoint to lookup current checked-in guests for sign-out
+// GET /kiosk-qr-lookup — Public endpoint for kiosk tablet QR code scanning & express check-in
+app.get("/kiosk-qr-lookup", async (req, res) => {
+  const { code, pass, q } = req.query;
+  const input = String(code || pass || q || "").trim();
+  if (!input) {
+    return res.status(400).json({ found: false, error: "QR code or pass data required" });
+  }
+
+  try {
+    let targetGuest = null;
+
+    // 1. Try verifying as signed GLK-PASS token
+    const verified = verifyGuestPassCode(input);
+    if (verified) {
+      targetGuest = await prisma.guest.findUnique({
+        where: { id: verified.guestId },
+        include: {
+          bookings: {
+            where: { deletedAt: null },
+            include: { room: true },
+            orderBy: { startDate: "desc" },
+            take: 10
+          }
+        }
+      });
+    }
+
+    // 2. If not found by token, try finding by email, phone, or raw guest ID
+    if (!targetGuest) {
+      const cleanDigits = input.replace(/[^0-9]/g, '');
+      const isNum = !isNaN(parseInt(input)) && cleanDigits === input;
+
+      targetGuest = await prisma.guest.findFirst({
+        where: {
+          deletedAt: null,
+          OR: [
+            { email: { equals: input, mode: "insensitive" } },
+            { phone: { contains: cleanDigits.length >= 8 ? cleanDigits : input } },
+            ...(isNum ? [{ id: parseInt(input) }] : [])
+          ]
+        },
+        include: {
+          bookings: {
+            where: { deletedAt: null },
+            include: { room: true },
+            orderBy: { startDate: "desc" },
+            take: 10
+          }
+        }
+      });
+    }
+
+    if (!targetGuest) {
+      return res.status(404).json({ found: false, error: "No guest record found for this QR pass." });
+    }
+
+    if (targetGuest.isBlacklisted) {
+      return res.status(403).json({
+        found: true,
+        blacklisted: true,
+        error: "This guest profile is flagged as blacklisted. Please see Front Desk management."
+      });
+    }
+
+    // 3. Find previous check-in logs to retrieve previous stay history and saved ID card photo
+    const checkInLogs = await prisma.checkInLog.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { phone: targetGuest.phone },
+          ...(targetGuest.email ? [{ email: targetGuest.email }] : []),
+          { guestName: { contains: targetGuest.name, mode: "insensitive" } }
+        ]
+      },
+      orderBy: { checkInTime: "desc" },
+      take: 15
+    });
+
+    // Extract saved ID card URL from previous stays
+    const logWithId = checkInLogs.find(l => l.idCardUrl && l.idCardUrl.trim().length > 0);
+    const savedIdCardUrl = logWithId ? logWithId.idCardUrl : null;
+    const savedIdType = logWithId ? logWithId.idType : (targetGuest.idNumber ? "Government ID" : null);
+
+    // Build previous stay records
+    const stays = [];
+    for (const log of checkInLogs) {
+      stays.push({
+        type: 'kiosk',
+        roomNumber: log.roomNumber,
+        checkInTime: log.checkInTime,
+        expectedCheckOut: log.expectedCheckOut,
+        actualCheckOutTime: null,
+        signatureUrl: log.signatureUrl
+      });
+    }
+
+    // Also include bookings in history
+    for (const b of (targetGuest.bookings || [])) {
+      stays.push({
+        type: 'booking',
+        id: b.id,
+        roomNumber: b.room ? (b.room.number ? String(b.room.number) : b.room.type) : 'Room',
+        checkInTime: b.startDate,
+        expectedCheckOut: b.endDate,
+        actualCheckOutTime: b.actualCheckOutTime,
+        status: b.status
+      });
+    }
+
+    // Deduplicate / sort newest first
+    stays.sort((a, b) => new Date(b.checkInTime) - new Date(a.checkInTime));
+
+    // 4. Look for current/active/upcoming booking for today
+    const now = new Date();
+    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+
+    const activeBooking = (targetGuest.bookings || []).find(b => {
+      const bStart = new Date(b.startDate);
+      const bEnd = new Date(b.endDate);
+      return (
+        ["confirmed", "pending", "checked-in"].includes(b.status) &&
+        bStart <= todayEnd &&
+        bEnd >= todayStart
+      );
+    });
+
+    // 5. Fetch available rooms list for walk-in or room selection
+    const availableRooms = await prisma.room.findMany({
+      where: { status: "available", deletedAt: null },
+      select: { id: true, number: true, type: true, pricePerNight: true },
+      orderBy: { number: "asc" }
+    });
+
+    const passCode = generateGuestPassCode(targetGuest);
+
+    return res.json({
+      found: true,
+      guest: {
+        id: targetGuest.id,
+        name: targetGuest.name,
+        phone: targetGuest.phone,
+        email: targetGuest.email,
+        address: targetGuest.address || null,
+        idNumber: targetGuest.idNumber || null,
+        isBlacklisted: targetGuest.isBlacklisted,
+        passCode
+      },
+      idDocument: {
+        hasIdOnFile: !!savedIdCardUrl,
+        idCardUrl: savedIdCardUrl,
+        idType: savedIdType
+      },
+      currentStay: activeBooking ? {
+        bookingId: activeBooking.id,
+        roomId: activeBooking.roomId,
+        roomNumber: activeBooking.room ? (activeBooking.room.number ? String(activeBooking.room.number) : activeBooking.room.type) : "",
+        roomType: activeBooking.room ? activeBooking.room.type : "",
+        startDate: activeBooking.startDate,
+        endDate: activeBooking.endDate,
+        expectedCheckOut: activeBooking.endDate ? activeBooking.endDate.toISOString().split("T")[0] : "",
+        status: activeBooking.status
+      } : null,
+      previousStays: stays.slice(0, 10),
+      totalStaysCount: Math.max(stays.length, 1),
+      availableRooms: availableRooms.map(r => ({
+        id: r.id,
+        number: r.number ? String(r.number) : r.type,
+        type: r.type,
+        price: r.pricePerNight
+      }))
+    });
+  } catch (error) {
+    console.error("Kiosk QR lookup error:", error);
+    res.status(500).json({ error: "Failed to process QR code lookup." });
+  }
+});
+
 app.get("/kiosk-active-stays", async (req, res) => {
   const { q } = req.query;
   try {
@@ -4207,6 +4530,11 @@ app.post("/checkin-log", kioskLimiter, upload.single('idCard'), async (req, res)
       }
     }
 
+    // Send permanent VIP QR pass if guest has valid email so they have it forever for future visits
+    if (guest && guest.email && !guest.email.includes("@guest.grandlynks.com")) {
+      sendGuestQrPassEmail(guest).catch(console.error);
+    }
+
     // --- PHASE 4: Real-time notification (fire and forget) ---
     sendAdminNotificationEmail({
       type: "booking",
@@ -4522,6 +4850,48 @@ app.put("/checkin-log/guest-identity/:id", authenticateToken, async (req, res) =
   } catch (error) {
     console.error("Error updating guest identity:", error);
     res.status(500).json({ error: "Failed to update guest identity." });
+  }
+});
+
+// POST /checkin-log/send-qr-pass/:id — Admin only. Email permanent VIP loyalty QR pass from stay log.
+app.post("/checkin-log/send-qr-pass/:id", authenticateToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const log = await prisma.checkInLog.findUnique({ where: { id } });
+    if (!log) return res.status(404).json({ error: "Check-in log not found" });
+
+    const cleanPhone = (log.phone || "").trim();
+    const cleanEmail = (log.email || "").trim();
+
+    let guest = null;
+    if (cleanEmail && !cleanEmail.includes("@guest.grandlynks.com")) {
+      guest = await prisma.guest.findUnique({ where: { email: cleanEmail } });
+    }
+    if (!guest && cleanPhone) {
+      guest = await prisma.guest.findFirst({ where: { phone: cleanPhone, deletedAt: null } });
+    }
+
+    if (!guest) {
+      if (!cleanEmail || cleanEmail.includes("@guest.grandlynks.com")) {
+        return res.status(400).json({ error: "No valid email address recorded for this guest to send QR pass." });
+      }
+      guest = await prisma.guest.create({
+        data: {
+          name: (log.guestName || "").trim(),
+          phone: cleanPhone,
+          email: cleanEmail
+        }
+      });
+    }
+
+    const result = await sendGuestQrPassEmail(guest);
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || "Failed to send QR pass email." });
+    }
+    res.json({ success: true, message: `Loyalty QR Pass email sent to ${guest.email}` });
+  } catch (err) {
+    console.error("Error emailing guest QR pass from checkin log:", err);
+    res.status(500).json({ error: "Failed to send QR pass email." });
   }
 });
 

@@ -3338,6 +3338,68 @@ window.printCheckInGuestStayLog = function() {
     }
 };
 
+window.sendCheckInGuestQrPass = async function() {
+    const data = window.currentCheckInGuest;
+    if (!data || !data.logId) {
+        alert('No stay record selected.');
+        return;
+    }
+    if (!data.email || data.email.includes('@guest.grandlynks.com')) {
+        alert('No valid email address recorded for this guest to send the QR pass.');
+        return;
+    }
+    const btn = document.getElementById('cgSendQrBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1">⌛</span> Sending...';
+    }
+    try {
+        const res = await authFetch(`/checkin-log/send-qr-pass/${data.logId}`, { method: 'POST' });
+        const resData = await res.json();
+        if (!res.ok) throw new Error(resData.error || 'Failed to send QR pass.');
+        alert(`Success! Permanent Loyalty QR Pass has been emailed to ${data.email}. The guest can scan this anytime at the lobby kiosk tablet.`);
+    } catch (err) {
+        alert(`Could not send QR pass: ${err.message}`);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+};
+
+window.sendGuestDirectoryQrPass = async function() {
+    const guest = window.currentHistoryGuest;
+    if (!guest || !guest.id) {
+        alert('No guest selected.');
+        return;
+    }
+    if (!guest.email || guest.email.includes('@guest.grandlynks.com')) {
+        alert('This guest does not have a valid email address recorded to receive the QR pass.');
+        return;
+    }
+    const btn = document.getElementById('ghSendQrBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1">⌛</span> Sending...';
+    }
+    try {
+        const res = await authFetch(`/guests/${guest.id}/send-qr-pass`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send QR pass.');
+        alert(`Success! Permanent Loyalty QR Pass has been emailed to ${guest.email}. The guest can scan this anytime at the lobby kiosk tablet.`);
+    } catch (err) {
+        alert(`Could not send QR pass: ${err.message}`);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+};
+
 /* OLD FILTER CHECKIN LOG FUNCTION
     const searchTerm = (document.getElementById('checkinSearchInput')?.value || '').toLowerCase();
     const filtered = (window.allCheckInLogs || []).filter(e => {

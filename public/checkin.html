@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="config.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -734,6 +735,341 @@
       color: #fff;
       font-size: 0.85rem;
     }
+    /* ── VIP EXPRESS QR PASS SCANNER CTA ── */
+    .kiosk-qr-cta {
+      margin-bottom: clamp(10px, 2vh, 16px);
+    }
+    .kiosk-qr-btn {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(201,168,76,0.18) 0%, rgba(139,29,48,0.25) 100%);
+      border: 1.5px solid var(--gold);
+      border-radius: 12px;
+      padding: clamp(9px, 1.8vh, 12px) 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 18px rgba(201,168,76,0.15), 0 0 0 1px rgba(201,168,76,0.2) inset;
+    }
+    .kiosk-qr-btn:hover {
+      background: linear-gradient(135deg, rgba(201,168,76,0.28) 0%, rgba(176,37,64,0.35) 100%);
+      box-shadow: 0 6px 24px rgba(201,168,76,0.28), 0 0 12px rgba(201,168,76,0.3) inset;
+      transform: translateY(-1px);
+    }
+    .kiosk-qr-btn-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      min-width: 0;
+    }
+    .kiosk-qr-btn-icon {
+      font-size: 1.5rem;
+      background: rgba(201,168,76,0.2);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .kiosk-qr-btn-title {
+      font-size: clamp(0.78rem, 1.5vw, 0.9rem);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .kiosk-qr-btn-sub {
+      font-size: 0.65rem;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+    .kiosk-qr-btn-badge {
+      background: var(--gold);
+      color: var(--dark);
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    /* ── QR SCANNER MODAL ── */
+    .qr-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(0,0,0,0.9);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .qr-modal-backdrop.open {
+      display: flex;
+    }
+    .qr-modal-sheet {
+      width: 100%;
+      max-width: 480px;
+      background: #180b0f;
+      border: 1px solid rgba(201,168,76,0.4);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(139,29,48,0.3);
+      display: flex;
+      flex-direction: column;
+      animation: modalFadeIn 0.25s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .qr-modal-header {
+      padding: 14px 18px;
+      background: linear-gradient(135deg, rgba(139,29,48,0.4) 0%, rgba(24,11,15,0.9) 100%);
+      border-bottom: 1px solid rgba(201,168,76,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .qr-modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .qr-modal-sub {
+      font-size: 0.68rem;
+      color: var(--gold);
+      margin-top: 1px;
+    }
+    .qr-modal-close {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+    .qr-modal-close:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    .qr-modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .qr-camera-wrap {
+      width: 100%;
+      min-height: 240px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1.5px solid rgba(201,168,76,0.3);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #qr-reader {
+      width: 100% !important;
+      border: none !important;
+    }
+    #qr-reader video {
+      border-radius: 10px;
+      object-fit: cover !important;
+    }
+    .qr-manual-wrap {
+      margin-top: 4px;
+    }
+    .qr-manual-divider {
+      text-align: center;
+      position: relative;
+      margin: 10px 0 12px;
+    }
+    .qr-manual-divider::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 100%;
+      height: 1px;
+      background: rgba(255,255,255,0.12);
+    }
+    .qr-manual-divider span {
+      position: relative;
+      background: #180b0f;
+      padding: 0 10px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+    }
+    .qr-manual-input-box {
+      display: flex;
+      gap: 8px;
+    }
+    .qr-manual-input-box input {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 0.82rem;
+      outline: none;
+    }
+    .qr-manual-btn {
+      background: var(--gold);
+      color: var(--dark);
+      border: none;
+      border-radius: 8px;
+      padding: 0 14px;
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* ── VIP EXPRESS CHECK-IN VIEW ── */
+    .exp-profile-card {
+      background: linear-gradient(135deg, rgba(201,168,76,0.08) 0%, rgba(139,29,48,0.18) 100%);
+      border: 1.5px solid var(--gold);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      position: relative;
+    }
+    .exp-badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .exp-vip-pill {
+      background: linear-gradient(90deg, #c9a84c 0%, #e2c875 100%);
+      color: #0d0608;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .exp-pass-pill {
+      font-family: monospace;
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.7);
+      background: rgba(0,0,0,0.3);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .exp-guest-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .exp-visits-sub {
+      font-size: 0.7rem;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+    .exp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(201,168,76,0.2);
+      font-size: 0.74rem;
+    }
+    .exp-grid-item label {
+      display: block;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin-bottom: 1px;
+    }
+    .exp-grid-item div {
+      color: #fff;
+      font-weight: 600;
+      word-break: break-word;
+    }
+    .exp-stays-wrap {
+      margin-top: 12px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .exp-stays-title {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .exp-stays-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 90px;
+      overflow-y: auto;
+    }
+    .exp-stay-chip {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.85);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-cancel-express {
+      width: 100%;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s;
+    }
+    .btn-cancel-express:hover {
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -765,6 +1101,20 @@
       <div id="signin-container">
         <div class="card-title">Welcome — Please Sign In</div>
         <div class="card-desc">Fill in your details below to confirm your arrival.</div>
+
+        <!-- VIP EXPRESS QR PASS SCANNER CTA -->
+        <div class="kiosk-qr-cta" id="kiosk-qr-cta">
+          <button type="button" class="kiosk-qr-btn" onclick="openQrScannerModal()">
+            <div class="kiosk-qr-btn-left">
+              <span class="kiosk-qr-btn-icon">⚡</span>
+              <div>
+                <div class="kiosk-qr-btn-title">Scan Guest QR Pass / Loyalty Card</div>
+                <div class="kiosk-qr-btn-sub">Returning or registered guest? Scan to auto-fill &amp; sign</div>
+              </div>
+            </div>
+            <span class="kiosk-qr-btn-badge">📷 Scan Code</span>
+          </button>
+        </div>
 
         <form id="checkin-form" onsubmit="submitCheckIn(event)" autocomplete="off">
           <div class="form-grid">
@@ -846,6 +1196,105 @@
           </div>
           <button type="submit" class="btn-submit" id="submit-btn">Confirm Arrival</button>
         </form>
+
+        <!-- EXPRESS CHECK-IN VIEW (DISPLAYS AFTER QR PASS IS SCANNED) -->
+        <div id="express-checkin-container" style="display:none;">
+          <div class="exp-profile-card">
+            <div class="exp-badge-row">
+              <span class="exp-vip-pill">👑 VIP Loyalty Member</span>
+              <span class="exp-pass-pill" id="exp-pass-code">GLK-PASS-—</span>
+            </div>
+            <div class="exp-guest-name" id="exp-guest-name">—</div>
+            <div class="exp-visits-sub" id="exp-visits-sub">Returning Guest • Total Visits: 0</div>
+
+            <div class="exp-grid">
+              <div class="exp-grid-item">
+                <label>Phone Number</label>
+                <div id="exp-phone">—</div>
+              </div>
+              <div class="exp-grid-item">
+                <label>Email Address</label>
+                <div id="exp-email">—</div>
+              </div>
+              <div class="exp-grid-item">
+                <label>Address</label>
+                <div id="exp-address">Recorded on file</div>
+              </div>
+              <div class="exp-grid-item">
+                <label>NIN / National ID</label>
+                <div id="exp-nin">Verified on file ✓</div>
+              </div>
+            </div>
+
+            <!-- ID Document Verification Status -->
+            <div id="exp-id-status-box" style="margin-top:10px; padding:8px 10px; background:rgba(74,222,128,0.08); border:1px solid rgba(74,222,128,0.25); border-radius:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="color:#4ade80; font-size:1.1rem;">🪪</span>
+                <div>
+                  <div style="font-size:0.75rem; font-weight:700; color:#4ade80;" id="exp-id-title">ID Verified on File</div>
+                  <div style="font-size:0.65rem; color:var(--text-secondary);" id="exp-id-sub">Scanned government ID from previous stay</div>
+                </div>
+              </div>
+              <img id="exp-id-thumb" src="" alt="ID Preview" style="width:42px; height:30px; object-fit:cover; border-radius:4px; border:1px solid rgba(255,255,255,0.2); display:none;" />
+            </div>
+
+            <!-- Previous Stays History -->
+            <div class="exp-stays-wrap" id="exp-stays-section">
+              <div class="exp-stays-title">
+                <span>🕒 Previous Stays &amp; Sign-In/Out History</span>
+                <span style="font-size:0.62rem; color:var(--text-secondary); text-transform:none;" id="exp-stays-count">0 stays</span>
+              </div>
+              <div class="exp-stays-chips" id="exp-stays-chips">
+                <div style="font-size:0.7rem; color:var(--text-secondary);">No previous stays recorded</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CURRENT STAY & ROOM DETAILS -->
+          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(201,168,76,0.3); border-radius:12px; padding:12px; margin-bottom:14px;">
+            <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--gold); margin-bottom:8px;">
+              🏨 Current Stay &amp; Room Details
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="exp-room">Assigned Room</label>
+                <input id="exp-room" type="text" placeholder="e.g. 203" required />
+              </div>
+              <div class="field">
+                <label for="exp-checkout">Expected Check-Out</label>
+                <input id="exp-checkout" type="date" required />
+              </div>
+            </div>
+
+            <!-- Quick Available Rooms Selector if Walk-In -->
+            <div id="exp-avail-rooms-wrap" style="margin-top:10px; display:none;">
+              <div style="font-size:0.62rem; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px;">Available Rooms (Tap to Pick)</div>
+              <div class="quick-chips-wrap" id="exp-avail-chips"></div>
+            </div>
+          </div>
+
+          <!-- DIGITAL SIGNATURE SECTION (UNLOCKED & READY) -->
+          <div style="margin-bottom:14px;">
+            <div class="sig-section unlocked" id="exp-sig-section" style="border-color:var(--gold);">
+              <div class="sig-header">
+                <div class="sig-title" style="color:var(--gold);">✍️ Member Signature (Required)</div>
+                <button type="button" class="sig-clear-btn" onclick="clearExpSignature()">Clear</button>
+              </div>
+              <canvas class="sig-canvas" id="exp-sig-canvas" height="90"></canvas>
+              <div class="sig-hint" id="exp-sig-hint" style="color:rgba(255,255,255,0.8);">✍️ Sign with your finger or stylus above to confirm arrival</div>
+            </div>
+            <div class="sig-required-note" id="exp-sig-required-note" style="display:none;">Please draw your signature above to continue.</div>
+          </div>
+
+          <!-- SUBMIT EXPRESS CHECK-IN -->
+          <button type="button" class="btn-submit" id="exp-submit-btn" onclick="submitExpressCheckIn()">
+            Confirm Arrival &amp; Check In
+          </button>
+
+          <button type="button" class="btn-cancel-express" onclick="cancelExpressCheckIn()">
+            ✕ Cancel Express Check-In &amp; Enter Manually
+          </button>
+        </div>
       </div>
 
       <!-- SIGN OUT (DEPARTURE) CONTAINER -->
@@ -971,6 +1420,36 @@
 
 </div>
 <div class="idle-badge">KIOSK MODE</div>
+
+<!-- ═══════════ QR SCANNER MODAL ═══════════ -->
+<div class="qr-modal-backdrop" id="qr-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+  <div class="qr-modal-sheet">
+    <div class="qr-modal-header">
+      <div>
+        <div class="qr-modal-title" id="qr-modal-title">Scan Guest QR Pass</div>
+        <div class="qr-modal-sub">Hold your loyalty pass or email QR code up to the camera</div>
+      </div>
+      <button type="button" class="qr-modal-close" onclick="closeQrScannerModal()">✕</button>
+    </div>
+    
+    <div class="qr-modal-body">
+      <!-- Camera Viewport -->
+      <div id="qr-camera-wrap" class="qr-camera-wrap">
+        <div id="qr-reader" style="width: 100%;"></div>
+      </div>
+
+      <!-- Manual Code Fallback -->
+      <div class="qr-manual-wrap">
+        <div class="qr-manual-divider"><span>OR ENTER PASS MANUALLY</span></div>
+        <div class="qr-manual-input-box">
+          <input type="text" id="qr-manual-input" placeholder="e.g. GLK-PASS-..., email, or phone" 
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();manualQrLookup();}" />
+          <button type="button" class="qr-manual-btn" id="qr-manual-btn" onclick="manualQrLookup()">Lookup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════ TERMS & CONDITIONS MODAL ═══════════ -->
 <div class="tc-backdrop" id="tc-backdrop" role="dialog" aria-modal="true" aria-labelledby="tc-title">
@@ -1649,10 +2128,422 @@
     }, 1000);
   }
 
+  // ════════════════════════════════════════════════════════════
+  // ── VIP EXPRESS QR PASS SCANNER & EXPRESS CHECK-IN LOGIC ──
+  // ════════════════════════════════════════════════════════════
+  let html5QrScanner = null;
+  let currentExpressData = null;
+  let expHasStrokes = false;
+  let currentFacingMode = "environment";
+
+  // ── Express Signature Pad ──
+  const expSigPad = (function () {
+    let canvas, ctx, drawing = false, lastX = 0, lastY = 0;
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      if (e.touches && e.touches[0]) {
+        return {
+          x: (e.touches[0].clientX - rect.left) * scaleX,
+          y: (e.touches[0].clientY - rect.top) * scaleY
+        };
+      }
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function start(e) {
+      e.preventDefault();
+      drawing = true;
+      const pos = getPos(e);
+      lastX = pos.x; lastY = pos.y;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+    }
+
+    function move(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      lastX = pos.x; lastY = pos.y;
+      if (!expHasStrokes) {
+        expHasStrokes = true;
+        const hint = document.getElementById('exp-sig-hint');
+        if (hint) { hint.textContent = 'Signature captured ✓'; hint.style.color = '#4ade80'; }
+        const note = document.getElementById('exp-sig-required-note');
+        if (note) note.style.display = 'none';
+      }
+    }
+
+    function stop(e) {
+      if (!drawing) return;
+      drawing = false;
+      ctx.beginPath();
+    }
+
+    function init() {
+      canvas = document.getElementById('exp-sig-canvas');
+      if (!canvas) return;
+      const w = canvas.offsetWidth || 480;
+      canvas.width = w;
+      ctx = canvas.getContext('2d');
+      ctx.strokeStyle = '#f5f0f1';
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      canvas.addEventListener('mousedown', start, { passive: false });
+      canvas.addEventListener('mousemove', move, { passive: false });
+      canvas.addEventListener('mouseup', stop, { passive: false });
+      canvas.addEventListener('mouseleave', stop, { passive: false });
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', stop, { passive: false });
+    }
+
+    function clear() {
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      expHasStrokes = false;
+      const hint = document.getElementById('exp-sig-hint');
+      if (hint) { hint.textContent = '✍️ Sign with your finger or stylus above to confirm arrival'; hint.style.color = 'rgba(255,255,255,0.8)'; }
+    }
+
+    function getDataURL() {
+      if (!expHasStrokes) return null;
+      try {
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = canvas.width;
+        exportCanvas.height = canvas.height;
+        const expCtx = exportCanvas.getContext('2d');
+
+        expCtx.fillStyle = '#ffffff';
+        expCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+        const srcData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const dstData = expCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < srcData.data.length; i += 4) {
+          const alpha = srcData.data[i + 3];
+          if (alpha > 10) {
+            const opacity = alpha / 255;
+            dstData.data[i] = Math.round(255 * (1 - opacity) + 15 * opacity);
+            dstData.data[i + 1] = Math.round(255 * (1 - opacity) + 23 * opacity);
+            dstData.data[i + 2] = Math.round(255 * (1 - opacity) + 42 * opacity);
+            dstData.data[i + 3] = 255;
+          }
+        }
+        expCtx.putImageData(dstData, 0, 0);
+        return exportCanvas.toDataURL('image/png');
+      } catch (err) {
+        return canvas.toDataURL('image/png');
+      }
+    }
+
+    return { init, clear, getDataURL };
+  })();
+
+  function clearExpSignature() {
+    expSigPad.clear();
+  }
+
+  // ── Open QR Scanner Modal ──
+  async function openQrScannerModal() {
+    const backdrop = document.getElementById('qr-modal-backdrop');
+    if (backdrop) backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    const manualInput = document.getElementById('qr-manual-input');
+    if (manualInput) manualInput.value = '';
+
+    if (typeof Html5Qrcode === 'undefined') {
+      alert("Camera QR scanner library is loading. You can also enter your pass code, phone, or email in the box below.");
+      return;
+    }
+
+    try {
+      if (!html5QrScanner) {
+        html5QrScanner = new Html5Qrcode("qr-reader");
+      }
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 220, height: 220 },
+        aspectRatio: 1.0
+      };
+
+      await html5QrScanner.start(
+        { facingMode: currentFacingMode },
+        config,
+        (decodedText) => {
+          handleQrScanSuccess(decodedText);
+        },
+        () => {}
+      ).catch(async (err) => {
+        console.warn("Could not start environment camera, attempting fallback to user camera:", err);
+        await html5QrScanner.start(
+          { facingMode: "user" },
+          config,
+          (decodedText) => {
+            handleQrScanSuccess(decodedText);
+          },
+          () => {}
+        );
+      });
+    } catch (err) {
+      console.warn("Camera start error:", err);
+    }
+  }
+
+  function closeQrScannerModal() {
+    const backdrop = document.getElementById('qr-modal-backdrop');
+    if (backdrop) backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+
+    if (html5QrScanner) {
+      try {
+        html5QrScanner.stop().catch(() => {}).then(() => {
+          try { html5QrScanner.clear(); } catch(e){}
+        });
+      } catch (e) {
+        console.warn("Error stopping scanner:", e);
+      }
+    }
+  }
+
+  function handleQrScanSuccess(decodedText) {
+    if (!decodedText) return;
+    closeQrScannerModal();
+    fetchGuestQrDetails(decodedText);
+  }
+
+  function manualQrLookup() {
+    const input = document.getElementById('qr-manual-input');
+    const val = (input ? input.value : '').trim();
+    if (!val) {
+      alert("Please enter a pass code, email, or phone number.");
+      return;
+    }
+    const btn = document.getElementById('qr-manual-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Finding...'; }
+    fetchGuestQrDetails(val).finally(() => {
+      if (btn) { btn.disabled = false; btn.textContent = 'Lookup'; }
+    });
+  }
+
+  async function fetchGuestQrDetails(code) {
+    try {
+      const res = await fetch(`${API_URL}/kiosk-qr-lookup?code=${encodeURIComponent(code)}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.found) {
+        alert(data.error || "No guest record found for this QR pass. Please fill in your arrival details manually.");
+        return;
+      }
+
+      if (data.blacklisted) {
+        alert("Alert: This guest profile is flagged. Please speak with Front Desk management.");
+        return;
+      }
+
+      closeQrScannerModal();
+      renderExpressCheckInView(data);
+    } catch (err) {
+      console.error("Error looking up QR pass:", err);
+      alert("Could not load guest details. Please try again or ask staff for assistance.");
+    }
+  }
+
+  function renderExpressCheckInView(data) {
+    currentExpressData = data;
+
+    document.getElementById('checkin-form').style.display = 'none';
+    const qrCta = document.getElementById('kiosk-qr-cta');
+    if (qrCta) qrCta.style.display = 'none';
+
+    const expCont = document.getElementById('express-checkin-container');
+    expCont.style.display = 'block';
+
+    document.getElementById('exp-guest-name').textContent = data.guest.name || 'Valued Guest';
+    document.getElementById('exp-pass-code').textContent = data.guest.passCode || 'GLK-VIP';
+    document.getElementById('exp-visits-sub').textContent = `👑 Grand Lynks VIP Guest • ${data.totalStaysCount} Stay(s) on File`;
+    document.getElementById('exp-phone').textContent = data.guest.phone || 'N/A';
+    document.getElementById('exp-email').textContent = data.guest.email || 'N/A';
+    document.getElementById('exp-address').textContent = data.guest.address || 'Address on file';
+    document.getElementById('exp-nin').textContent = data.guest.idNumber ? `${data.guest.idNumber} (Verified ✓)` : 'Document verified on file ✓';
+
+    const thumbImg = document.getElementById('exp-id-thumb');
+    const idTitle = document.getElementById('exp-id-title');
+    const idSub = document.getElementById('exp-id-sub');
+    if (data.idDocument && data.idDocument.hasIdOnFile && data.idDocument.idCardUrl) {
+      thumbImg.src = data.idDocument.idCardUrl;
+      thumbImg.style.display = 'block';
+      idTitle.textContent = `✓ ${data.idDocument.idType || 'Government ID'} on File`;
+      idSub.textContent = "Verified from previous check-in. No re-scan required.";
+    } else {
+      thumbImg.style.display = 'none';
+      idTitle.textContent = "ID Verification";
+      idSub.textContent = "ID verification on record with reception.";
+    }
+
+    const staysChips = document.getElementById('exp-stays-chips');
+    const staysCount = document.getElementById('exp-stays-count');
+    if (staysCount) staysCount.textContent = `${data.totalStaysCount} recorded stay(s)`;
+
+    if (data.previousStays && data.previousStays.length > 0) {
+      staysChips.innerHTML = data.previousStays.map(s => {
+        const inDate = s.checkInTime ? new Date(s.checkInTime).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const roomStr = s.roomNumber ? `Room ${s.roomNumber}` : 'Stay';
+        return `
+          <div class="exp-stay-chip">
+            <span style="color:var(--gold); font-weight:700;">${roomStr}</span>
+            <span>• ${inDate}</span>
+            <span style="color:#4ade80; font-size:0.6rem;">✓</span>
+          </div>
+        `;
+      }).join('');
+    } else {
+      staysChips.innerHTML = '<div style="font-size:0.72rem; color:var(--text-secondary); padding:4px 0;">First recorded digital stay</div>';
+    }
+
+    const roomInput = document.getElementById('exp-room');
+    const checkoutInput = document.getElementById('exp-checkout');
+
+    if (data.currentStay && data.currentStay.roomNumber) {
+      roomInput.value = data.currentStay.roomNumber;
+      if (data.currentStay.expectedCheckOut) {
+        checkoutInput.value = data.currentStay.expectedCheckOut;
+      }
+      document.getElementById('exp-avail-rooms-wrap').style.display = 'none';
+    } else {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      checkoutInput.value = tomorrow.toISOString().split('T')[0];
+
+      const availWrap = document.getElementById('exp-avail-rooms-wrap');
+      const availChips = document.getElementById('exp-avail-chips');
+      if (data.availableRooms && data.availableRooms.length > 0) {
+        availWrap.style.display = 'block';
+        availChips.innerHTML = data.availableRooms.map(r => `
+          <div class="stay-chip" onclick="document.getElementById('exp-room').value='${r.number}'">
+            <span class="stay-chip-room">${r.number}</span>
+            <span>${r.type}</span>
+          </div>
+        `).join('');
+      } else {
+        availWrap.style.display = 'none';
+      }
+    }
+
+    setTimeout(() => {
+      expSigPad.init();
+      expSigPad.clear();
+      expCont.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+
+  function cancelExpressCheckIn() {
+    currentExpressData = null;
+    const expCont = document.getElementById('express-checkin-container');
+    if (expCont) expCont.style.display = 'none';
+    const checkinForm = document.getElementById('checkin-form');
+    if (checkinForm) checkinForm.style.display = 'block';
+    const qrCta = document.getElementById('kiosk-qr-cta');
+    if (qrCta) qrCta.style.display = 'block';
+  }
+
+  async function submitExpressCheckIn() {
+    if (!currentExpressData || !currentExpressData.guest) {
+      alert("Session expired. Please scan your QR pass again.");
+      cancelExpressCheckIn();
+      return;
+    }
+
+    const roomNumber = (document.getElementById('exp-room').value || '').trim();
+    if (!roomNumber) {
+      alert("Please confirm or enter your assigned room number.");
+      document.getElementById('exp-room').focus();
+      return;
+    }
+
+    const checkoutDate = document.getElementById('exp-checkout').value;
+    if (!checkoutDate) {
+      alert("Please select your expected check-out date.");
+      return;
+    }
+
+    if (!expHasStrokes) {
+      const note = document.getElementById('exp-sig-required-note');
+      if (note) note.style.display = 'block';
+      alert("Please draw your signature to complete your arrival check-in.");
+      return;
+    }
+
+    const signatureDataUrl = expSigPad.getDataURL();
+    const btn = document.getElementById('exp-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><svg style="width:16px;height:16px;animation:spin 1s linear infinite;display:inline-block;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>Confirming Arrival...</span>';
+
+    const checkInTime = new Date().toISOString();
+    const expectedCheckOut = new Date(checkoutDate + 'T12:00:00').toISOString();
+
+    const formData = new FormData();
+    formData.append('guestName', currentExpressData.guest.name);
+    formData.append('phone', currentExpressData.guest.phone || '');
+    if (currentExpressData.guest.email) formData.append('email', currentExpressData.guest.email);
+    formData.append('roomNumber', roomNumber);
+    formData.append('checkInTime', checkInTime);
+    formData.append('expectedCheckOut', expectedCheckOut);
+    formData.append('signature', signatureDataUrl || 'Signed on tablet — VIP QR check-in');
+    formData.append('termsAccepted', 'true');
+
+    if (currentExpressData.idDocument && currentExpressData.idDocument.idCardUrl) {
+      formData.append('idCardUrl', currentExpressData.idDocument.idCardUrl);
+      formData.append('idType', currentExpressData.idDocument.idType || 'Government ID (On file)');
+    }
+
+    try {
+      const res = await fetch(API_URL + '/checkin-log', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Network error');
+      }
+
+      document.getElementById('success-name').textContent = 'Welcome back, ' + currentExpressData.guest.name + '!';
+      showScreen('success-screen');
+      startCountdown(8);
+    } catch (err) {
+      alert('Could not save check-in: ' + err.message + '\nPlease ask front desk staff for assistance.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm Arrival & Check In';
+    }
+  }
+
+  // Check URL ?pass= on load
+  document.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const passCode = urlParams.get('pass');
+    if (passCode) {
+      setTimeout(() => {
+        fetchGuestQrDetails(passCode);
+      }, 300);
+    }
+  });
+
   // Also reset T&C + signature state + departure state when form resets
   var _origResetToForm = resetToForm;
   function resetToForm() {
     _origResetToForm();
+    cancelExpressCheckIn();
     termsAccepted = false;
     signatureDrawn = false;
     sigPad.clear();
