@@ -3837,6 +3837,257 @@ Please add \`GEMINI_API_KEY="your_api_key"\` to your \`.env\` file to unlock ful
 });
 
 
+// Helper for Guest Concierge local fallback
+function generateGuestSmartReply(rawMessage, roomSummaryLines, popularDishes) {
+  const m = (rawMessage || "").toLowerCase().trim();
+
+  if (m.includes("food") || m.includes("menu") || m.includes("eat") || m.includes("restaurant") || m.includes("breakfast") || m.includes("dining") || m.includes("drink") || m.includes("bar") || m.includes("room service")) {
+    return `### 🍽️ Dining & Room Service
+Grand Lynks offers a delightful selection of freshly prepared Nigerian and continental specialties, cold drinks, cocktails, and express 24/7 room service delivered straight to your door!
+
+${popularDishes ? "#### Featured Offerings:\n" + popularDishes + "\n\n" : ""}👉 [Explore Full Menu & Order Room Service](order.html)!`;
+  }
+
+  if (m.includes("check-in") || m.includes("check in") || m.includes("checkout") || m.includes("check out") || m.includes("time") || m.includes("policy")) {
+    return `### ⏰ Check-In & Check-Out Policy
+* **Standard Check-In**: From **2:00 PM (14:00)**
+* **Standard Check-Out**: Until **12:00 PM (12:00 noon)**
+
+*(Early arrivals and late check-outs can be accommodated upon request, subject to availability).*
+
+✨ **Tip**: Skip the reception queue with our self-service [Lobby Check-in Kiosk](checkin.html) using your instant QR loyalty code!`;
+  }
+
+  if (m.includes("room") || m.includes("rate") || m.includes("price") || m.includes("suite") || m.includes("cost") || m.includes("stay") || m.includes("book")) {
+    return `### 🛏️ Rooms & Suites at Grand Lynks
+Welcome! Here is an overview of our current room categories and rates:
+
+${roomSummaryLines || "- **Standard Room**: from ₦20,000 / night\n- **Deluxe Room**: from ₦30,000 / night\n- **Executive Suite**: from ₦45,000 / night"}
+
+All our suites feature plush bedding, 24/7 power, high-speed Wi-Fi, air conditioning, smart TVs, and premium bathroom amenities.
+
+👉 [Click here to Book Your Stay](booking.html) or browse all details on our [Rooms Page](rooms.html)!`;
+  }
+
+  if (m.includes("spa") || m.includes("massage") || m.includes("facial") || m.includes("wellness") || m.includes("relax")) {
+    return `### 💆 Luxury Spa & Wellness
+Indulge in tranquility at our serene on-site spa:
+* **Swedish & Deep Tissue Massage Therapy**
+* **Hydrating & Anti-aging Facials**
+* **Detoxifying Body Scrubs & Wraps**
+* **Couples Relaxation Packages**
+
+👉 [View Spa Treatments & Book a Session](spa.html)!`;
+  }
+
+  if (m.includes("location") || m.includes("where") || m.includes("address") || m.includes("direction") || m.includes("contact") || m.includes("phone") || m.includes("call") || m.includes("email")) {
+    return `### 📍 Hotel Location & Contact
+* **Address**: 80 Pa Michael Imoudu Ave, Gwarinpa, 900108, Abuja, Nigeria.
+* **Phone / WhatsApp**: [+234 814 223 4691](tel:+2348142234691)
+* **Email**: [grandlynkshomesandapartments@gmail.com](mailto:grandlynkshomesandapartments@gmail.com)
+* **Socials**: @grandlynks on Instagram & TikTok
+
+We offer free secured on-site private parking with 24/7 armed surveillance.
+👉 [View Map & Send Message](contact.html)!`;
+  }
+
+  if (m.includes("wifi") || m.includes("wi-fi") || m.includes("internet") || m.includes("power") || m.includes("electricity") || m.includes("generator") || m.includes("amenities") || m.includes("security") || m.includes("pool")) {
+    return `### ✨ Grand Lynks Hotel Amenities
+* ⚡ **24/7 Guaranteed Electricity** with industrial generator backup
+* 📶 **High-Speed Complimentary Wi-Fi** across all rooms & public areas
+* 🛡️ **24/7 Armed Security & CCTV** for complete safety
+* 📺 **Smart TVs** with DStv, Netflix, and streaming in every room
+* 🏊 **Swimming Pool & Wellness Spa**
+* 🍽️ **On-site Gourmet Restaurant & Bar**
+* 🚗 **Secured Private Parking** for guests`;
+  }
+
+  if (m.includes("kiosk") || m.includes("qr") || m.includes("loyalty") || m.includes("express")) {
+    return `### 📱 Express Self-Check-In Kiosk
+Our self-service lobby kiosk allows guests to check in and out within seconds. Scan your permanent Loyalty QR Code or enter your phone number to immediately access your stay details and sign digitally.
+
+👉 [Open Express Kiosk](checkin.html)!`;
+  }
+
+  // Warm default greeting & guide
+  return `### ✨ Welcome to Grand Lynks Homes & Apartments!
+I am **Chidi**, your 24/7 Virtual Concierge for Grand Lynks Homes & Apartments in Gwarinpa, Abuja.
+
+How may I assist you today? You can ask me about:
+* 🛏️ [Rooms & Rates](rooms.html)
+* 📅 [Booking a Stay](booking.html)
+* 🍽️ [Dining & Room Service](order.html)
+* ⏰ Check-in & Check-out Policies
+* 💆 [Spa Treatments](spa.html)
+* 📍 [Hotel Location & Directions](contact.html)
+
+Feel free to ask any question or call our front desk directly at [+234 814 223 4691](tel:+2348142234691)!`;
+}
+
+// Rate limiter for public guest concierge chat (60 requests per 10 mins)
+const guestChatLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  message: { error: "You've sent quite a few messages! Please pause a moment or call our front desk at +234 814 223 4691." }
+});
+
+// --- Public Guest Chatbot Assistant Endpoint ---
+app.post("/guest-assistant/chat", guestChatLimiter, async (req, res) => {
+  try {
+    const { message, history } = req.body;
+    if (!message || typeof message !== "string" || !message.trim()) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    // 1. Gather live hotel context (rooms, menu items)
+    let rooms = [];
+    let menuItems = [];
+    try {
+      [rooms, menuItems] = await Promise.all([
+        prisma.room.findMany({ where: { deletedAt: null } }),
+        prisma.menuItem.findMany({ where: { deletedAt: null, available: true }, take: 25 })
+      ]);
+    } catch (dbErr) {
+      console.warn("Guest assistant DB query warning:", dbErr.message);
+    }
+
+    // Group rooms by type for easy summarization
+    const roomTypeSummary = {};
+    rooms.forEach(r => {
+      const type = r.type || "Room";
+      if (!roomTypeSummary[type]) {
+        roomTypeSummary[type] = { count: 0, available: 0, minPrice: r.price, maxPrice: r.price };
+      }
+      roomTypeSummary[type].count++;
+      if (r.status === 'available') roomTypeSummary[type].available++;
+      if (r.price && (roomTypeSummary[type].minPrice === undefined || r.price < roomTypeSummary[type].minPrice)) {
+        roomTypeSummary[type].minPrice = r.price;
+      }
+      if (r.price && (roomTypeSummary[type].maxPrice === undefined || r.price > roomTypeSummary[type].maxPrice)) {
+        roomTypeSummary[type].maxPrice = r.price;
+      }
+    });
+
+    const roomSummaryLines = Object.keys(roomTypeSummary).map(type => {
+      const s = roomTypeSummary[type];
+      const priceStr = s.minPrice ? `₦${s.minPrice.toLocaleString()}` : "Contact for rate";
+      return `- **${type}**: from ${priceStr} (${s.available} of ${s.count} available)`;
+    }).join("\n");
+
+    const popularDishes = menuItems.slice(0, 10).map(m => `- **${m.name}** (${m.category || "Dining"}): ₦${m.price ? m.price.toLocaleString() : "N/A"}`).join("\n");
+
+    const systemPrompt = `You are "Chidi", the intelligent, warm, and hospitable Virtual Concierge for Grand Lynks Homes & Apartments in Gwarinpa, Abuja, Nigeria.
+Your job is to assist guests and visitors with hotel inquiries, room reservations, check-in policies, dining & room service, spa treatments, and directions.
+
+KEY HOTEL INFORMATION:
+- Name: Grand Lynks Homes & Apartments
+- Address: 80 Pa Michael Imoudu Ave, Gwarinpa, 900108, Abuja, Nigeria
+- Phone/WhatsApp: +234 814 223 4691
+- Email: grandlynkshomesandapartments@gmail.com
+- Social Media: @grandlynks on Instagram & TikTok
+- Check-in Time: 2:00 PM (14:00)
+- Check-out Time: 12:00 PM (12:00 noon)
+- Hotel Features & Amenities:
+  * Guaranteed 24/7 steady electricity with heavy-duty backup generators
+  * Complimentary high-speed Wi-Fi across all suites and premises
+  * 24/7 armed private security, CCTV surveillance, secure private parking
+  * Luxury spa offering Swedish massages, rejuvenating facial treatments, and body scrubs (see spa.html)
+  * On-site gourmet restaurant & bar serving breakfast, Nigerian delicacies (jollof, pepper soup, grills) & continental dishes
+  * 24/7 Room service dining (see order.html)
+  * Self-service lobby check-in kiosk with permanent QR loyalty pass (see checkin.html)
+  * Smart TVs with Netflix, YouTube & DStv in every suite
+  * Fully air-conditioned rooms, plush bedding, premium bath amenities
+
+CURRENT ROOM TYPES & STARTING RATES:
+${roomSummaryLines || "- Standard, Deluxe, and Executive Suites available (Rates from ₦20,000 - ₦45,000+)"}
+
+POPULAR RESTAURANT & BAR OFFERINGS:
+${popularDishes || "- Gourmet Jollof Rice, Grilled Chicken & Fish, Pepper Soup, Cocktails & Fresh Juices"}
+
+DIRECT LINKS YOU CAN RECOMMEND:
+- Room Booking & Reservations: booking.html (or tell them to click "Book Now")
+- Explore Room Photos & Amenities: rooms.html
+- Order Dining & Room Service: order.html
+- View Spa & Wellness Services: spa.html
+- Location & Contact Details: contact.html
+- Express Self-Check-in Kiosk: checkin.html
+
+RESPONSE GUIDELINES:
+- Always be polite, warm, and helpful.
+- Keep responses concise (2-4 brief paragraphs or clean bullet points).
+- Use tasteful formatting (bold text, friendly emojis like ✨, 🛏️, 🍽️, 🌴).
+- Never claim to be a fashion stylist or mention clothing stores/sizes; you are exclusively the Grand Lynks Hotel Concierge.`;
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      const reply = generateGuestSmartReply(message, roomSummaryLines, popularDishes);
+      return res.json({ response: reply, isLocalFallback: true });
+    }
+
+    try {
+      const contents = [];
+      if (Array.isArray(history)) {
+        history.slice(-8).forEach(item => {
+          const role = item.role === 'assistant' ? 'model' : 'user';
+          if (item.content && typeof item.content === 'string') {
+            contents.push({
+              role,
+              parts: [{ text: item.content }]
+            });
+          }
+        });
+      }
+
+      contents.push({
+        role: 'user',
+        parts: [{ text: message }]
+      });
+
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
+
+      const response = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 600
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.warn(`Gemini API call failed with status ${response.status}, switching to smart hotel fallback.`);
+        const fallbackReply = generateGuestSmartReply(message, roomSummaryLines, popularDishes);
+        return res.json({ response: fallbackReply, isLocalFallback: true });
+      }
+
+      const data = await response.json();
+      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!replyText) {
+        const fallbackReply = generateGuestSmartReply(message, roomSummaryLines, popularDishes);
+        return res.json({ response: fallbackReply, isLocalFallback: true });
+      }
+
+      return res.json({ response: replyText, isLocalFallback: false });
+
+    } catch (apiErr) {
+      console.warn("Gemini API call exception:", apiErr.message);
+      const fallbackReply = generateGuestSmartReply(message, roomSummaryLines, popularDishes);
+      return res.json({ response: fallbackReply, isLocalFallback: true });
+    }
+
+  } catch (error) {
+    console.error("Error in guest assistant chat handler:", error);
+    res.status(500).json({ error: "Internal server error in Concierge Assistant" });
+  }
+});
+
+
+
 // ============================================================
 // GUEST SELF CHECK-IN KIOSK API
 // ============================================================
