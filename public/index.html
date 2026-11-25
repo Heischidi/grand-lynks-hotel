@@ -58,10 +58,10 @@
       <div class="slide" style="background-image: url('images/grandroom101.jpeg')"></div>
     </div>
 
-    <div class="hero-text fade-in">
-      <h1>Grand Lynks Homes & Apartments</h1>
-      <p>Your comfort, our interest..</p>
-      <a href="booking.html" class="btn">Book Your Stay</a>
+    <div class="hero-text fade-in" id="heroText">
+      <h1 id="heroTitle">Grand Lynks Homes & Apartments</h1>
+      <p id="heroSubtitle">Your comfort, our interest..</p>
+      <a href="booking.html" class="btn" id="heroBtn">Book Your Stay</a>
     </div>
   </section>
   <!-- ABOUT SECTION -->
@@ -296,16 +296,59 @@
     // SLIDESHOW SCRIPT
     window.addEventListener("DOMContentLoaded", function () {
       const slides = document.querySelectorAll(".slide");
+      const heroText = document.getElementById("heroText");
+      const heroTitle = document.getElementById("heroTitle");
+      const heroSubtitle = document.getElementById("heroSubtitle");
+      const heroBtn = document.getElementById("heroBtn");
+
+      const slideContent = [
+        {
+          title: "Grand Lynks Homes & Apartments",
+          subtitle: "Your comfort, our interest..",
+          btnText: "Book Your Stay",
+          btnLink: "booking.html"
+        },
+        {
+          title: "Serenity Spa & Wellness",
+          subtitle: "Rejuvenate your body and mind with our therapeutic massages.",
+          btnText: "Book a Massage",
+          btnLink: "spa.html"
+        },
+        {
+          title: "Luxury Suites & Comfort",
+          subtitle: "Boutique apartments designed for elegance, ease, and prestige.",
+          btnText: "Explore Rooms",
+          btnLink: "rooms.html"
+        }
+      ];
+
       let currentSlide = 0;
+
+      function updateHeroText(index) {
+        if (!heroText || !heroTitle || !heroSubtitle || !heroBtn) return;
+        const data = slideContent[index % slideContent.length];
+        heroText.style.transition = "opacity 0.35s ease, transform 0.35s ease";
+        heroText.style.opacity = "0";
+        heroText.style.transform = "translateY(12px)";
+        setTimeout(() => {
+          heroTitle.textContent = data.title;
+          heroSubtitle.textContent = data.subtitle;
+          heroBtn.textContent = data.btnText;
+          heroBtn.setAttribute("href", data.btnLink);
+          heroText.style.opacity = "1";
+          heroText.style.transform = "translateY(0)";
+        }, 350);
+      }
 
       function showNextSlide() {
         if (slides.length === 0) return;
         slides[currentSlide].classList.remove("active");
         currentSlide = (currentSlide + 1) % slides.length;
         slides[currentSlide].classList.add("active");
+        updateHeroText(currentSlide);
       }
 
-      setInterval(showNextSlide, 4000); // 4 seconds
+      setInterval(showNextSlide, 4500); // 4.5 seconds
 
       AOS.init({ duration: 1000, easing: "ease-in-out" });
 

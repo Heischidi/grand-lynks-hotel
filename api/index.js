@@ -488,6 +488,9 @@ const authenticateToken = (req, res, next) => {
 
   jwt.verify(token, SECRET_KEY, (err, user) => {
     if (err) return res.sendStatus(403);
+    if (user.role === 'spa_admin') {
+      return res.status(403).json({ error: "Access restricted: Spa Admin accounts can only access Serenity Spa operations." });
+    }
     req.user = user;
     next();
   });
@@ -501,6 +504,21 @@ const authenticateSuperAdmin = (req, res, next) => {
   jwt.verify(token, SECRET_KEY, (err, user) => {
     if (err) return res.sendStatus(403);
     if (user.role !== 'superadmin') return res.status(403).json({ error: 'Super admin access required' });
+    req.user = user;
+    next();
+  });
+};
+
+// Spa Admin Authentication Middleware (spa_admin or superadmin)
+const authenticateSpaAdmin = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Spa authentication token required" });
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+    if (err) return res.status(403).json({ error: "Invalid or expired token" });
+    if (user.role !== 'spa_admin' && user.role !== 'superadmin') {
+      return res.status(403).json({ error: "Spa admin access required" });
+    }
     req.user = user;
     next();
   });
@@ -823,6 +841,17 @@ app.post("/auth/login", loginLimiter, async (req, res) => {
       { expiresIn: "24h" }
     );
     return res.json({ token, username: "superadmin", role: "superadmin" });
+  }
+
+  // Spa Admin Login fallback
+  const spaAdminEnvPassword = process.env.SPA_ADMIN_PASSWORD || "GrandLynksSpa2025!";
+  if (username === "spaadmin" && password === spaAdminEnvPassword) {
+    const token = jwt.sign(
+      { id: "spaadmin_hardcoded", username: "spaadmin", role: "spa_admin" },
+      SECRET_KEY,
+      { expiresIn: "24h" }
+    );
+    return res.json({ token, username: "spaadmin", role: "spa_admin", portal: "spa" });
   }
 
   try {
@@ -5336,6 +5365,9 @@ app.delete("/checkin-log/:id", authenticateToken, async (req, res) => {
 
 const registerFinanceRoutes = require('./financeRoutes.js')
 registerFinanceRoutes(app, prisma, authenticateSuperAdmin, bcrypt, multer, uploadToSupabase)
+
+const registerSpaRoutes = require('./spaRoutes.js')
+registerSpaRoutes(app, prisma, authenticateSpaAdmin, SECRET_KEY, loginLimiter)
 // --- Start server ---
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;

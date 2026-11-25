@@ -218,6 +218,12 @@ async function handleLogin(e) {
             localStorage.setItem('adminToken', data.token);
             localStorage.setItem('adminUser', JSON.stringify({ username: data.username, role: data.role }));
             
+            if (data.role === 'spa_admin') {
+                localStorage.setItem('gl_spa_admin_token', data.token);
+                localStorage.setItem('gl_spa_admin_user', data.username);
+                window.location.href = 'spa-admin.html';
+                return;
+            }
             if (data.role !== 'superadmin') {
                 window.location.href = 'admin.html';
                 return;

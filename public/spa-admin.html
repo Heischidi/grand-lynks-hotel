@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spa Admin Portal - Grand Lynks Serenity Spa</title>
+  <link rel="icon" href="images/grandfullfront.jpeg" type="image/jpeg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
+
+    .font-playfair {
+      font-family: "Playfair Display", serif;
+    }
+
+    .font-sans {
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    .tab-btn.active {
+      background-color: #059669;
+      color: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+    }
+  </style>
+</head>
+
+<body class="bg-[#f4f6f4] text-gray-800 font-sans antialiased min-h-screen flex flex-col">
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- 1. LOGIN SCREEN (shown if not logged in) -->
+  <!-- ===================================================================== -->
+  <div id="loginView" class="flex-1 flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-emerald-100">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-sm">
+          🌿
+        </div>
+        <span class="text-[11px] font-bold uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
+          Grand Lynks Homes &amp; Apartments
+        </span>
+        <h1 class="text-2xl font-playfair font-bold text-gray-900 mt-2">Serenity Spa Admin</h1>
+        <p class="text-xs text-gray-500 mt-1">Dedicated portal for spa appointments, treatment catalog, and finances.</p>
+      </div>
+
+      <div id="loginAlert" class="hidden mb-4 p-3 rounded-xl text-xs bg-red-50 text-red-700 border border-red-200"></div>
+
+      <form id="spaLoginForm" onsubmit="handleSpaLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Spa Admin Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
+              <i class="fa-solid fa-user"></i>
+            </span>
+            <input type="text" id="spaUsername" value="spaadmin" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent" required />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
+              <i class="fa-solid fa-lock"></i>
+            </span>
+            <input type="password" id="spaPassword" placeholder="••••••••••••" class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent" required />
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 text-sm">
+              <i id="passwordEyeIcon" class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" id="loginBtn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-xl transition-all shadow-md text-sm flex items-center justify-center gap-2">
+          <span>Sign In to Spa Portal</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+
+      <div class="mt-6 pt-5 border-t border-gray-100 text-center">
+        <a href="spa.html" class="text-xs text-emerald-700 hover:underline inline-flex items-center gap-1 font-medium">
+          <i class="fa-solid fa-arrow-left text-[10px]"></i>
+          <span>Return to Guest Spa Page</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 2. DASHBOARD VIEW (shown when authenticated) -->
+  <!-- ===================================================================== -->
+  <div id="dashboardView" class="hidden flex-1 flex-col">
+    <!-- Top Header Bar -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">🌿</span>
+          <div>
+            <h1 class="text-lg font-playfair font-bold text-gray-900 leading-tight">Serenity Spa Admin</h1>
+            <p class="text-[10px] text-emerald-700 uppercase tracking-wider font-semibold">Grand Lynks Wellness Portal</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3 sm:space-x-4">
+          <div class="hidden sm:block text-right">
+            <span id="activeUserName" class="block text-xs font-semibold text-gray-800">spaadmin</span>
+            <span class="block text-[10px] text-emerald-700 font-medium">Spa Manager</span>
+          </div>
+
+          <a href="spa.html" target="_blank" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">
+            <i class="fa-solid fa-external-link-alt text-[10px]"></i>
+            <span>Guest Page</span>
+          </a>
+
+          <button onclick="openChangePasswordModal()" title="Change Password" class="p-2 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors text-sm">
+            <i class="fa-solid fa-key"></i>
+          </button>
+
+          <button onclick="handleSpaLogout()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            <span class="hidden sm:inline">Logout</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-b border-gray-200 sticky top-16 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-2 py-2.5 overflow-x-auto">
+        <button onclick="switchTab('appointments')" id="tabBtn-appointments" class="tab-btn active px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-900 transition-all flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>Appointments</span>
+          <span id="badgeTodayAppointments" class="ml-1 px-1.5 py-0.2 rounded-full bg-white/30 text-[10px] font-bold">0</span>
+        </button>
+
+        <button onclick="switchTab('finances')" id="tabBtn-finances" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-900 transition-all flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-coins"></i>
+          <span>Spa Finances</span>
+        </button>
+
+        <button onclick="switchTab('catalog')" id="tabBtn-catalog" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-900 transition-all flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-spa"></i>
+          <span>Massage Treatments</span>
+          <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full font-bold">Catalog</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Body -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
+      
+      <!-- ================================================================= -->
+      <!-- TAB 1: APPOINTMENTS & BOOKINGS -->
+      <!-- ================================================================= -->
+      <section id="tab-appointments" class="space-y-6">
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 block mb-1">Today's Massages</span>
+            <div id="statTodayCount" class="text-2xl font-bold font-playfair text-gray-900">0</div>
+            <p class="text-[11px] text-gray-500 mt-1">Scheduled for today</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 block mb-1">Confirmed / Active</span>
+            <div id="statConfirmedCount" class="text-2xl font-bold font-playfair text-emerald-700">0</div>
+            <p class="text-[11px] text-gray-500 mt-1">Awaiting service</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-700 block mb-1">Completed</span>
+            <div id="statCompletedCount" class="text-2xl font-bold font-playfair text-blue-700">0</div>
+            <p class="text-[11px] text-gray-500 mt-1">Delivered treatments</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 block mb-1">Total Appointments</span>
+            <div id="statTotalCount" class="text-2xl font-bold font-playfair text-gray-900">0</div>
+            <p class="text-[11px] text-gray-500 mt-1">All time records</p>
+          </div>
+        </div>
+
+        <!-- Controls: Filters & New Appointment Button -->
+        <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
+          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <!-- Search -->
+            <div class="relative flex-1 sm:w-64">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 text-xs">
+                <i class="fa-solid fa-search"></i>
+              </span>
+              <input type="text" id="appointmentSearchInput" oninput="filterAppointments()" placeholder="Search guest, phone, room, ref..." class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+            </div>
+
+            <!-- Status Filter -->
+            <select id="appointmentStatusFilter" onchange="filterAppointments()" class="border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+              <option value="all">All Statuses</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="in-progress">In-Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+
+            <!-- Date Filter -->
+            <select id="appointmentDateFilter" onchange="handleDateFilterChange(this.value)" class="border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+              <option value="all">All Dates</option>
+              <option value="today" selected>Today Only</option>
+              <option value="tomorrow">Tomorrow</option>
+              <option value="custom">Custom Date</option>
+            </select>
+            <input type="date" id="customDatePicker" onchange="filterAppointments()" class="hidden border border-gray-300 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+
+          <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button onclick="fetchAppointments()" class="p-2 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-100 text-xs" title="Refresh">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+            <button onclick="openWalkInModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-plus text-[10px]"></i>
+              <span>+ Record Walk-in / Room Booking</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Appointments List / Table -->
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="py-3 px-4">Ref &amp; Date</th>
+                  <th class="py-3 px-4">Guest Details</th>
+                  <th class="py-3 px-4">Massage Service</th>
+                  <th class="py-3 px-4">Time Slot</th>
+                  <th class="py-3 px-4">Price &amp; Payment</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="appointmentsTableBody" class="divide-y divide-gray-100">
+                <tr>
+                  <td colspan="7" class="py-12 text-center text-gray-400">
+                    <i class="fa-solid fa-spinner fa-spin text-xl mb-2 text-emerald-600 block"></i>
+                    Loading appointments...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 2: SPA FINANCES & EARNINGS -->
+      <!-- ================================================================= -->
+      <section id="tab-finances" class="hidden space-y-6">
+        <!-- Finance Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-6 rounded-2xl shadow-sm">
+            <span class="text-xs uppercase tracking-wider text-emerald-200 block mb-1">Total Spa Revenue</span>
+            <div id="finTotalRevenue" class="text-3xl font-bold font-playfair">₦0</div>
+            <p class="text-xs text-emerald-300 mt-2">Cumulative realized massage income</p>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-xs uppercase tracking-wider text-gray-400 block mb-1">Today's Spa Revenue</span>
+            <div id="finTodayRevenue" class="text-3xl font-bold font-playfair text-emerald-700">₦0</div>
+            <p class="text-xs text-gray-500 mt-2">Earnings realized today</p>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-xs uppercase tracking-wider text-gray-400 block mb-1">This Month's Revenue</span>
+            <div id="finMonthRevenue" class="text-3xl font-bold font-playfair text-gray-900">₦0</div>
+            <p class="text-xs text-gray-500 mt-2">Current calendar month</p>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-xs uppercase tracking-wider text-amber-700 block mb-1">Pending / Uncollected</span>
+            <div id="finPendingRevenue" class="text-3xl font-bold font-playfair text-amber-600">₦0</div>
+            <p class="text-xs text-gray-500 mt-2">Awaiting completion / checkout</p>
+          </div>
+        </div>
+
+        <!-- Breakdown Section -->
+        <div class="grid lg:grid-cols-2 gap-6">
+          <!-- Revenue by Massage Treatment -->
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <h3 class="font-playfair font-bold text-gray-900 text-lg mb-1">Revenue by Massage Type</h3>
+            <p class="text-xs text-gray-500 mb-4">Performance breakdown of catalog treatments</p>
+            <div id="popularServicesList" class="space-y-3">
+              <p class="text-xs text-gray-400">Loading performance data...</p>
+            </div>
+          </div>
+
+          <!-- Payment Methods Breakdown -->
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <h3 class="font-playfair font-bold text-gray-900 text-lg mb-1">Payment Method Distribution</h3>
+            <p class="text-xs text-gray-500 mb-4">How clients settle their spa treatments</p>
+            <div class="space-y-3" id="paymentMethodList">
+              <div class="flex justify-between items-center p-3 rounded-xl bg-gray-50 text-xs">
+                <span class="font-medium text-gray-700"><i class="fa-solid fa-money-bill-wave text-emerald-600 mr-2"></i>Cash</span>
+                <span id="payCash" class="font-bold text-gray-900 font-playfair">₦0</span>
+              </div>
+              <div class="flex justify-between items-center p-3 rounded-xl bg-gray-50 text-xs">
+                <span class="font-medium text-gray-700"><i class="fa-solid fa-credit-card text-blue-600 mr-2"></i>POS / Card</span>
+                <span id="payPOS" class="font-bold text-gray-900 font-playfair">₦0</span>
+              </div>
+              <div class="flex justify-between items-center p-3 rounded-xl bg-gray-50 text-xs">
+                <span class="font-medium text-gray-700"><i class="fa-solid fa-paper-plane text-purple-600 mr-2"></i>Bank Transfer</span>
+                <span id="payTransfer" class="font-bold text-gray-900 font-playfair">₦0</span>
+              </div>
+              <div class="flex justify-between items-center p-3 rounded-xl bg-gray-50 text-xs">
+                <span class="font-medium text-gray-700"><i class="fa-solid fa-hotel text-amber-600 mr-2"></i>Charged to Room</span>
+                <span id="payRoom" class="font-bold text-gray-900 font-playfair">₦0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Printable Reconciliation Button -->
+        <div class="text-right">
+          <button onclick="window.print()" class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-semibold shadow-sm inline-flex items-center gap-2">
+            <i class="fa-solid fa-print"></i>
+            <span>Print Financial Summary</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 3: MASSAGE TREATMENTS CATALOG (NO PICTURES) -->
+      <!-- ================================================================= -->
+      <section id="tab-catalog" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+          <div>
+            <h2 class="text-xl font-playfair font-bold text-gray-900">Massage Treatments Catalog</h2>
+            <p class="text-xs text-gray-500 mt-0.5">Manage massage types, durations, prices, and focus areas (no image upload required).</p>
+          </div>
+          <button onclick="openTreatmentModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i>
+            <span>+ Add New Massage Treatment</span>
+          </button>
+        </div>
+
+        <!-- Catalog List -->
+        <div id="catalogGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="col-span-full py-12 text-center text-gray-400">
+            <i class="fa-solid fa-spinner fa-spin text-xl text-emerald-600 mb-2 block"></i>
+            Loading treatments catalog...
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: ADD / EDIT MASSAGE TREATMENT (STRICTLY NO PICTURES) -->
+  <!-- ===================================================================== -->
+  <div id="treatmentModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-emerald-100 my-8 relative">
+      <button onclick="closeTreatmentModal()" class="absolute top-5 right-5 text-gray-400 hover:text-gray-700 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="mb-5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Spa Catalog</span>
+        <h3 id="treatmentModalTitle" class="text-xl font-playfair font-bold text-gray-900 mt-1">Add Massage Treatment</h3>
+        <p class="text-xs text-gray-500">Provide treatment details, duration, and pricing (no pictures required).</p>
+      </div>
+
+      <form id="treatmentForm" onsubmit="handleTreatmentSubmit(event)" class="space-y-4">
+        <input type="hidden" id="treatmentId" />
+
+        <!-- Treatment Name -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Massage Name *</label>
+          <input type="text" id="treatmentName" placeholder="e.g. Deep Tissue Massage" class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+        </div>
+
+        <!-- Category & Duration -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Category *</label>
+            <select id="treatmentCategory" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" required>
+              <option value="Relaxation">Relaxation</option>
+              <option value="Therapeutic">Therapeutic</option>
+              <option value="Aromatherapy">Aromatherapy</option>
+              <option value="Specialty">Specialty</option>
+              <option value="Couples Experience">Couples Experience</option>
+              <option value="Express Relief">Express Relief</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Duration *</label>
+            <input type="text" id="treatmentDuration" placeholder="e.g. 60 mins" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+        </div>
+
+        <!-- Price (₦ NGN) & Target Focus -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Price (₦ NGN) *</label>
+            <input type="number" id="treatmentPrice" placeholder="25000" min="0" step="500" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Target Focus Area</label>
+            <input type="text" id="treatmentTargetFocus" placeholder="e.g. Neck, Back & Shoulders" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Treatment Description &amp; Techniques</label>
+          <textarea id="treatmentDescription" rows="3" placeholder="Describe the therapeutic benefits, oils used, or specific stroke techniques..." class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600"></textarea>
+        </div>
+
+        <!-- Availability Toggle -->
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="treatmentAvailable" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500" checked />
+          <label for="treatmentAvailable" class="text-xs font-medium text-gray-700 cursor-pointer">
+            Available for guest booking on the hotel website
+          </label>
+        </div>
+
+        <div class="pt-4 border-t border-gray-100 flex justify-end gap-2">
+          <button type="button" onclick="closeTreatmentModal()" class="px-4 py-2 border border-gray-300 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-100">
+            Cancel
+          </button>
+          <button type="submit" id="saveTreatmentBtn" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow-sm">
+            Save Treatment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: RECORD WALK-IN / IN-HOUSE GUEST APPOINTMENT -->
+  <!-- ===================================================================== -->
+  <div id="walkInModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-emerald-100 my-8 relative">
+      <button onclick="closeWalkInModal()" class="absolute top-5 right-5 text-gray-400 hover:text-gray-700 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="mb-5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Walk-in Entry</span>
+        <h3 class="text-xl font-playfair font-bold text-gray-900 mt-1">Record In-Person / Room Booking</h3>
+        <p class="text-xs text-gray-500">Record an appointment for a walk-in guest or in-house room call.</p>
+      </div>
+
+      <form id="walkInForm" onsubmit="handleWalkInSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Select Massage Treatment *</label>
+          <select id="walkInServiceSelect" onchange="handleWalkInServiceChange()" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" required>
+            <option value="">-- Choose a Massage --</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Date *</label>
+            <input type="date" id="walkInDate" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Time Slot *</label>
+            <select id="walkInTimeSlot" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" required>
+              <option value="09:00 AM">09:00 AM</option>
+              <option value="10:30 AM">10:30 AM</option>
+              <option value="12:00 PM">12:00 PM</option>
+              <option value="01:30 PM">01:30 PM</option>
+              <option value="03:00 PM">03:00 PM</option>
+              <option value="04:30 PM">04:30 PM</option>
+              <option value="06:00 PM">06:00 PM</option>
+              <option value="07:30 PM">07:30 PM</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Guest Full Name *</label>
+            <input type="text" id="walkInGuestName" placeholder="e.g. Mr. David" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Phone Number *</label>
+            <input type="tel" id="walkInPhone" placeholder="080 000 0000" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Room # (Leave blank if walk-in)</label>
+            <input type="text" id="walkInRoom" placeholder="e.g. Room 102" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Price (₦ NGN) *</label>
+            <input type="number" id="walkInPrice" placeholder="25000" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Payment Status</label>
+            <select id="walkInPaymentStatus" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+              <option value="unpaid">Unpaid (Pay on Service)</option>
+              <option value="paid">Paid Now</option>
+              <option value="charged-to-room">Charged to Room</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Payment Method</label>
+            <select id="walkInPaymentMethod" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+              <option value="">-- None / Pending --</option>
+              <option value="cash">Cash</option>
+              <option value="pos">POS / Card</option>
+              <option value="transfer">Bank Transfer</option>
+              <option value="charged-to-room">Room Account</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Notes / Preferences</label>
+          <input type="text" id="walkInNotes" placeholder="e.g. Deep pressure, in-room setup" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+        </div>
+
+        <div class="pt-4 border-t border-gray-100 flex justify-end gap-2">
+          <button type="button" onclick="closeWalkInModal()" class="px-4 py-2 border border-gray-300 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-100">
+            Cancel
+          </button>
+          <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow-sm">
+            Record Appointment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: UPDATE APPOINTMENT STATUS & PAYMENT -->
+  <!-- ===================================================================== -->
+  <div id="statusModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-emerald-100 relative">
+      <button onclick="closeStatusModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 class="text-lg font-playfair font-bold text-gray-900 mb-1">Update Appointment</h3>
+      <p id="statusModalSubtitle" class="text-xs text-gray-500 mb-4">Ref: SPA-0000</p>
+
+      <form id="statusForm" onsubmit="handleStatusSubmit(event)" class="space-y-3">
+        <input type="hidden" id="statusBookingId" />
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Service Status</label>
+          <select id="modalStatusSelect" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+            <option value="confirmed">Confirmed</option>
+            <option value="in-progress">In-Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Payment Status</label>
+          <select id="modalPaymentStatusSelect" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+            <option value="charged-to-room">Charged to Room</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Payment Method</label>
+          <select id="modalPaymentMethodSelect" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+            <option value="">None / Pending</option>
+            <option value="cash">Cash</option>
+            <option value="pos">POS / Card</option>
+            <option value="transfer">Bank Transfer</option>
+            <option value="charged-to-room">Charged to Room</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Notes / Remarks</label>
+          <input type="text" id="modalNotesInput" placeholder="Handled by Therapist Joy..." class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="closeStatusModal()" class="px-3.5 py-1.5 border border-gray-300 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-100">
+            Cancel
+          </button>
+          <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-xl text-xs font-semibold shadow-sm">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: CHANGE SPA ADMIN PASSWORD -->
+  <!-- ===================================================================== -->
+  <div id="passwordModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-emerald-100 relative">
+      <button onclick="closeChangePasswordModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 class="text-lg font-playfair font-bold text-gray-900 mb-1">Change Spa Password</h3>
+      <p class="text-xs text-gray-500 mb-4">Set a new password for the spa admin account.</p>
+
+      <form onsubmit="handleChangePasswordSubmit(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Current Password</label>
+          <input type="password" id="pwOld" placeholder="••••••••" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">New Password (Min 6 chars)</label>
+          <input type="password" id="pwNew" placeholder="••••••••" minlength="6" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+        </div>
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="closeChangePasswordModal()" class="px-3.5 py-1.5 border border-gray-300 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-100">
+            Cancel
+          </button>
+          <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-xl text-xs font-semibold shadow-sm">
+            Update Password
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script src="spa-admin.js"></script>
+</body>
+
+</html>

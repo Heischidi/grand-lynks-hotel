@@ -390,3 +390,49 @@ model StaffShiftLog {
   @@map("staff_shift_logs")
 }
 
+// ============================================================
+// SERENITY SPA & WELLNESS MODULE
+// ============================================================
+model SpaService {
+  id          Int          @id @default(autoincrement())
+  name        String
+  category    String       @default("Massage")
+  duration    String       @default("60 mins")
+  price       Float
+  description String?
+  targetFocus String?      @map("target_focus")
+  available   Boolean      @default(true)
+  deletedAt   DateTime?    @map("deleted_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at")
+  bookings    SpaBooking[]
+
+  @@map("spa_services")
+}
+
+model SpaBooking {
+  id              Int         @id @default(autoincrement())
+  bookingRef      String?     @unique @map("booking_ref")
+  serviceId       Int?        @map("service_id")
+  serviceName     String      @map("service_name")
+  price           Float
+  guestName       String      @map("guest_name")
+  phone           String
+  email           String?
+  roomNumber      String?     @map("room_number")
+  appointmentDate DateTime    @map("appointment_date") @db.Date
+  timeSlot        String      @map("time_slot")
+  numberOfGuests  Int         @default(1) @map("number_of_guests")
+  specialRequests String?     @map("special_requests")
+  status          String      @default("confirmed") // confirmed, in-progress, completed, cancelled
+  paymentStatus   String      @default("unpaid") @map("payment_status") // unpaid, paid, charged-to-room
+  paymentMethod   String?     @map("payment_method")// cash, pos, transfer, room-charge
+  notes           String?
+  service         SpaService? @relation(fields: [serviceId], references: [id])
+  deletedAt       DateTime?   @map("deleted_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @default(now()) @updatedAt @map("updated_at")
+
+  @@map("spa_bookings")
+}
+

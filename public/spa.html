@@ -4,616 +4,793 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Serenity Spa - Grand Lynks Homes &amp; Apartments</title>
+  <title>Serenity Spa & Massage - Grand Lynks Homes & Apartments</title>
+  <meta name="description" content="Indulge in therapeutic body massages, deep tissue treatments, and relaxation at Grand Lynks Serenity Spa in Gwarinpa, Abuja." />
+  <link rel="icon" href="images/grandfullfront.jpeg" type="image/jpeg" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
 
     .font-playfair {
       font-family: "Playfair Display", serif;
     }
 
-    .font-inter {
-      font-family: "Inter", sans-serif;
+    .font-sans {
+      font-family: "Plus Jakarta Sans", sans-serif;
     }
 
     .hero-gradient {
-      background: linear-gradient(135deg,
-          rgba(139, 195, 74, 0.1) 0%,
-          rgba(76, 175, 80, 0.1) 100%);
+      background: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.05) 50%, rgba(248, 250, 252, 0.8) 100%);
     }
 
     .service-card {
-      transition: all 0.3s ease;
-      backdrop-filter: blur(10px);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .service-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      transform: translateY(-6px);
+      box-shadow: 0 20px 30px -10px rgba(5, 150, 105, 0.15);
     }
 
-    .floating-animation {
-      animation: float 6s ease-in-out infinite;
-    }
-
-    @keyframes float {
-
-      0%,
-      100% {
-        transform: translateY(0px);
-      }
-
-      50% {
-        transform: translateY(-10px);
-      }
-    }
-
-    .fade-in {
-      opacity: 0;
-      transform: translateY(30px);
-      animation: fadeIn 0.8s ease forwards;
-    }
-
-    @keyframes fadeIn {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .time-slot-btn.active {
+      background-color: #059669;
+      color: #ffffff;
+      border-color: #059669;
     }
   </style>
 </head>
 
-<body class="bg-gradient-to-br from-green-50 to-blue-50 font-inter">
+<body class="bg-[#fafaf8] text-gray-800 font-sans antialiased min-h-screen flex flex-col">
+  <!-- Top Luxury Announcement / Quick Contact -->
+  <div class="bg-[#0f2e22] text-emerald-100 text-xs py-2 px-4 text-center font-medium tracking-wide flex justify-between items-center max-w-7xl mx-auto w-full">
+    <span>✨ Grand Lynks Serenity Spa Sanctuary • Open Daily 8:00 AM – 9:00 PM</span>
+    <span class="hidden sm:inline">📞 Appointments & Inquiries: +234 814 223 4691</span>
+  </div>
+
   <!-- Navigation -->
-  <nav class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50">
+  <nav class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-emerald-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        <div class="flex items-center">
-          <a href="index.html" class="text-2xl font-playfair font-bold text-green-800 hover:opacity-80 transition-opacity">
-            🏨 Grand Lynks
+      <div class="flex justify-between items-center h-18 py-3">
+        <div class="flex items-center space-x-3">
+          <a href="index.html" class="flex items-center space-x-2">
+            <span class="text-2xl">🌿</span>
+            <div class="leading-tight">
+              <span class="block text-xl font-playfair font-bold text-[#0f2e22]">Grand Lynks</span>
+              <span class="block text-[10px] uppercase tracking-widest text-emerald-700 font-semibold">Serenity Spa</span>
+            </div>
           </a>
         </div>
-        <div class="hidden md:flex space-x-8">
-          <a href="index.html" class="text-gray-700 hover:text-green-600 transition-colors">Home</a>
-          <a href="spa.html" class="text-green-600 font-medium">Spa</a>
-          <a href="rooms.html" class="text-gray-700 hover:text-green-600 transition-colors">Rooms</a>
-          <a href="order.html" class="text-gray-700 hover:text-green-600 transition-colors">Dining</a>
-          <a href="contact.html" class="text-gray-700 hover:text-green-600 transition-colors">Contact</a>
-        </div>
-        <div class="flex items-center space-x-4">
-          <a href="booking.html" class="hidden sm:inline-block bg-green-600 text-white px-6 py-2 rounded-full hover:bg-green-700 transition-colors">
-            Book Now
+        <div class="hidden md:flex space-x-7 items-center text-sm font-medium">
+          <a href="index.html" class="text-gray-600 hover:text-emerald-700 transition-colors">Home</a>
+          <a href="spa.html" class="text-emerald-800 font-semibold border-b-2 border-emerald-600 pb-1">Spa & Massage</a>
+          <a href="rooms.html" class="text-gray-600 hover:text-emerald-700 transition-colors">Suites & Rooms</a>
+          <a href="order.html" class="text-gray-600 hover:text-emerald-700 transition-colors">Dining</a>
+          <a href="contact.html" class="text-gray-600 hover:text-emerald-700 transition-colors">Contact</a>
+          <a href="spa-admin.html" class="text-xs text-emerald-700/70 hover:text-emerald-800 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+            <i class="fa-solid fa-lock text-[10px] mr-1"></i>Spa Staff Login
           </a>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button onclick="openBookingModal()" class="bg-emerald-700 text-white px-5 py-2.5 rounded-full hover:bg-emerald-800 transition-all shadow-sm font-medium text-sm flex items-center gap-2">
+            <span>Book a Massage</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
           <!-- Mobile Menu Button -->
-          <button id="mobileMenuBtn" class="md:hidden text-gray-700 hover:text-green-600 focus:outline-none flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
+          <button id="mobileMenuBtn" class="md:hidden text-gray-700 p-2 rounded-lg hover:bg-gray-100 focus:outline-none">
+            <i class="fa-solid fa-bars text-xl"></i>
           </button>
         </div>
       </div>
     </div>
     <!-- Mobile Menu Dropdown -->
-    <div id="mobileMenuDropdown" class="hidden md:hidden bg-white border-t border-gray-100">
-      <div class="px-4 pt-2 pb-4 space-y-1">
-        <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">Home</a>
-        <a href="spa.html" class="block px-3 py-2 rounded-md text-base font-medium text-green-600 bg-green-50">Spa</a>
-        <a href="rooms.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">Rooms</a>
-        <a href="order.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">Dining</a>
-        <a href="contact.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-50">Contact</a>
-        <a href="booking.html" class="block w-full text-center px-4 py-2 mt-2 rounded-md text-base font-medium text-white bg-green-600 hover:bg-green-700">Book Now</a>
-      </div>
+    <div id="mobileMenuDropdown" class="hidden md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-2">
+      <a href="index.html" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-emerald-50">Home</a>
+      <a href="spa.html" class="block px-3 py-2 rounded-lg font-semibold text-emerald-800 bg-emerald-50">Spa & Massage</a>
+      <a href="rooms.html" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-emerald-50">Rooms</a>
+      <a href="order.html" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-emerald-50">Dining</a>
+      <a href="contact.html" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-emerald-50">Contact</a>
+      <a href="spa-admin.html" class="block px-3 py-2 rounded-lg text-emerald-700 hover:bg-emerald-50 text-sm">Staff Portal</a>
+      <button onclick="openBookingModal()" class="w-full text-center mt-3 bg-emerald-700 text-white py-2.5 rounded-full font-medium text-sm">
+        Book a Massage Now
+      </button>
     </div>
   </nav>
 
   <!-- Hero Section -->
-  <section class="relative hero-gradient py-20 overflow-hidden">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <div class="fade-in">
-          <h1 class="text-5xl lg:text-6xl font-playfair font-bold text-gray-800 mb-6">
-            Serenity Spa
-            <span class="text-green-600">Sanctuary</span>
+  <section class="relative hero-gradient py-16 md:py-24 border-b border-emerald-100/60 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="grid lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-7 space-y-6">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-semibold tracking-wide uppercase">
+            <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+            Serenity Spa Sanctuary
+          </div>
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-playfair font-bold text-gray-900 leading-tight">
+            Indulge in Pure Relaxation &amp;
+            <span class="text-emerald-700 italic">Restorative Touch</span>
           </h1>
-          <p class="text-xl text-gray-600 mb-8 leading-relaxed">
-            Escape to our tranquil spa oasis where luxury meets wellness.
-            Experience rejuvenating treatments in our serene environment
-            designed for ultimate relaxation.
+          <p class="text-lg text-gray-600 leading-relaxed max-w-2xl">
+            Escape the bustling city and immerse your senses in tailored massage therapies. From tension-melting deep tissue work to calming aromatherapy sequences, our certified therapists ensure holistic rejuvenation.
           </p>
-          <div class="flex flex-col sm:flex-row gap-4">
-            <button
-              class="bg-green-600 text-white px-8 py-4 rounded-full hover:bg-green-700 transition-all transform hover:scale-105 font-medium">
-              Book Treatment
+          <div class="flex flex-wrap gap-4 pt-2">
+            <button onclick="scrollToMenu()" class="bg-emerald-700 text-white px-8 py-4 rounded-full hover:bg-emerald-800 transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2">
+              <i class="fa-solid fa-spa"></i>
+              <span>Select Your Massage</span>
             </button>
-            <button
-              class="border-2 border-green-600 text-green-600 px-8 py-4 rounded-full hover:bg-green-600 hover:text-white transition-all">
-              View Menu
+            <button onclick="openBookingModal()" class="border-2 border-emerald-700 text-emerald-700 px-7 py-4 rounded-full hover:bg-emerald-50 transition-all font-medium">
+              Instant Reservation
             </button>
           </div>
-        </div>
-        <div class="floating-animation">
-          <div class="bg-white/20 backdrop-blur-sm rounded-3xl p-8 shadow-xl">
-            <svg class="w-full h-80" viewBox="0 0 400 300" fill="none">
-              <rect width="400" height="300" rx="20" fill="url(#spa-gradient)" />
-              <circle cx="200" cy="150" r="80" fill="rgba(255,255,255,0.3)" />
-              <path d="M160 130 Q200 100 240 130 Q200 160 160 130" fill="rgba(139,195,74,0.6)" />
-              <circle cx="180" cy="140" r="8" fill="rgba(255,255,255,0.8)" />
-              <circle cx="220" cy="140" r="8" fill="rgba(255,255,255,0.8)" />
-              <text x="200" y="200" text-anchor="middle" fill="white" font-size="16" font-family="serif">
-                🧘‍♀️ Spa Sanctuary
-              </text>
-              <defs>
-                <linearGradient id="spa-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style="stop-color: #8bc34a; stop-opacity: 0.8" />
-                  <stop offset="100%" style="stop-color: #4caf50; stop-opacity: 0.9" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Services Section -->
-  <section class="py-20 bg-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-          Signature Treatments
-        </h2>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-          Indulge in our carefully curated selection of premium spa treatments
-          designed to restore your mind, body, and spirit.
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <!-- Massage Therapy -->
-        <div class="service-card bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 border border-green-100">
-          <div class="mb-6">
-            <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
-              <circle cx="40" cy="40" r="35" fill="url(#massage-gradient)" />
-              <path d="M25 35 Q40 25 55 35 Q40 45 25 35" fill="rgba(255,255,255,0.8)" />
-              <circle cx="35" cy="32" r="3" fill="rgba(139,195,74,0.8)" />
-              <circle cx="45" cy="32" r="3" fill="rgba(139,195,74,0.8)" />
-              <defs>
-                <linearGradient id="massage-gradient">
-                  <stop offset="0%" style="stop-color: #8bc34a" />
-                  <stop offset="100%" style="stop-color: #4caf50" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <h3 class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center">
-            Massage Therapy
-          </h3>
-          <p class="text-gray-600 mb-6 text-center">
-            Therapeutic massages using premium oils and techniques to release
-            tension and promote deep relaxation.
-          </p>
-          <div class="space-y-2 mb-6">
-            <div class="flex justify-between">
-              <span class="text-gray-700">Swedish Massage</span>
-              <span class="font-semibold text-green-600">$120</span>
+          <!-- Highlights -->
+          <div class="grid grid-cols-3 gap-4 pt-6 border-t border-emerald-200/50 text-center sm:text-left">
+            <div>
+              <p class="text-2xl font-bold text-gray-900 font-playfair">100%</p>
+              <p class="text-xs text-gray-500 font-medium">Natural Botanical Oils</p>
             </div>
-            <div class="flex justify-between">
-              <span class="text-gray-700">Deep Tissue</span>
-              <span class="font-semibold text-green-600">$140</span>
+            <div>
+              <p class="text-2xl font-bold text-gray-900 font-playfair">Private</p>
+              <p class="text-xs text-gray-500 font-medium">Treatment & Couple Suites</p>
             </div>
-            <div class="flex justify-between">
-              <span class="text-gray-700">Hot Stone</span>
-              <span class="font-semibold text-green-600">$160</span>
+            <div>
+              <p class="text-2xl font-bold text-gray-900 font-playfair">In-Room</p>
+              <p class="text-xs text-gray-500 font-medium">Available for Hotel Guests</p>
             </div>
-          </div>
-          <button class="w-full bg-green-600 text-white py-3 rounded-full hover:bg-green-700 transition-colors">
-            Book Now
-          </button>
-        </div>
-
-        <!-- Facial Treatments -->
-        <div class="service-card bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-100">
-          <div class="mb-6">
-            <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
-              <circle cx="40" cy="40" r="35" fill="url(#facial-gradient)" />
-              <circle cx="40" cy="35" r="15" fill="rgba(255,255,255,0.9)" />
-              <circle cx="35" cy="32" r="2" fill="rgba(33,150,243,0.8)" />
-              <circle cx="45" cy="32" r="2" fill="rgba(33,150,243,0.8)" />
-              <path d="M35 42 Q40 45 45 42" stroke="rgba(33,150,243,0.8)" stroke-width="2" fill="none" />
-              <defs>
-                <linearGradient id="facial-gradient">
-                  <stop offset="0%" style="stop-color: #2196f3" />
-                  <stop offset="100%" style="stop-color: #9c27b0" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <h3 class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center">
-            Facial Treatments
-          </h3>
-          <p class="text-gray-600 mb-6 text-center">
-            Rejuvenating facial treatments using organic products to cleanse,
-            nourish, and revitalize your skin.
-          </p>
-          <div class="space-y-2 mb-6">
-            <div class="flex justify-between">
-              <span class="text-gray-700">Hydrating Facial</span>
-              <span class="font-semibold text-blue-600">$90</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-700">Anti-Aging</span>
-              <span class="font-semibold text-blue-600">$130</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-700">Gold Luxury</span>
-              <span class="font-semibold text-blue-600">$200</span>
-            </div>
-          </div>
-          <button class="w-full bg-blue-600 text-white py-3 rounded-full hover:bg-blue-700 transition-colors">
-            Book Now
-          </button>
-        </div>
-
-        <!-- Body Treatments -->
-        <div class="service-card bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-100">
-          <div class="mb-6">
-            <svg class="w-16 h-16 mx-auto" viewBox="0 0 80 80" fill="none">
-              <circle cx="40" cy="40" r="35" fill="url(#body-gradient)" />
-              <ellipse cx="40" cy="35" rx="12" ry="18" fill="rgba(255,255,255,0.9)" />
-              <circle cx="40" cy="28" r="6" fill="rgba(233,30,99,0.3)" />
-              <ellipse cx="40" cy="45" rx="8" ry="12" fill="rgba(233,30,99,0.2)" />
-              <defs>
-                <linearGradient id="body-gradient">
-                  <stop offset="0%" style="stop-color: #9c27b0" />
-                  <stop offset="100%" style="stop-color: #e91e63" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <h3 class="text-2xl font-playfair font-semibold text-gray-800 mb-4 text-center">
-            Body Treatments
-          </h3>
-          <p class="text-gray-600 mb-6 text-center">
-            Full-body treatments including wraps, scrubs, and detoxifying
-            therapies for complete wellness.
-          </p>
-          <div class="space-y-2 mb-6">
-            <div class="flex justify-between">
-              <span class="text-gray-700">Body Scrub</span>
-              <span class="font-semibold text-purple-600">$100</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-700">Mud Wrap</span>
-              <span class="font-semibold text-purple-600">$150</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-700">Detox Package</span>
-              <span class="font-semibold text-purple-600">$220</span>
-            </div>
-          </div>
-          <button class="w-full bg-purple-600 text-white py-3 rounded-full hover:bg-purple-700 transition-colors">
-            Book Now
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Facilities Section -->
-  <section class="py-20 bg-gradient-to-br from-green-50 to-blue-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-          Spa Facilities
-        </h2>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-          Enjoy our world-class facilities designed to enhance your spa
-          experience and promote total relaxation.
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <div class="text-center group">
-          <div class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4">
-            <div class="text-4xl mb-4">🏊‍♀️</div>
-            <h3 class="text-xl font-playfair font-semibold text-gray-800 mb-2">
-              Infinity Pool
-            </h3>
-            <p class="text-gray-600">
-              Heated infinity pool with stunning views
-            </p>
           </div>
         </div>
 
-        <div class="text-center group">
-          <div class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4">
-            <div class="text-4xl mb-4">🧖‍♀️</div>
-            <h3 class="text-xl font-playfair font-semibold text-gray-800 mb-2">
-              Sauna & Steam
-            </h3>
-            <p class="text-gray-600">
-              Traditional Finnish sauna and steam rooms
-            </p>
-          </div>
-        </div>
+        <div class="lg:col-span-5">
+          <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-emerald-100 relative">
+            <div class="absolute -top-3 -right-3 bg-emerald-600 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+              Popular Choice
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl">
+                  <i class="fa-solid fa-hand-holding-heart"></i>
+                </div>
+                <div>
+                  <h3 class="font-playfair font-bold text-lg text-gray-900">Swedish Relaxation Massage</h3>
+                  <p class="text-xs text-emerald-700 font-medium">60 Mins • Full Body Harmony</p>
+                </div>
+              </div>
+              <p class="text-xs text-gray-600 leading-relaxed">
+                Rhythmic, gentle kneading targeting chronic physical fatigue, relieving tension while restoring tranquil balance to mind and soul.
+              </p>
+              <div class="flex items-baseline justify-between pt-2 border-t border-gray-100">
+                <div>
+                  <span class="text-xs text-gray-400 uppercase">Treatment Price</span>
+                  <p class="text-2xl font-bold text-gray-900 font-playfair">₦25,000</p>
+                </div>
+                <button onclick="selectMassageForBooking('Swedish Relaxation Massage', 25000, 1)" class="bg-emerald-700 text-white px-5 py-2.5 rounded-full hover:bg-emerald-800 text-xs font-semibold">
+                  Book This Massage
+                </button>
+              </div>
+            </div>
 
-        <div class="text-center group">
-          <div class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4">
-            <div class="text-4xl mb-4">🧘‍♀️</div>
-            <h3 class="text-xl font-playfair font-semibold text-gray-800 mb-2">
-              Meditation Garden
-            </h3>
-            <p class="text-gray-600">Peaceful outdoor meditation spaces</p>
-          </div>
-        </div>
-
-        <div class="text-center group">
-          <div class="bg-white rounded-2xl p-8 shadow-lg group-hover:shadow-xl transition-all mb-4">
-            <div class="text-4xl mb-4">💆‍♀️</div>
-            <h3 class="text-xl font-playfair font-semibold text-gray-800 mb-2">
-              Private Suites
-            </h3>
-            <p class="text-gray-600">Luxury treatment rooms for couples</p>
+            <div class="mt-6 pt-5 border-t border-dashed border-gray-200 flex items-center justify-between text-xs text-gray-500">
+              <span><i class="fa-solid fa-hotel text-emerald-600 mr-1"></i> In-room or sanctuary suite</span>
+              <span><i class="fa-solid fa-clock text-emerald-600 mr-1"></i> Today availability</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Testimonials -->
-  <section class="py-20 bg-white">
+  <!-- Massage Catalog / Selection Section -->
+  <section id="massage-menu" class="py-16 md:py-24 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-playfair font-bold text-gray-800 mb-4">
-          Guest Experiences
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <span class="text-xs uppercase tracking-widest text-emerald-700 font-bold bg-emerald-50 px-3 py-1 rounded-full">Massage Therapies</span>
+        <h2 class="text-3xl sm:text-4xl font-playfair font-bold text-gray-900 mt-3 mb-4">
+          Select Your Massage Treatment
         </h2>
-        <p class="text-xl text-gray-600">
-          What our guests say about their spa journey
+        <p class="text-gray-600 text-sm sm:text-base">
+          Choose from our expertly crafted massage therapies below. Every session includes a consultation to customize pressure, focus areas, and natural essential oils.
         </p>
+
+        <!-- Category Filters -->
+        <div id="categoryPills" class="flex flex-wrap justify-center gap-2 mt-8">
+          <button onclick="filterCategory('all')" class="category-pill active px-4 py-2 rounded-full text-xs font-medium bg-emerald-700 text-white transition-all">
+            All Massages
+          </button>
+          <button onclick="filterCategory('Relaxation')" class="category-pill px-4 py-2 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">
+            Relaxation
+          </button>
+          <button onclick="filterCategory('Therapeutic')" class="category-pill px-4 py-2 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">
+            Therapeutic
+          </button>
+          <button onclick="filterCategory('Aromatherapy')" class="category-pill px-4 py-2 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">
+            Aromatherapy
+          </button>
+          <button onclick="filterCategory('Specialty')" class="category-pill px-4 py-2 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">
+            Specialty
+          </button>
+          <button onclick="filterCategory('Couples Experience')" class="category-pill px-4 py-2 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">
+            Couples
+          </button>
+          <button onclick="filterCategory('Express Relief')" class="category-pill px-4 py-2 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">
+            Express Relief
+          </button>
+        </div>
       </div>
 
+      <!-- Services Grid -->
+      <div id="servicesGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+        <!-- Rendered dynamically via JavaScript -->
+        <div class="col-span-full py-12 text-center text-gray-400">
+          <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-emerald-600"></i>
+          <p>Loading available massage treatments...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="py-16 bg-[#f7f9f7] border-y border-emerald-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h3 class="text-2xl font-playfair font-bold text-gray-900">Your Seamless Spa Journey</h3>
+        <p class="text-gray-500 text-sm mt-1">Effortless relaxation from appointment booking to aftercare</p>
+      </div>
       <div class="grid md:grid-cols-3 gap-8">
-        <div class="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 border border-green-100">
-          <div class="flex items-center mb-4">
-            <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
-          </div>
-          <p class="text-gray-700 mb-6 italic">
-            "The most relaxing spa experience I've ever had. The staff was
-            incredibly professional and the facilities are absolutely
-            stunning."
-          </p>
-          <div class="flex items-center">
-            <div class="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center mr-4">
-              <span class="text-green-800 font-semibold">SJ</span>
-            </div>
-            <div>
-              <h4 class="font-semibold text-gray-800">Sarah Johnson</h4>
-              <p class="text-gray-600 text-sm">Verified Guest</p>
-            </div>
-          </div>
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">1</div>
+          <h4 class="font-bold text-gray-800 mb-2">Select &amp; Schedule</h4>
+          <p class="text-xs text-gray-500 leading-relaxed">Pick your desired massage and preferred time slot. Staying guests can charge directly to their room account.</p>
         </div>
-
-        <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-100">
-          <div class="flex items-center mb-4">
-            <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
-          </div>
-          <p class="text-gray-700 mb-6 italic">
-            "Perfect for a romantic getaway. The couples massage was divine
-            and the ambiance is simply magical."
-          </p>
-          <div class="flex items-center">
-            <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center mr-4">
-              <span class="text-blue-800 font-semibold">MC</span>
-            </div>
-            <div>
-              <h4 class="font-semibold text-gray-800">Michael Chen</h4>
-              <p class="text-gray-600 text-sm">Verified Guest</p>
-            </div>
-          </div>
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">2</div>
+          <h4 class="font-bold text-gray-800 mb-2">Personalized Consultation</h4>
+          <p class="text-xs text-gray-500 leading-relaxed">Your therapist confirms pressure preference and focus areas to ensure optimal relief and comfort.</p>
         </div>
-
-        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-100">
-          <div class="flex items-center mb-4">
-            <div class="text-yellow-400 text-xl">⭐⭐⭐⭐⭐</div>
-          </div>
-          <p class="text-gray-700 mb-6 italic">
-            "I left feeling completely rejuvenated. The facial treatment was
-            exceptional and the staff made me feel like royalty."
-          </p>
-          <div class="flex items-center">
-            <div class="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center mr-4">
-              <span class="text-purple-800 font-semibold">ER</span>
-            </div>
-            <div>
-              <h4 class="font-semibold text-gray-800">Emma Rodriguez</h4>
-              <p class="text-gray-600 text-sm">Verified Guest</p>
-            </div>
-          </div>
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">3</div>
+          <h4 class="font-bold text-gray-800 mb-2">Tranquil Revival</h4>
+          <p class="text-xs text-gray-500 leading-relaxed">Immerse in soothing music and gentle aromatics as deep muscle tension and mental stress fade away.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- CTA Section -->
-  <section class="py-20 bg-gradient-to-r from-green-600 to-blue-600 text-white">
-    <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-      <h2 class="text-4xl font-playfair font-bold mb-6">Ready to Unwind?</h2>
-      <p class="text-xl mb-8 opacity-90">
-        Book your spa experience today and discover the perfect balance of
-        luxury and wellness at our hotel spa.
+  <!-- Facilities Highlights -->
+  <section class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h3 class="text-2xl sm:text-3xl font-playfair font-bold text-gray-900">World-Class Spa Amenities</h3>
+        <p class="text-gray-500 text-sm mt-1">Designed for total serenity before and after your treatment</p>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="p-6 rounded-2xl bg-emerald-50/50 border border-emerald-100 text-center">
+          <span class="text-3xl mb-3 block">🌿</span>
+          <h4 class="font-bold text-gray-800 text-sm mb-1">Private Suites</h4>
+          <p class="text-xs text-gray-500">Individual and couple suites with en-suite showers and mood lighting.</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-emerald-50/50 border border-emerald-100 text-center">
+          <span class="text-3xl mb-3 block">🫖</span>
+          <h4 class="font-bold text-gray-800 text-sm mb-1">Herbal Tea Lounge</h4>
+          <p class="text-xs text-gray-500">Complimentary organic herbal infusions and detox fruit waters.</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-emerald-50/50 border border-emerald-100 text-center">
+          <span class="text-3xl mb-3 block">🧖‍♀️</span>
+          <h4 class="font-bold text-gray-800 text-sm mb-1">Steam &amp; Relaxation</h4>
+          <p class="text-xs text-gray-500">Invigorating eucalyptus steam therapy to open pores before massages.</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-emerald-50/50 border border-emerald-100 text-center">
+          <span class="text-3xl mb-3 block">🛎️</span>
+          <h4 class="font-bold text-gray-800 text-sm mb-1">In-Room Delivery</h4>
+          <p class="text-xs text-gray-500">Full treatment setup in the privacy of your Grand Lynks suite.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call to Action Banner -->
+  <section class="py-16 bg-[#0f2e22] text-white text-center">
+    <div class="max-w-4xl mx-auto px-4">
+      <h3 class="text-3xl font-playfair font-bold mb-3">Ready for Rejuvenation?</h3>
+      <p class="text-emerald-100 text-sm sm:text-base max-w-xl mx-auto mb-8">
+        Reserve your massage slot today or speak directly with our wellness concierge for personalized packages.
       </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <button
-          class="bg-white text-green-600 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition-all transform hover:scale-105">
-          Book Your Treatment
+      <div class="flex flex-wrap justify-center gap-4">
+        <button onclick="openBookingModal()" class="bg-emerald-500 hover:bg-emerald-600 text-[#0f2e22] font-bold px-8 py-3.5 rounded-full text-sm transition-all shadow-lg">
+          Book Massage Appointment
         </button>
-        <button
-          class="border-2 border-white text-white px-8 py-4 rounded-full hover:bg-white hover:text-green-600 transition-all">
-          Call +2348142234691
-        </button>
+        <a href="tel:+2348142234691" class="border border-emerald-300 text-emerald-100 hover:bg-emerald-900/60 font-medium px-8 py-3.5 rounded-full text-sm transition-all flex items-center gap-2">
+          <i class="fa-solid fa-phone"></i>
+          <span>Call Concierge: +234 814 223 4691</span>
+        </a>
       </div>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="bg-gray-800 text-white py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid md:grid-cols-4 gap-8">
-        <div>
-          <h3 class="text-xl font-playfair font-semibold mb-4">
-            🏨 Grand Lynks Homes &amp; Apartments
-          </h3>
-          <p class="text-gray-400">
-            Your comfort, our interest. Experience luxury living in the heart of Gwarinpa, Abuja.
-          </p>
-        </div>
-        <div>
-          <h4 class="font-semibold mb-4">Spa Services</h4>
-          <ul class="space-y-2 text-gray-400">
-            <li>
-              <a href="#" class="hover:text-white transition-colors">Massage Therapy</a>
-            </li>
-            <li>
-              <a href="#" class="hover:text-white transition-colors">Facial Treatments</a>
-            </li>
-            <li>
-              <a href="#" class="hover:text-white transition-colors">Body Treatments</a>
-            </li>
-            <li>
-              <a href="#" class="hover:text-white transition-colors">Wellness Packages</a>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <h4 class="font-semibold mb-4">Quick Links</h4>
-          <ul class="space-y-2 text-gray-400">
-            <li>
-              <a href="index.html" class="hover:text-white transition-colors">Home</a>
-            </li>
-            <li>
-              <a href="rooms.html" class="hover:text-white transition-colors">Our Rooms</a>
-            </li>
-            <li>
-              <a href="booking.html" class="hover:text-white transition-colors">Book Now</a>
-            </li>
-            <li>
-              <a href="contact.html" class="hover:text-white transition-colors">Contact Us</a>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <h4 class="font-semibold mb-4">Contact</h4>
-          <div class="space-y-2 text-gray-400">
-            <p>📍 80 Pa Michael Imoudu Ave, Gwarinpa, 900108, Federal Capital Territory, Nigeria</p>
-            <p>📞 +2348142234691</p>
-            <p>✉️ grandlynkshomesandapartments@gmail.com</p>
-          </div>
-        </div>
+  <footer class="bg-gray-900 text-gray-400 text-xs py-12 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid sm:grid-cols-2 md:grid-cols-4 gap-8">
+      <div>
+        <h4 class="text-white font-playfair text-base font-bold mb-3">Grand Lynks Serenity Spa</h4>
+        <p class="leading-relaxed">Your comfort, our interest. Unwind with premium massage therapy and restorative wellness services in Gwarinpa, Abuja.</p>
       </div>
-      <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-        <p>&copy; 2026 Grand Lynks Homes &amp; Apartments. All rights reserved.</p>
+      <div>
+        <h5 class="text-white font-semibold mb-3">Quick Links</h5>
+        <ul class="space-y-2">
+          <li><a href="index.html" class="hover:text-white">Home</a></li>
+          <li><a href="spa.html" class="text-emerald-400 font-semibold">Spa &amp; Massage</a></li>
+          <li><a href="rooms.html" class="hover:text-white">Rooms &amp; Suites</a></li>
+          <li><a href="order.html" class="hover:text-white">Restaurant &amp; Bar</a></li>
+          <li><a href="contact.html" class="hover:text-white">Contact &amp; Directions</a></li>
+        </ul>
       </div>
+      <div>
+        <h5 class="text-white font-semibold mb-3">Spa Operations</h5>
+        <p>Monday – Sunday: 8:00 AM – 9:00 PM</p>
+        <p class="mt-2">In-Room Booking: Dial 0 from room</p>
+        <p class="mt-3">
+          <a href="spa-admin.html" class="text-emerald-400 hover:underline">
+            <i class="fa-solid fa-lock text-[10px] mr-1"></i>Spa Staff Portal
+          </a>
+        </p>
+      </div>
+      <div>
+        <h5 class="text-white font-semibold mb-3">Contact &amp; Location</h5>
+        <p>📍 80 Pa Michael Imoudu Ave, Gwarinpa, Abuja</p>
+        <p class="mt-2">📞 +234 814 223 4691</p>
+        <p class="mt-2">✉️ grandlynkshomesandapartments@gmail.com</p>
+      </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 mt-8 border-t border-gray-800 text-center text-gray-500">
+      &copy; 2026 Grand Lynks Homes &amp; Apartments. All rights reserved.
     </div>
   </footer>
 
+  <!-- ===================================================================== -->
+  <!-- MASSAGE BOOKING MODAL -->
+  <!-- ===================================================================== -->
+  <div id="spaBookingModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-emerald-100 my-8 relative">
+      <!-- Close Button -->
+      <button onclick="closeBookingModal()" class="absolute top-5 right-5 text-gray-400 hover:text-gray-700 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="mb-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">Serenity Spa Reservation</span>
+        <h3 class="text-2xl font-playfair font-bold text-gray-900 mt-2">Book Your Massage</h3>
+        <p class="text-xs text-gray-500 mt-1">Reserve your appointment in just a few quick steps.</p>
+      </div>
+
+      <form id="spaBookingForm" onsubmit="handleSpaBookingSubmit(event)" class="space-y-4">
+        <!-- Massage Type Selection -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Select Massage Treatment *</label>
+          <select id="modalServiceSelect" onchange="handleModalServiceChange()" class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" required>
+            <option value="">-- Choose a Massage --</option>
+          </select>
+          <div id="selectedServiceBadge" class="mt-2 hidden text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 flex justify-between items-center">
+            <span id="badgeDuration">⏱️ 60 Mins</span>
+            <span id="badgePrice" class="font-bold text-sm">₦25,000</span>
+          </div>
+        </div>
+
+        <!-- Date & Time Selection -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Appointment Date *</label>
+            <input type="date" id="modalDate" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Number of Guests</label>
+            <select id="modalGuests" onchange="calculateModalTotal()" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+              <option value="1">1 Person (Single)</option>
+              <option value="2">2 Persons (Couples / Duo)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Preferred Time Slot -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1.5">Select Time Slot *</label>
+          <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="timeSlotsContainer">
+            <button type="button" onclick="selectTimeSlot(this, '09:00 AM')" class="time-slot-btn border border-gray-200 text-xs py-2 rounded-lg text-gray-700 hover:border-emerald-600">09:00 AM</button>
+            <button type="button" onclick="selectTimeSlot(this, '10:30 AM')" class="time-slot-btn border border-gray-200 text-xs py-2 rounded-lg text-gray-700 hover:border-emerald-600">10:30 AM</button>
+            <button type="button" onclick="selectTimeSlot(this, '12:00 PM')" class="time-slot-btn border border-gray-200 text-xs py-2 rounded-lg text-gray-700 hover:border-emerald-600">12:00 PM</button>
+            <button type="button" onclick="selectTimeSlot(this, '01:30 PM')" class="time-slot-btn border border-gray-200 text-xs py-2 rounded-lg text-gray-700 hover:border-emerald-600">01:30 PM</button>
+            <button type="button" onclick="selectTimeSlot(this, '03:00 PM')" class="time-slot-btn border border-gray-200 text-xs py-2 rounded-lg text-gray-700 hover:border-emerald-600">03:00 PM</button>
+            <button type="button" onclick="selectTimeSlot(this, '04:30 PM')" class="time-slot-btn border border-gray-200 text-xs py-2 rounded-lg text-gray-700 hover:border-emerald-600">04:30 PM</button>
+            <button type="button" onclick="selectTimeSlot(this, '06:00 PM')" class="time-slot-btn border border-gray-200 text-xs py-2 rounded-lg text-gray-700 hover:border-emerald-600">06:00 PM</button>
+            <button type="button" onclick="selectTimeSlot(this, '07:30 PM')" class="time-slot-btn border border-gray-200 text-xs py-2 rounded-lg text-gray-700 hover:border-emerald-600">07:30 PM</button>
+          </div>
+          <input type="hidden" id="modalTimeSlot" required />
+        </div>
+
+        <!-- Guest Details -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Your Full Name *</label>
+            <input type="text" id="modalGuestName" placeholder="e.g. Joy Okafor" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Phone Number *</label>
+            <input type="tel" id="modalPhone" placeholder="080 1234 5678" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Email Address (Optional)</label>
+            <input type="email" id="modalEmail" placeholder="for booking receipt" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Room Number (If staying)</label>
+            <input type="text" id="modalRoom" placeholder="e.g. Room 201 or Walk-in" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <!-- Special Request / Pressure Preference -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Pressure &amp; Special Preferences</label>
+          <input type="text" id="modalRequests" placeholder="e.g. Medium pressure, focus on neck, in-room service" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+        </div>
+
+        <!-- Summary & Submit -->
+        <div class="pt-4 border-t border-gray-100 flex items-center justify-between">
+          <div>
+            <span class="text-xs text-gray-400">Total Estimate</span>
+            <div id="modalTotalPrice" class="text-2xl font-bold font-playfair text-emerald-800">₦0</div>
+          </div>
+          <button type="submit" id="submitBookingBtn" class="bg-emerald-700 text-white px-7 py-3 rounded-full hover:bg-emerald-800 transition-all font-semibold text-sm shadow-md flex items-center gap-2">
+            <span>Confirm Booking</span>
+            <i class="fa-solid fa-check"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- BOOKING SUCCESS MODAL -->
+  <!-- ===================================================================== -->
+  <div id="spaSuccessModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-emerald-100 text-center relative animate-fade-in">
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">Appointment Confirmed</span>
+      <h3 class="text-2xl font-playfair font-bold text-gray-900 mt-2">Massage Booked!</h3>
+      <p class="text-xs text-gray-500 mt-1">We look forward to pampering you at Grand Lynks Serenity Spa.</p>
+
+      <div class="my-5 p-4 bg-emerald-50/60 rounded-2xl text-left text-xs space-y-2 border border-emerald-100">
+        <div class="flex justify-between">
+          <span class="text-gray-500">Booking Reference:</span>
+          <span id="successRef" class="font-bold text-emerald-800 font-mono text-sm">SPA-0000</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Treatment:</span>
+          <span id="successService" class="font-semibold text-gray-800">Swedish Massage</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Date &amp; Time:</span>
+          <span id="successDateTime" class="font-semibold text-gray-800">Tomorrow at 10:30 AM</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Guest:</span>
+          <span id="successGuest" class="font-semibold text-gray-800">Joy Okafor</span>
+        </div>
+        <div class="flex justify-between pt-1 border-t border-emerald-100 font-bold text-sm">
+          <span class="text-gray-700">Total Price:</span>
+          <span id="successPrice" class="text-emerald-800 font-playfair">₦25,000</span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-gray-500 mb-6 leading-relaxed">
+        Please arrive 10 minutes prior to your appointment. For in-house room guests, our therapist will arrive at your door at the scheduled time.
+      </p>
+
+      <button onclick="closeSuccessModal()" class="w-full bg-emerald-700 text-white py-3 rounded-full hover:bg-emerald-800 transition-all font-semibold text-sm">
+        Done
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script src="flash-notification.js?v=2.2"></script>
   <script>
-    // Add smooth scrolling and fade-in animations
+    // State
+    let spaServices = [];
+    let activeCategory = 'all';
+    let selectedService = null;
+
+    const API_BASE = window.APP_CONFIG && window.APP_CONFIG.API_URL ? window.APP_CONFIG.API_URL : '/api';
+
+    // Formatting currency
+    function formatNaira(num) {
+      return '₦' + Number(num || 0).toLocaleString();
+    }
+
+    // Initialize
     document.addEventListener("DOMContentLoaded", function () {
       // Mobile menu toggle
-      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
-      const mobileMenuDropdown = document.getElementById("mobileMenuDropdown");
-      if (mobileMenuBtn && mobileMenuDropdown) {
-        mobileMenuBtn.addEventListener("click", function () {
-          mobileMenuDropdown.classList.toggle("hidden");
-        });
+      const mobileBtn = document.getElementById("mobileMenuBtn");
+      const mobileMenu = document.getElementById("mobileMenuDropdown");
+      if (mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener("click", () => mobileMenu.classList.toggle("hidden"));
       }
 
-      // Animate elements on scroll
-      const observerOptions = {
-        threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px",
+      // Set min date to today for booking
+      const modalDate = document.getElementById("modalDate");
+      if (modalDate) {
+        const today = new Date().toISOString().slice(0, 10);
+        modalDate.min = today;
+        modalDate.value = today;
+      }
+
+      // Fetch massage services
+      fetchSpaServices();
+    });
+
+    // Scroll to menu
+    function scrollToMenu() {
+      const menu = document.getElementById("massage-menu");
+      if (menu) menu.scrollIntoView({ behavior: "smooth" });
+    }
+
+    // Fetch active spa services
+    async function fetchSpaServices() {
+      const grid = document.getElementById("servicesGrid");
+      try {
+        const res = await fetch(`${API_BASE}/spa/services?_t=${Date.now()}`);
+        if (!res.ok) throw new Error("Failed to load treatments");
+        spaServices = await res.json();
+        renderServicesGrid();
+        populateModalServices();
+      } catch (err) {
+        console.error("Spa services load error:", err);
+        if (grid) {
+          grid.innerHTML = `
+            <div class="col-span-full text-center py-12 text-gray-500">
+              <p class="mb-4">Could not load real-time catalog. Please call reception directly.</p>
+              <a href="tel:+2348142234691" class="inline-block bg-emerald-700 text-white px-6 py-2.5 rounded-full text-xs font-semibold">
+                Call +234 814 223 4691
+              </a>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // Filter categories
+    function filterCategory(cat) {
+      activeCategory = cat;
+      // Update pill styles
+      document.querySelectorAll(".category-pill").forEach(btn => {
+        if ((cat === 'all' && btn.textContent.trim().toLowerCase().includes('all')) ||
+            btn.textContent.trim().toLowerCase() === cat.toLowerCase()) {
+          btn.className = "category-pill active px-4 py-2 rounded-full text-xs font-medium bg-emerald-700 text-white transition-all";
+        } else {
+          btn.className = "category-pill px-4 py-2 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all";
+        }
+      });
+      renderServicesGrid();
+    }
+
+    // Render massage cards (NO PICTURES)
+    function renderServicesGrid() {
+      const grid = document.getElementById("servicesGrid");
+      if (!grid) return;
+
+      const filtered = activeCategory === 'all' 
+        ? spaServices 
+        : spaServices.filter(s => s.category.toLowerCase() === activeCategory.toLowerCase());
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400 text-sm">No treatments currently listed under this category.</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(s => {
+        return `
+          <div class="service-card bg-gradient-to-br from-white to-emerald-50/20 rounded-2xl p-6 sm:p-7 border border-emerald-100/80 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-semibold text-emerald-800 bg-emerald-100/70 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  ${s.category || 'Massage'}
+                </span>
+                <span class="text-xs text-gray-500 font-medium">
+                  <i class="fa-regular fa-clock text-emerald-600 mr-1"></i>${s.duration || '60 mins'}
+                </span>
+              </div>
+
+              <h3 class="text-xl font-playfair font-bold text-gray-900 mb-2 leading-snug">
+                ${s.name}
+              </h3>
+
+              ${s.targetFocus ? `
+                <div class="text-[11px] text-emerald-700 font-medium mb-3 flex items-center gap-1.5">
+                  <i class="fa-solid fa-bullseye text-[10px]"></i>
+                  <span>${s.targetFocus}</span>
+                </div>
+              ` : ''}
+
+              <p class="text-xs text-gray-600 leading-relaxed mb-6">
+                ${s.description || 'Full restorative massage using tailored touch and natural organic oils.'}
+              </p>
+            </div>
+
+            <div class="pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">
+              <div>
+                <span class="text-[10px] text-gray-400 uppercase tracking-wider block">Price</span>
+                <span class="text-xl font-bold font-playfair text-gray-900">${formatNaira(s.price)}</span>
+              </div>
+              <button onclick="selectMassageForBooking('${s.name.replace(/'/g, "\\'")}', ${s.price}, ${s.id})" class="bg-emerald-700 text-white px-5 py-2.5 rounded-full hover:bg-emerald-800 transition-all font-semibold text-xs shadow-sm flex items-center gap-1.5">
+                <span>Book This</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Populate modal select
+    function populateModalServices() {
+      const select = document.getElementById("modalServiceSelect");
+      if (!select) return;
+      select.innerHTML = '<option value="">-- Choose a Massage --</option>' + 
+        spaServices.map(s => `<option value="${s.id}" data-price="${s.price}" data-duration="${s.duration}" data-name="${s.name}">${s.name} (${s.duration || '60m'} - ${formatNaira(s.price)})</option>`).join('');
+    }
+
+    // Modal Control
+    function openBookingModal(preselectedServiceId = null) {
+      const modal = document.getElementById("spaBookingModal");
+      if (modal) {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        document.body.style.overflow = "hidden";
+      }
+      if (preselectedServiceId) {
+        const select = document.getElementById("modalServiceSelect");
+        if (select) {
+          select.value = preselectedServiceId;
+          handleModalServiceChange();
+        }
+      }
+    }
+
+    function closeBookingModal() {
+      const modal = document.getElementById("spaBookingModal");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        document.body.style.overflow = "auto";
+      }
+    }
+
+    function selectMassageForBooking(name, price, id) {
+      openBookingModal(id);
+    }
+
+    // Handle change of service inside modal
+    function handleModalServiceChange() {
+      const select = document.getElementById("modalServiceSelect");
+      const opt = select.options[select.selectedIndex];
+      const badge = document.getElementById("selectedServiceBadge");
+      
+      if (opt && opt.value) {
+        const price = opt.getAttribute("data-price");
+        const duration = opt.getAttribute("data-duration");
+        document.getElementById("badgeDuration").textContent = `⏱️ ${duration || '60 mins'}`;
+        document.getElementById("badgePrice").textContent = formatNaira(price);
+        badge.classList.remove("hidden");
+      } else {
+        badge.classList.add("hidden");
+      }
+      calculateModalTotal();
+    }
+
+    // Time slot click
+    function selectTimeSlot(btn, slot) {
+      document.querySelectorAll(".time-slot-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("modalTimeSlot").value = slot;
+    }
+
+    // Calculate total price
+    function calculateModalTotal() {
+      const select = document.getElementById("modalServiceSelect");
+      const opt = select.options[select.selectedIndex];
+      const guests = parseInt(document.getElementById("modalGuests").value || 1);
+      const totalDisplay = document.getElementById("modalTotalPrice");
+
+      if (opt && opt.value) {
+        const price = parseFloat(opt.getAttribute("data-price") || 0);
+        totalDisplay.textContent = formatNaira(price * guests);
+      } else {
+        totalDisplay.textContent = "₦0";
+      }
+    }
+
+    // Submit Booking
+    async function handleSpaBookingSubmit(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById("submitBookingBtn");
+      const select = document.getElementById("modalServiceSelect");
+      const opt = select.options[select.selectedIndex];
+
+      const timeSlot = document.getElementById("modalTimeSlot").value;
+      if (!timeSlot) {
+        alert("Please select a preferred time slot.");
+        return;
+      }
+
+      const payload = {
+        serviceId: select.value ? parseInt(select.value) : null,
+        serviceName: opt ? opt.getAttribute("data-name") : "Massage Therapy",
+        price: opt ? parseFloat(opt.getAttribute("data-price") || 0) : 25000,
+        appointmentDate: document.getElementById("modalDate").value,
+        timeSlot: timeSlot,
+        numberOfGuests: parseInt(document.getElementById("modalGuests").value || 1),
+        guestName: document.getElementById("modalGuestName").value,
+        phone: document.getElementById("modalPhone").value,
+        email: document.getElementById("modalEmail").value || null,
+        roomNumber: document.getElementById("modalRoom").value || null,
+        specialRequests: document.getElementById("modalRequests").value || null
       };
 
-      const observer = new IntersectionObserver(function (entries) {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.style.animationDelay = "0.2s";
-            entry.target.classList.add("fade-in");
-          }
-        });
-      }, observerOptions);
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>Processing...`;
 
-      // Observe service cards
-      document.querySelectorAll(".service-card").forEach((card) => {
-        observer.observe(card);
-      });
-
-      // Add click handlers for booking buttons
-      document.querySelectorAll("button").forEach((button) => {
-        if (
-          button.textContent.includes("Book") ||
-          button.textContent.includes("Call")
-        ) {
-          button.addEventListener("click", function () {
-            alert(
-              "Thank you for your interest! Our booking system will be available soon. Please call (555) 123-RELAX to make a reservation."
-            );
-          });
-        }
-      });
-
-      // Add hover effects to facility cards
-      document.querySelectorAll(".group").forEach((group) => {
-        group.addEventListener("mouseenter", function () {
-          this.querySelector("div").style.transform = "translateY(-5px)";
+      try {
+        const res = await fetch(`${API_BASE}/spa/bookings`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
 
-        group.addEventListener("mouseleave", function () {
-          this.querySelector("div").style.transform = "translateY(0)";
-        });
-      });
-    });
-  </script>
-  <script>
-    (function () {
-      function c() {
-        var b = a.contentDocument || a.contentWindow.document;
-        if (b) {
-          var d = b.createElement("script");
-          d.innerHTML =
-            "window.__CF$cv$params={r:'976c6b2ea4e8dc79',t:'MTc1NjQ3NDM5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
-          b.getElementsByTagName("head")[0].appendChild(d);
-        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Booking submission failed");
+
+        // Success
+        closeBookingModal();
+        showSuccessModal(data.booking || payload);
+        document.getElementById("spaBookingForm").reset();
+        document.querySelectorAll(".time-slot-btn").forEach(b => b.classList.remove("active"));
+        document.getElementById("modalTimeSlot").value = "";
+      } catch (err) {
+        console.error("Booking error:", err);
+        alert(err.message || "Could not confirm booking. Please call the front desk.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Confirm Booking</span><i class="fa-solid fa-check ml-2"></i>`;
       }
-      if (document.body) {
-        var a = document.createElement("iframe");
-        a.height = 1;
-        a.width = 1;
-        a.style.position = "absolute";
-        a.style.top = 0;
-        a.style.left = 0;
-        a.style.border = "none";
-        a.style.visibility = "hidden";
-        document.body.appendChild(a);
-        if ("loading" !== document.readyState) c();
-        else if (window.addEventListener)
-          document.addEventListener("DOMContentLoaded", c);
-        else {
-          var e = document.onreadystatechange || function () { };
-          document.onreadystatechange = function (b) {
-            e(b);
-            "loading" !== document.readyState &&
-              ((document.onreadystatechange = e), c());
-          };
-        }
+    }
+
+    // Show Success Modal
+    function showSuccessModal(booking) {
+      const modal = document.getElementById("spaSuccessModal");
+      document.getElementById("successRef").textContent = booking.bookingRef || "SPA-CONFIRMED";
+      document.getElementById("successService").textContent = booking.serviceName || "Selected Massage";
+      
+      const dateStr = booking.appointmentDate ? new Date(booking.appointmentDate).toLocaleDateString("en-GB", { weekday: 'short', day: 'numeric', month: 'short' }) : "Scheduled Date";
+      document.getElementById("successDateTime").textContent = `${dateStr} at ${booking.timeSlot}`;
+      document.getElementById("successGuest").textContent = booking.guestName;
+      document.getElementById("successPrice").textContent = formatNaira(booking.price);
+
+      if (modal) {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
       }
-    })();
+    }
+
+    function closeSuccessModal() {
+      const modal = document.getElementById("spaSuccessModal");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+    }
   </script>
-  <!-- Flash Sale Notification -->
-  <script src="flash-notification.js?v=2.2"></script>
-  <!-- Grand Lynks Hotel AI Concierge -->
-  <script src="concierge.js?v=2.0"></script>
 </body>
 
 </html>
