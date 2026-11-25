@@ -1737,7 +1737,7 @@ async function fetchSettings() {
             if (foodDiscEl) foodDiscEl.value = data.foodDiscount || 0;
             
             const flashEnabledEl = document.getElementById('settingFlashEnabled');
-            if (flashEnabledEl) flashEnabledEl.checked = data.flashEnabled === 'true';
+            if (flashEnabledEl) flashEnabledEl.checked = data.flashEnabled === 'true' || data.flashEnabled === true;
             
             const flashTitleEl = document.getElementById('settingFlashTitle');
             if (flashTitleEl) flashTitleEl.value = data.flashTitle || '';
@@ -2457,11 +2457,22 @@ if (settingsForm) {
         btn.textContent = 'Saving...';
         btn.disabled = true;
 
+        const flashEnabledEl = document.getElementById('settingFlashEnabled');
+        const flashTitleEl = document.getElementById('settingFlashTitle');
+        const flashMessageEl = document.getElementById('settingFlashMessage');
+        const flashButtonEl = document.getElementById('settingFlashButton');
+        const flashLinkEl = document.getElementById('settingFlashLink');
+
         const payload = {
-            taxRate: document.getElementById('settingTaxRate').value,
-            roomServiceFee: document.getElementById('settingRoomServiceFee').value,
+            taxRate: document.getElementById('settingTaxRate')?.value || '8.5',
+            roomServiceFee: document.getElementById('settingRoomServiceFee')?.value || '1000',
             roomDiscount: document.getElementById('settingRoomDiscount')?.value || '0',
-            foodDiscount: document.getElementById('settingFoodDiscount')?.value || '0'
+            foodDiscount: document.getElementById('settingFoodDiscount')?.value || '0',
+            flashEnabled: flashEnabledEl ? (flashEnabledEl.checked ? 'true' : 'false') : 'false',
+            flashTitle: flashTitleEl ? flashTitleEl.value : '',
+            flashMessage: flashMessageEl ? flashMessageEl.value : '',
+            flashButton: flashButtonEl ? flashButtonEl.value : '',
+            flashLink: flashLinkEl ? flashLinkEl.value : ''
         };
 
         try {

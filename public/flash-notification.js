@@ -1,187 +1,250 @@
-document.addEventListener('DOMContentLoaded', () => {
+/**
+ * Grand Lynks Homes & Apartments — Flash Sale Notification Popup
+ * Shows promotional popup once per session when enabled in Site Settings
+ */
+(function () {
+    if (window.__GrandLynksFlashLoaded) return;
+    window.__GrandLynksFlashLoaded = true;
 
-    const apiUrl = (window.APP_CONFIG && window.APP_CONFIG.API_URL) ? window.APP_CONFIG.API_URL : '/api';
+    function initFlashNotification() {
+        let apiUrl = '/api';
+        if (window.APP_CONFIG && window.APP_CONFIG.API_URL) {
+            apiUrl = window.APP_CONFIG.API_URL.replace(/\/$/, "");
+        } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            apiUrl = 'http://localhost:5000/api';
+        }
 
-    fetch(`${apiUrl}/settings`)
-        .then(res => res.json())
-        .then(data => {
-            // Only show the popup if flashEnabled is 'true' or true
-            if (data.flashEnabled === 'true' || data.flashEnabled === true) {
+        fetch(`${apiUrl}/settings`)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+
+                // Validate if flash sale is enabled
+                const isEnabled = data.flashEnabled === 'true' || 
+                                  data.flashEnabled === true || 
+                                  data.flashEnabled === '1' || 
+                                  data.flashEnabled === 1;
+
+                if (!isEnabled) return;
+
                 const content = {
-                    title: data.flashTitle || 'Exclusive Grand Offer',
-                    message: data.flashMessage || 'Enjoy a special discount on your next stay!',
-                    buttonText: data.flashButton || 'Book Now',
-                    link: data.flashLink || 'rooms.html'
+                    title: (data.flashTitle || '').trim() || 'Exclusive Grand Offer',
+                    message: (data.flashMessage || '').trim() || 'Enjoy a special discount on your next stay at Grand Lynks!',
+                    buttonText: (data.flashButton || '').trim() || 'Book Now',
+                    link: (data.flashLink || '').trim() || 'rooms.html'
                 };
 
-                showFlashNotification(content);
-            }
-        })
-        .catch(err => {
-            console.error('Flash notification: Failed to load settings', err);
-            // Do not show a notification by default if the settings cannot be verified
-        });
+                // Check session storage so users aren't spammed after dismissing
+                const sessionKey = 'gl_flash_dismissed_' + encodeURIComponent(content.title);
+                try {
+                    if (sessionStorage.getItem(sessionKey)) {
+                        return;
+                    }
+                } catch (e) {}
 
-    function showFlashNotification(content) {
+                showFlashNotification(content, sessionKey);
+            })
+            .catch(err => {
+                console.warn('Flash notification: could not load settings', err.message);
+            });
+    }
+
+    function showFlashNotification(content, sessionKey) {
+        // Prevent duplicate overlays
+        if (document.querySelector('.gl-flash-overlay')) return;
+
         const flashStyles = `
-            .flash-overlay {
+            .gl-flash-overlay {
                 position: fixed;
-                top: 0;
-                left: 0;
+                inset: 0;
                 width: 100vw;
                 height: 100vh;
-                background: rgba(0, 0, 0, 0.65);
-                backdrop-filter: blur(8px);
+                background: rgba(7, 17, 13, 0.72);
+                backdrop-filter: blur(6px);
+                -webkit-backdrop-filter: blur(6px);
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                z-index: 10000;
+                z-index: 9999999;
                 opacity: 0;
                 visibility: hidden;
-                transition: opacity 0.4s ease, visibility 0.4s ease;
+                transition: opacity 0.35s ease, visibility 0.35s ease;
+                padding: 16px;
+                box-sizing: border-box;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             }
-            .flash-overlay.active {
+            .gl-flash-overlay.active {
                 opacity: 1;
                 visibility: visible;
             }
-            .flash-modal {
-                background: linear-gradient(145deg, #ffffff, #fcfcfc);
-                border-radius: 20px;
-                padding: 45px 35px;
+            .gl-flash-modal {
+                background: linear-gradient(145deg, #ffffff 0%, #fdfdfd 100%);
+                border-radius: 24px;
+                padding: 42px 32px 36px;
                 max-width: 480px;
-                width: 90%;
+                width: 100%;
                 text-align: center;
-                box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3);
-                transform: translateY(30px) scale(0.9);
+                box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(212, 175, 55, 0.25);
+                transform: translateY(25px) scale(0.94);
                 opacity: 0;
-                transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease;
+                transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.25), opacity 0.4s ease;
                 position: relative;
-                border: 1px solid rgba(212, 175, 55, 0.3);
                 overflow: hidden;
+                box-sizing: border-box;
             }
-            .flash-modal::before {
+            .gl-flash-modal::before {
                 content: '';
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
                 height: 6px;
-                background: linear-gradient(90deg, #d4af37, #f3e5ab, #d4af37);
+                background: linear-gradient(90deg, #064E3B, #00A86B, #d4af37, #064E3B);
             }
-            .flash-overlay.active .flash-modal {
+            .gl-flash-overlay.active .gl-flash-modal {
                 transform: translateY(0) scale(1);
                 opacity: 1;
             }
-            .flash-close {
+            .gl-flash-close {
                 position: absolute;
-                top: 20px;
-                right: 20px;
+                top: 16px;
+                right: 16px;
                 background: rgba(0, 0, 0, 0.05);
                 border: none;
-                width: 32px;
-                height: 32px;
+                width: 34px;
+                height: 34px;
                 border-radius: 50%;
                 font-size: 20px;
-                color: #666;
+                color: #555;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                line-height: 1;
+                outline: none;
             }
-            .flash-close:hover {
-                background: rgba(139, 29, 48, 0.1);
+            .gl-flash-close:hover {
+                background: rgba(139, 29, 48, 0.12);
                 color: #8b1d30;
-                transform: rotate(90deg);
+                transform: scale(1.1);
             }
-            .flash-icon {
-                font-size: 54px;
-                color: #d4af37;
-                margin-bottom: 20px;
-                animation: flash-pulse-glow 2.5s infinite;
+            .gl-flash-icon {
+                font-size: 50px;
+                margin-bottom: 16px;
                 display: inline-block;
+                animation: glFlashPulse 2.4s infinite ease-in-out;
             }
-            .flash-title {
-                font-family: "Cinzel", serif;
-                font-size: 2rem;
-                color: #d4af37;
-                margin-bottom: 15px;
+            @keyframes glFlashPulse {
+                0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0.3)); }
+                50% { transform: scale(1.1); filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.8)); }
+            }
+            .gl-flash-title {
+                font-family: "Cinzel", "Playfair Display", Georgia, serif;
+                font-size: 1.85rem;
+                color: #064E3B;
+                margin: 0 0 12px;
                 font-weight: 700;
-                letter-spacing: 0.5px;
+                letter-spacing: 0.3px;
+                line-height: 1.25;
             }
-            .flash-message {
-                font-family: "Poppins", sans-serif;
-                color: #555;
-                font-size: 1.05rem;
+            .gl-flash-message {
+                font-family: inherit;
+                color: #4b5563;
+                font-size: 1.02rem;
                 line-height: 1.6;
-                margin-bottom: 35px;
+                margin: 0 0 28px;
             }
-            .flash-btn {
+            .gl-flash-btn {
                 display: inline-block;
-                background: #8b1d30;
-                color: #fff !important;
-                padding: 14px 35px;
+                background: linear-gradient(135deg, #00A86B 0%, #064E3B 100%);
+                color: #ffffff !important;
+                padding: 13px 36px;
                 border-radius: 50px;
-                text-decoration: none;
-                font-family: "Poppins", sans-serif;
-                font-weight: 600;
+                text-decoration: none !important;
+                font-weight: 700;
                 font-size: 1rem;
-                transition: all 0.3s ease;
-                box-shadow: 0 10px 20px rgba(139, 29, 48, 0.2);
+                transition: all 0.25s ease;
+                box-shadow: 0 8px 20px rgba(6, 78, 59, 0.3);
                 border: none;
                 cursor: pointer;
-                letter-spacing: 0.5px;
+                letter-spacing: 0.4px;
             }
-            .flash-btn:hover {
-                background: #d4af37;
-                transform: translateY(-4px);
-                box-shadow: 0 15px 30px rgba(212, 175, 55, 0.35);
-            }
-            @keyframes flash-pulse-glow {
-                0%   { transform: scale(1);    filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0.4)); }
-                50%  { transform: scale(1.08); filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.8)); }
-                100% { transform: scale(1);    filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0.4)); }
+            .gl-flash-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 12px 26px rgba(0, 168, 107, 0.45);
+                filter: brightness(1.08);
             }
             @media (max-width: 480px) {
-                .flash-modal { padding: 40px 25px 35px; }
-                .flash-title { font-size: 1.7rem; }
-                .flash-message { font-size: 0.95rem; }
+                .gl-flash-modal { padding: 34px 22px 28px; }
+                .gl-flash-title { font-size: 1.5rem; }
+                .gl-flash-message { font-size: 0.94rem; margin-bottom: 22px; }
+                .gl-flash-btn { width: 100%; box-sizing: border-box; text-align: center; }
             }
         `;
 
         const styleEl = document.createElement('style');
+        styleEl.id = 'gl-flash-notification-styles';
         styleEl.innerHTML = flashStyles;
         document.head.appendChild(styleEl);
 
         const overlay = document.createElement('div');
-        overlay.className = 'flash-overlay';
+        overlay.className = 'gl-flash-overlay';
 
         const iconHtml = document.querySelector('link[href*="font-awesome"]')
-            ? '<i class="fas fa-gift"></i>'
+            ? '<i class="fas fa-gift" style="color:#d4af37;"></i>'
             : '✨';
 
         overlay.innerHTML = `
-            <div class="flash-modal">
-                <button class="flash-close" aria-label="Close">&times;</button>
-                <div class="flash-icon">${iconHtml}</div>
-                <h2 class="flash-title">${content.title}</h2>
-                <p class="flash-message">${content.message}</p>
-                <a href="${content.link}" class="flash-btn">${content.buttonText}</a>
+            <div class="gl-flash-modal" role="dialog" aria-modal="true" aria-labelledby="glFlashTitle">
+                <button class="gl-flash-close" aria-label="Close promotion">&times;</button>
+                <div class="gl-flash-icon">${iconHtml}</div>
+                <h2 class="gl-flash-title" id="glFlashTitle">${content.title}</h2>
+                <div class="gl-flash-message">${content.message}</div>
+                <a href="${content.link}" class="gl-flash-btn">${content.buttonText}</a>
             </div>
         `;
 
         document.body.appendChild(overlay);
 
-        const closeModal = () => {
+        const dismiss = () => {
+            try {
+                if (sessionKey) sessionStorage.setItem(sessionKey, 'true');
+            } catch (e) {}
             overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 500);
+            setTimeout(() => {
+                overlay.remove();
+                styleEl.remove();
+            }, 400);
         };
 
-        overlay.querySelector('.flash-close').addEventListener('click', closeModal);
-        overlay.addEventListener('click', e => {
-            if (e.target === overlay) closeModal();
+        const closeBtn = overlay.querySelector('.gl-flash-close');
+        if (closeBtn) closeBtn.addEventListener('click', dismiss);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) dismiss();
         });
 
-        setTimeout(() => overlay.classList.add('active'), 1500);
+        const actionBtn = overlay.querySelector('.gl-flash-btn');
+        if (actionBtn) {
+            actionBtn.addEventListener('click', () => {
+                try {
+                    if (sessionKey) sessionStorage.setItem(sessionKey, 'true');
+                } catch (e) {}
+            });
+        }
+
+        // Show popup smoothly after 750ms
+        setTimeout(() => overlay.classList.add('active'), 750);
     }
-});
+
+    // Run when ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initFlashNotification);
+    } else {
+        initFlashNotification();
+    }
+})();
