@@ -14,7 +14,8 @@
             apiUrl = 'http://localhost:5000/api';
         }
 
-        fetch(`${apiUrl}/settings`)
+        // Always fetch fresh settings without caching
+        fetch(`${apiUrl}/settings?_t=${Date.now()}`, { cache: 'no-store' })
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();
@@ -37,10 +38,18 @@
                     link: (data.flashLink || '').trim() || 'rooms.html'
                 };
 
-                // Check session storage so users aren't spammed after dismissing
-                const sessionKey = 'gl_flash_dismissed_' + encodeURIComponent(content.title);
+                // Content signature: if title OR message OR button OR link is edited,
+                // the signature changes so the newly edited popup is GUARANTEED to show!
+                const contentSignature = encodeURIComponent([content.title, content.message, content.buttonText, content.link].join('::'));
+                const sessionKey = 'gl_flash_seen_' + contentSignature;
+
+                // Check preview query param or test mode (?preview_flash=1 or ?flash=1)
+                const isPreview = window.location.search.includes('preview_flash') || 
+                                  window.location.search.includes('flash=1') ||
+                                  window.location.search.includes('preview=1');
+
                 try {
-                    if (sessionStorage.getItem(sessionKey)) {
+                    if (!isPreview && sessionStorage.getItem(sessionKey)) {
                         return;
                     }
                 } catch (e) {}
@@ -54,7 +63,8 @@
 
     function showFlashNotification(content, sessionKey) {
         // Prevent duplicate overlays
-        if (document.querySelector('.gl-flash-overlay')) return;
+        const existing = document.querySelector('.gl-flash-overlay');
+        if (existing) existing.remove();
 
         const flashStyles = `
             .gl-flash-overlay {
@@ -186,10 +196,13 @@
             }
         `;
 
-        const styleEl = document.createElement('style');
-        styleEl.id = 'gl-flash-notification-styles';
-        styleEl.innerHTML = flashStyles;
-        document.head.appendChild(styleEl);
+        let styleEl = document.getElementById('gl-flash-notification-styles');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'gl-flash-notification-styles';
+            styleEl.innerHTML = flashStyles;
+            document.head.appendChild(styleEl);
+        }
 
         const overlay = document.createElement('div');
         overlay.className = 'gl-flash-overlay';
@@ -217,7 +230,6 @@
             overlay.classList.remove('active');
             setTimeout(() => {
                 overlay.remove();
-                styleEl.remove();
             }, 400);
         };
 
@@ -237,9 +249,14 @@
             });
         }
 
-        // Show popup smoothly after 750ms
-        setTimeout(() => overlay.classList.add('active'), 750);
+        // Show popup smoothly
+        setTimeout(() => overlay.classList.add('active'), 500);
     }
+
+    // Expose preview function for admin testing
+    window.showFlashNotificationPopup = function(customContent) {
+        showFlashNotification(customContent);
+    };
 
     // Run when ready
     if (document.readyState === 'loading') {

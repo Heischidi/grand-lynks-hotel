@@ -916,6 +916,9 @@ const validateOrder = (req, res, next) => {
 // === SETTINGS API ===
 app.get("/settings", async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     const settings = await prisma.siteSettings.findMany();
     // Default fallback values if not set
     const defaultSettings = { 

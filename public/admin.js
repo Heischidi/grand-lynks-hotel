@@ -1607,7 +1607,7 @@ window.filterGuests = function () {
 
 async function fetchSettings() {
     try {
-        const response = await authFetch('/settings');
+        const response = await authFetch('/settings?_t=' + Date.now(), { cache: 'no-store' });
         if (response && response.ok) {
             const data = await response.json();
             document.getElementById('settingTaxRate').value = data.taxRate || 8.5;
@@ -2383,6 +2383,11 @@ if (settingsForm) {
             });
             
             if (response && response.ok) {
+                try {
+                    Object.keys(sessionStorage).forEach(k => {
+                        if (k.startsWith('gl_flash_')) sessionStorage.removeItem(k);
+                    });
+                } catch (e) {}
                 alert('Settings saved successfully!');
             } else {
                 alert('Failed to save settings.');
@@ -4188,3 +4193,17 @@ window.filterShiftSignOutLogs = function() {
 };
 
 
+
+
+window.previewCurrentFlashPopup = function() {
+    const title = document.getElementById('settingFlashTitle')?.value || 'Exclusive Grand Offer';
+    const message = document.getElementById('settingFlashMessage')?.value || 'Enjoy a special discount on your next stay at Grand Lynks!';
+    const buttonText = document.getElementById('settingFlashButton')?.value || 'Book Now';
+    const link = document.getElementById('settingFlashLink')?.value || 'rooms.html';
+
+    if (window.showFlashNotificationPopup) {
+        window.showFlashNotificationPopup({ title, message, buttonText, link });
+    } else {
+        alert("Flash Sale Preview:\n\nTitle: " + title + "\nMessage: " + message + "\nButton: " + buttonText + "\nLink: " + link);
+    }
+};
