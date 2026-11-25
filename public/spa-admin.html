@@ -167,6 +167,18 @@
       <!-- TAB 1: APPOINTMENTS & BOOKINGS -->
       <!-- ================================================================= -->
       <section id="tab-appointments" class="space-y-6">
+        <!-- Appointments Header Bar -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#fffaf7] p-5 rounded-2xl border border-[#e2c6ba] shadow-sm">
+          <div>
+            <h2 class="text-xl font-playfair font-bold text-[#462614]">Grand Spa Appointments</h2>
+            <p class="text-xs text-[#6b4c3b] mt-0.5">Manage online reservations, record walk-in guests, approve payments, or remove cancelled entries.</p>
+          </div>
+          <button onclick="openWalkInModal()" class="bg-[#462614] hover:bg-[#321a0d] text-[#fbf1ec] px-5 py-2.5 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 shrink-0">
+            <i class="fa-solid fa-plus"></i>
+            <span>Add Appointment (Walk-in)</span>
+          </button>
+        </div>
+
         <!-- Summary Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-[#fffaf7] p-5 rounded-2xl border border-[#e2c6ba] shadow-sm">
@@ -213,8 +225,8 @@
 
             <!-- Date Filter -->
             <select id="appointmentDateFilter" onchange="handleDateFilterChange(this.value)" class="border border-[#d8b6a7] rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#462614] bg-white">
-              <option value="all">All Dates</option>
-              <option value="today" selected>Today Only</option>
+              <option value="all" selected>All Dates</option>
+              <option value="today">Today Only</option>
               <option value="tomorrow">Tomorrow</option>
               <option value="custom">Custom Date</option>
             </select>
@@ -227,7 +239,7 @@
             </button>
             <button onclick="openWalkInModal()" class="bg-[#462614] hover:bg-[#321a0d] text-[#fbf1ec] px-4 py-2 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5">
               <i class="fa-solid fa-plus text-[10px]"></i>
-              <span>Record Walk-in / Room Booking</span>
+              <span>Add Walk-in</span>
             </button>
           </div>
         </div>

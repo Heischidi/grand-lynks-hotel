@@ -261,7 +261,7 @@ function handleDateFilterChange(val) {
 function filterAppointments() {
   const search = (document.getElementById('appointmentSearchInput')?.value || '').toLowerCase().trim();
   const status = document.getElementById('appointmentStatusFilter')?.value || 'all';
-  const dateFilter = document.getElementById('appointmentDateFilter')?.value || 'today';
+  const dateFilter = document.getElementById('appointmentDateFilter')?.value || 'all';
   const customDate = document.getElementById('customDatePicker')?.value;
 
   const now = new Date();
@@ -375,10 +375,32 @@ function renderAppointmentsTable(list) {
           <button onclick="openStatusModal(${b.id})" class="p-1.5 text-[#6b4c3b] hover:text-[#462614] hover:bg-[#f2dfd6] rounded-lg text-xs" title="Edit Status / Payment">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
+          <button onclick="deleteAppointment(${b.id}, '${escapeHtml(b.bookingRef || 'SPA-' + b.id).replace(/'/g, "\\'")}')" class="p-1.5 text-[#8b6b5a] hover:text-red-700 hover:bg-red-50 rounded-lg text-xs" title="Delete Appointment">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
         </td>
       </tr>
     `;
   }).join('');
+}
+
+async function deleteAppointment(id, ref) {
+  if (!confirm(`Are you sure you want to delete appointment ${ref}?`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/spa/bookings/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete appointment');
+
+    showToast('Appointment deleted');
+    fetchAppointments();
+    fetchFinances();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
 
 async function approvePayment(id, price) {

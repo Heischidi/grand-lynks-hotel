@@ -732,6 +732,29 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
     }
   });
 
+  // Spa Admin: Soft-delete an appointment (walk-in or online)
+  app.delete("/spa/bookings/:id", authenticateSpaAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid booking ID" });
+
+    try {
+      const existing = await prisma.spaBooking.findUnique({ where: { id } });
+      if (!existing || existing.deletedAt) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+
+      await prisma.spaBooking.update({
+        where: { id },
+        data: { deletedAt: new Date() }
+      });
+
+      res.json({ message: "Appointment deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting spa appointment:", error);
+      res.status(500).json({ error: "Failed to delete appointment." });
+    }
+  });
+
   // ---------------------------------------------------------------------------
   // SPA FINANCES & REVENUE REPORTING
   // ---------------------------------------------------------------------------
