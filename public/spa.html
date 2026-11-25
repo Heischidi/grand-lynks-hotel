@@ -329,8 +329,8 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-semibold text-[#462614] mb-1">Email Address (Optional)</label>
-            <input type="email" id="modalEmail" placeholder="for booking receipt" class="w-full border border-[#d8b6a7] rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#462614] bg-white" />
+            <label class="block text-xs font-semibold text-[#462614] mb-1">Email Address *</label>
+            <input type="email" id="modalEmail" placeholder="you@example.com (for confirmation email)" class="w-full border border-[#d8b6a7] rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#462614] bg-white" required />
           </div>
           <div>
             <label class="block text-xs font-semibold text-[#462614] mb-1">Room Number (If staying)</label>
@@ -394,8 +394,8 @@
         </div>
       </div>
 
-      <p class="text-[11px] text-[#6b4c3b] mb-6 leading-relaxed">
-        Please arrive 10 minutes prior to your appointment at Grand Spa. Staying hotel guests can also settle via room charge.
+      <p id="successEmailNotice" class="text-[11px] text-[#6b4c3b] mb-6 leading-relaxed">
+        A confirmation email with payment details has been sent to your email address. Once Grand Spa approves your payment, you will receive a final payment confirmation email.
       </p>
 
       <button onclick="closeSuccessModal()" class="w-full bg-[#462614] text-[#fbf1ec] py-3 rounded-full hover:bg-[#321a0d] transition-all font-semibold text-sm">
@@ -778,6 +778,12 @@
       document.getElementById("successDateTime").textContent = `${dateStr} at ${booking.timeSlot}`;
       document.getElementById("successGuest").textContent = booking.guestName;
       document.getElementById("successPrice").textContent = formatNaira(booking.price);
+      const emailNotice = document.getElementById("successEmailNotice");
+      if (emailNotice) {
+        emailNotice.textContent = booking.email
+          ? `A confirmation email with payment instructions has been sent to ${booking.email}. Once Grand Spa approves your payment, you will receive a final payment confirmation email.`
+          : "Please arrive 10 minutes prior to your appointment at Grand Spa. Staying hotel guests can also settle via room charge.";
+      }
 
       if (modal) {
         modal.classList.remove("hidden");

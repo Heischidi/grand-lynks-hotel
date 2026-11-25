@@ -316,6 +316,7 @@ function renderAppointmentsTable(list) {
     else if (b.paymentStatus === 'charged-to-room') paymentClass = 'bg-purple-50 text-purple-800 border border-purple-200';
 
     const isDone = b.status === 'completed';
+    const isPaid = b.paymentStatus === 'paid';
 
     return `
       <tr class="hover:bg-[#f5e3db]/40 transition-colors">
@@ -327,6 +328,7 @@ function renderAppointmentsTable(list) {
         <td class="py-3.5 px-4">
           <div class="font-semibold text-[#3a2318]">${escapeHtml(b.guestName)}</div>
           <div class="text-[11px] text-[#6b4c3b]">${escapeHtml(b.phone)}</div>
+          ${b.email ? `<div class="text-[10px] text-[#7a523c] truncate max-w-[180px]"><i class="fa-regular fa-envelope mr-1"></i>${escapeHtml(b.email)}</div>` : ''}
           ${b.roomNumber ? `
             <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-[#f5e3db] text-[10px] font-bold text-[#462614]">
               <i class="fa-solid fa-hotel text-[9px] mr-1"></i>${escapeHtml(b.roomNumber)}
@@ -360,8 +362,13 @@ function renderAppointmentsTable(list) {
         </td>
 
         <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
+          ${!isPaid && b.status !== 'cancelled' ? `
+            <button onclick="approvePayment(${b.id}, ${b.price})" class="bg-[#e8c5b8] hover:bg-[#dfb3a3] text-[#462614] px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs border border-[#d8b6a7]" title="Approve Payment &amp; Send Guest Email">
+              <i class="fa-solid fa-money-check-dollar mr-1"></i>Approve Paid
+            </button>
+          ` : ''}
           ${!isDone && b.status !== 'cancelled' ? `
-            <button onclick="quickCompleteAppointment(${b.id}, ${b.price})" class="bg-[#462614] hover:bg-[#321a0d] text-[#fbf1ec] px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs" title="Mark Completed & Paid">
+            <button onclick="quickCompleteAppointment(${b.id}, ${b.price})" class="bg-[#462614] hover:bg-[#321a0d] text-[#fbf1ec] px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs" title="Mark Completed &amp; Paid">
               <i class="fa-solid fa-check mr-1"></i>Complete
             </button>
           ` : ''}
@@ -372,6 +379,29 @@ function renderAppointmentsTable(list) {
       </tr>
     `;
   }).join('');
+}
+
+async function approvePayment(id, price) {
+  const method = prompt(`Approve payment of ${formatNaira(price)} & notify guest by email?\nEnter payment method (transfer, pos, cash, room):`, 'transfer');
+  if (method === null) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/spa/bookings/${id}/status`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        paymentStatus: 'paid',
+        paymentMethod: method.trim().toLowerCase() || 'transfer'
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to approve payment');
+    showToast(data.emailSent ? 'Payment approved & confirmation email sent to guest!' : 'Payment approved & recorded');
+    fetchAppointments();
+    fetchFinances();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
 
 async function quickCompleteAppointment(id, price) {
@@ -388,8 +418,9 @@ async function quickCompleteAppointment(id, price) {
         paymentMethod: method.trim().toLowerCase()
       })
     });
-    if (!res.ok) throw new Error('Failed to update');
-    showToast('Appointment completed & recorded as paid');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update');
+    showToast(data.emailSent ? 'Completed & payment confirmation email sent!' : 'Appointment completed & recorded as paid');
     fetchAppointments();
     fetchFinances();
   } catch (err) {
@@ -433,8 +464,9 @@ async function handleStatusSubmit(e) {
       headers: getAuthHeaders(),
       body: JSON.stringify({ status, paymentStatus, paymentMethod, notes })
     });
-    if (!res.ok) throw new Error('Failed to update appointment');
-    showToast('Appointment updated successfully');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update appointment');
+    showToast(data.emailSent ? 'Appointment updated & payment email sent!' : 'Appointment updated successfully');
     closeStatusModal();
     fetchAppointments();
     fetchFinances();
@@ -791,6 +823,7 @@ async function handleWalkInSubmit(e) {
     timeSlot: document.getElementById('walkInTimeSlot').value,
     guestName: document.getElementById('walkInGuestName').value.trim(),
     phone: document.getElementById('walkInPhone').value.trim(),
+    email: document.getElementById('walkInEmail')?.value.trim() || null,
     roomNumber: document.getElementById('walkInRoom').value.trim() || null,
     price: parseFloat(document.getElementById('walkInPrice').value),
     paymentStatus: document.getElementById('walkInPaymentStatus').value,
@@ -807,7 +840,7 @@ async function handleWalkInSubmit(e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to record appointment');
 
-    showToast('Walk-in appointment recorded');
+    showToast(data.emailSent ? 'Walk-in recorded & email sent to guest!' : 'Walk-in appointment recorded');
     closeWalkInModal();
     document.getElementById('walkInForm').reset();
     const walkInDate = document.getElementById('walkInDate');

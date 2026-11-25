@@ -5367,7 +5367,7 @@ const registerFinanceRoutes = require('./financeRoutes.js')
 registerFinanceRoutes(app, prisma, authenticateSuperAdmin, bcrypt, multer, uploadToSupabase)
 
 const registerSpaRoutes = require('./spaRoutes.js')
-registerSpaRoutes(app, prisma, authenticateSpaAdmin, SECRET_KEY, loginLimiter)
+registerSpaRoutes(app, prisma, authenticateSpaAdmin, SECRET_KEY, loginLimiter, resend)
 // --- Start server ---
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
