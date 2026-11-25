@@ -1,6 +1,57 @@
 require('dotenv').config();
 const { prisma } = require('../api/database.js');
 
+const OFFICIAL_GRAND_SPA_SERVICES = [
+  // Facials (6)
+  { name: 'Deep Cleansing Facial', category: 'Facials', duration: '', price: 15000, description: null, target_focus: null },
+  { name: 'Treatment Facial', category: 'Facials', duration: '', price: 20000, description: null, target_focus: null },
+  { name: 'Pro-Acne Facial', category: 'Facials', duration: '', price: 25000, description: null, target_focus: null },
+  { name: 'Hydra Facial', category: 'Facials', duration: '', price: 35000, description: null, target_focus: null },
+  { name: 'Dermaplaning Facial', category: 'Facials', duration: '', price: 30000, description: null, target_focus: null },
+  { name: 'Purifying Facial', category: 'Facials', duration: '', price: 18000, description: null, target_focus: null },
+
+  // Massage (8)
+  { name: 'Swedish Massage', category: 'Massage', duration: '', price: 25000, description: null, target_focus: null },
+  { name: 'Deep Tissue Massage', category: 'Massage', duration: '', price: 30000, description: null, target_focus: null },
+  { name: 'Hot Stone Massage', category: 'Massage', duration: '', price: 35000, description: null, target_focus: null },
+  { name: 'Aromatherapy Massage', category: 'Massage', duration: '', price: 28000, description: null, target_focus: null },
+  { name: 'Back, Neck and Shoulder Massage', category: 'Massage', duration: '', price: 12000, description: null, target_focus: null },
+  { name: 'Back, Waist and Shoulder Massage', category: 'Massage', duration: '', price: 12000, description: null, target_focus: null },
+  { name: 'Head Massage', category: 'Massage', duration: '', price: 10000, description: null, target_focus: null },
+  { name: 'Foot Massage', category: 'Massage', duration: '', price: 10000, description: null, target_focus: null },
+
+  // Pedicures (4)
+  { name: 'Classic Pedicure', category: 'Pedicures', duration: '', price: 15000, description: null, target_focus: null },
+  { name: 'Paraffin Wax Pedicure', category: 'Pedicures', duration: '', price: 18000, description: null, target_focus: null },
+  { name: 'Jelly Pedicure', category: 'Pedicures', duration: '', price: 17000, description: null, target_focus: null },
+  { name: 'Dry Pedicure', category: 'Pedicures', duration: '', price: 16000, description: null, target_focus: null },
+
+  // Manicures (3)
+  { name: 'Classic Manicure', category: 'Manicures', duration: '', price: 12000, description: null, target_focus: null },
+  { name: 'Paraffin Wax Manicure', category: 'Manicures', duration: '', price: 15000, description: null, target_focus: null },
+  { name: 'Jelly Manicure', category: 'Manicures', duration: '', price: 13000, description: null, target_focus: null },
+
+  // Waxing (Sugar) (9)
+  { name: 'Full Body Wax', category: 'Waxing (Sugar)', duration: '', price: 20000, description: null, target_focus: null },
+  { name: 'Full Body Wax with Underarms and Brazilian', category: 'Waxing (Sugar)', duration: '', price: 25000, description: null, target_focus: null },
+  { name: 'Brazilian Wax', category: 'Waxing (Sugar)', duration: '', price: 10000, description: null, target_focus: null },
+  { name: 'Underarms Wax', category: 'Waxing (Sugar)', duration: '', price: 5000, description: null, target_focus: null },
+  { name: 'Underarms and Brazilian', category: 'Waxing (Sugar)', duration: '', price: 15000, description: null, target_focus: null },
+  { name: 'Full Legs Wax', category: 'Waxing (Sugar)', duration: '', price: 16000, description: null, target_focus: null },
+  { name: 'Half Legs Wax', category: 'Waxing (Sugar)', duration: '', price: 10000, description: null, target_focus: null },
+  { name: 'Full Hands Wax', category: 'Waxing (Sugar)', duration: '', price: 15000, description: null, target_focus: null },
+  { name: 'Half Hands Wax', category: 'Waxing (Sugar)', duration: '', price: 10000, description: null, target_focus: null },
+
+  // Waxing (Strip) (7)
+  { name: 'Full Body Wax', category: 'Waxing (Strip)', duration: '', price: 25000, description: null, target_focus: null },
+  { name: 'Full Body Wax with Underarms and Brazilian', category: 'Waxing (Strip)', duration: '', price: 30000, description: null, target_focus: null },
+  { name: 'Brazilian Wax', category: 'Waxing (Strip)', duration: '', price: 15000, description: null, target_focus: null },
+  { name: 'Underarms Wax', category: 'Waxing (Strip)', duration: '', price: 10000, description: null, target_focus: null },
+  { name: 'Full Legs Wax', category: 'Waxing (Strip)', duration: '', price: 18000, description: null, target_focus: null },
+  { name: 'Half Legs Wax', category: 'Waxing (Strip)', duration: '', price: 15000, description: null, target_focus: null },
+  { name: 'Arms Wax', category: 'Waxing (Strip)', duration: '', price: 16000, description: null, target_focus: null }
+];
+
 async function main() {
   try {
     console.log('Connecting to database...');
@@ -8,8 +59,8 @@ async function main() {
       CREATE TABLE IF NOT EXISTS spa_services (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        category VARCHAR(100) NOT NULL DEFAULT 'Massage',
-        duration VARCHAR(50) NOT NULL DEFAULT '60 mins',
+        category VARCHAR(100) NOT NULL DEFAULT 'Facials',
+        duration VARCHAR(50) NOT NULL DEFAULT '',
         price DOUBLE PRECISION NOT NULL,
         description TEXT,
         target_focus VARCHAR(255),
@@ -51,71 +102,20 @@ async function main() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_spa_bookings_status ON spa_bookings (status);`);
     console.log('Indexes ready.');
 
-    // Seed initial massage services if none exist
+    // Seed official Grand Spa services if none exist
     const countResult = await prisma.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM spa_services WHERE deleted_at IS NULL`);
     const count = countResult[0]?.count || 0;
     console.log(`Existing active spa services: ${count}`);
 
     if (count === 0) {
-      console.log('Seeding default massage treatments (no pictures)...');
-      const seedServices = [
-        {
-          name: 'Swedish Relaxation Massage',
-          category: 'Relaxation',
-          duration: '60 mins',
-          price: 25000,
-          description: 'Gentle, flowing strokes with premium botanical oils to ease everyday tension, soothe nerves, and induce total calming peace.',
-          target_focus: 'Full Body & Stress Relief'
-        },
-        {
-          name: 'Deep Tissue Massage',
-          category: 'Therapeutic',
-          duration: '60 mins',
-          price: 35000,
-          description: 'Intense, targeted pressure focusing on inner muscle layers to break down knots and alleviate chronic tension in the neck, back, and shoulders.',
-          target_focus: 'Neck, Back & Shoulder Knots'
-        },
-        {
-          name: 'Aromatherapy Deluxe Massage',
-          category: 'Aromatherapy',
-          duration: '75 mins',
-          price: 30000,
-          description: 'Custom-blended fragrant essential oils combined with light-to-medium rhythmic acupressure for physical and mental revitalization.',
-          target_focus: 'Full Body, Mind & Senses'
-        },
-        {
-          name: 'Hot Stone Therapy Massage',
-          category: 'Specialty',
-          duration: '90 mins',
-          price: 40000,
-          description: 'Smooth, heated volcanic basalt stones glide seamlessly across the body to melt deep muscle soreness and boost energy flow.',
-          target_focus: 'Deep Muscle Warming & Circulation'
-        },
-        {
-          name: 'Couples Rejuvenation Massage',
-          category: 'Couples Experience',
-          duration: '90 mins',
-          price: 60000,
-          description: 'Side-by-side restorative massage therapy for two in our private couples suite, tailored to each partner’s individual preferences.',
-          target_focus: 'Shared Relaxation for Two'
-        },
-        {
-          name: 'Executive Express Neck & Shoulder Relief',
-          category: 'Express Relief',
-          duration: '30 mins',
-          price: 18000,
-          description: 'Fast, highly focused upper-body relief for travelers and busy executives, targeting posture fatigue and computer stiffness.',
-          target_focus: 'Upper Back, Neck & Shoulders'
-        }
-      ];
-
-      for (const s of seedServices) {
+      console.log('Seeding official Grand Spa price list (37 treatments, no pictures)...');
+      for (const s of OFFICIAL_GRAND_SPA_SERVICES) {
         await prisma.$executeRawUnsafe(
           `INSERT INTO spa_services (name, category, duration, price, description, target_focus, available) VALUES ($1, $2, $3, $4, $5, $6, true)`,
           s.name, s.category, s.duration, s.price, s.description, s.target_focus
         );
       }
-      console.log('Seeded 6 default massage treatments successfully.');
+      console.log(`Seeded ${OFFICIAL_GRAND_SPA_SERVICES.length} official Grand Spa treatments successfully.`);
     }
 
     // Ensure spa admin exists in admin table
@@ -135,7 +135,7 @@ async function main() {
       console.log('spaadmin account already exists.');
     }
 
-    console.log('Spa database setup complete!');
+    console.log('Grand Spa database setup complete!');
   } catch (err) {
     console.error('Database setup error:', err);
     process.exit(1);

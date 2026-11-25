@@ -1,19 +1,49 @@
 // =============================================================================
-// SERENITY SPA & WELLNESS ADMIN PORTAL — JavaScript Controller
+// GRAND SPA & WELLNESS ADMIN PORTAL — JavaScript Controller
 // =============================================================================
 
 const API_BASE = window.APP_CONFIG && window.APP_CONFIG.API_URL ? window.APP_CONFIG.API_URL : '/api';
 const TOKEN_KEY = 'gl_spa_admin_token';
 const USER_KEY = 'gl_spa_admin_user';
 
+const CATEGORY_ORDER = [
+  'Facials',
+  'Massage',
+  'Pedicures',
+  'Manicures',
+  'Waxing (Sugar)',
+  'Waxing (Strip)'
+];
+
 let currentTab = 'appointments';
 let allAppointments = [];
 let catalogServices = [];
+let activeCatalogCategory = 'all';
 let financeData = null;
 
-// Currency formatting
 function formatNaira(num) {
   return '₦' + Number(num || 0).toLocaleString();
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function getOrderedCategories(services) {
+  const found = Array.from(new Set(services.map(s => s.category || 'Other')));
+  return found.sort((a, b) => {
+    const idxA = CATEGORY_ORDER.indexOf(a);
+    const idxB = CATEGORY_ORDER.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b);
+  });
 }
 
 // Toast notification
@@ -21,11 +51,11 @@ function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
   if (!container) return;
   const toast = document.createElement('div');
-  const bg = type === 'success' ? 'bg-emerald-800 text-white' : 'bg-red-800 text-white';
+  const bg = type === 'success' ? 'bg-[#462614] text-[#fbf1ec] border border-[#e8c5b8]/40' : 'bg-red-800 text-white';
   const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
 
   toast.className = `${bg} px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 pointer-events-auto transition-all transform translate-y-2 opacity-0`;
-  toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+  toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -49,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
     showLogin();
   }
 
-  // Set default dates on date inputs
   const today = new Date().toISOString().slice(0, 10);
   const walkInDate = document.getElementById('walkInDate');
   if (walkInDate) walkInDate.value = today;
@@ -106,11 +135,10 @@ async function handleSpaLogin(e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Authentication failed');
 
-    // Save token
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(USER_KEY, data.username || username);
 
-    showToast('Welcome to Serenity Spa Admin Portal');
+    showToast('Welcome to Grand Spa Admin Portal');
     showDashboard();
   } catch (err) {
     console.error('Login error:', err);
@@ -118,12 +146,12 @@ async function handleSpaLogin(e) {
     alertBox.classList.remove('hidden');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = `<span>Sign In to Spa Portal</span><i class="fa-solid fa-arrow-right text-xs ml-2"></i>`;
+    btn.innerHTML = `<span>Sign In to Grand Spa Portal</span><i class="fa-solid fa-arrow-right text-xs ml-2"></i>`;
   }
 }
 
 function handleSpaLogout() {
-  if (confirm('Are you sure you want to log out of the Spa Portal?')) {
+  if (confirm('Are you sure you want to log out of the Grand Spa Portal?')) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     showLogin();
@@ -152,10 +180,10 @@ function switchTab(tab) {
     const btn = document.getElementById(`tabBtn-${t}`);
     const section = document.getElementById(`tab-${t}`);
     if (t === tab) {
-      if (btn) btn.className = 'tab-btn active px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-700 transition-all flex items-center gap-2 whitespace-nowrap shadow-sm';
+      if (btn) btn.className = 'tab-btn active px-4 py-2 rounded-xl text-xs font-semibold text-[#fbf1ec] bg-[#462614] transition-all flex items-center gap-2 whitespace-nowrap shadow-sm';
       if (section) section.classList.remove('hidden');
     } else {
-      if (btn) btn.className = 'tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-900 transition-all flex items-center gap-2 whitespace-nowrap';
+      if (btn) btn.className = 'tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#6b4c3b] hover:text-[#462614] transition-all flex items-center gap-2 whitespace-nowrap';
       if (section) section.classList.add('hidden');
     }
   });
@@ -182,7 +210,9 @@ async function fetchAppointments() {
     });
 
     if (res.status === 401 || res.status === 403) {
-      handleSpaLogout();
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      showLogin();
       return;
     }
 
@@ -193,7 +223,7 @@ async function fetchAppointments() {
   } catch (err) {
     console.error('Error fetching spa appointments:', err);
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-500">Error loading appointments: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-700">Error loading appointments: ${escapeHtml(err.message)}</td></tr>`;
     }
   }
 }
@@ -241,16 +271,13 @@ function filterAppointments() {
   const tomorrowStr = tomorrow.toISOString().slice(0, 10);
 
   const filtered = allAppointments.filter(b => {
-    // Status
     if (status !== 'all' && b.status !== status) return false;
 
-    // Date
     const bDateStr = b.appointmentDate ? new Date(b.appointmentDate).toISOString().slice(0, 10) : '';
     if (dateFilter === 'today' && bDateStr !== todayStr) return false;
     if (dateFilter === 'tomorrow' && bDateStr !== tomorrowStr) return false;
     if (dateFilter === 'custom' && customDate && bDateStr !== customDate) return false;
 
-    // Search query
     if (search) {
       const match = (b.guestName || '').toLowerCase().includes(search) ||
                     (b.phone || '').toLowerCase().includes(search) ||
@@ -271,83 +298,74 @@ function renderAppointmentsTable(list) {
   if (!tbody) return;
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-gray-400">No appointments found matching your filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-[#7a523c]">No appointments found matching your filters.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = list.map(b => {
     const dateFormatted = b.appointmentDate ? new Date(b.appointmentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-    
-    // Status badge styling
+
     let statusClass = 'bg-gray-100 text-gray-700';
-    if (b.status === 'confirmed') statusClass = 'bg-emerald-100 text-emerald-800';
+    if (b.status === 'confirmed') statusClass = 'bg-[#e8c5b8] text-[#462614]';
     else if (b.status === 'in-progress') statusClass = 'bg-amber-100 text-amber-800';
     else if (b.status === 'completed') statusClass = 'bg-blue-100 text-blue-800';
     else if (b.status === 'cancelled') statusClass = 'bg-red-100 text-red-700 line-through';
 
-    // Payment badge
-    let paymentClass = 'bg-amber-50 text-amber-700 border border-amber-200';
-    if (b.paymentStatus === 'paid') paymentClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-    else if (b.paymentStatus === 'charged-to-room') paymentClass = 'bg-purple-50 text-purple-700 border border-purple-200';
+    let paymentClass = 'bg-amber-50 text-amber-800 border border-amber-200';
+    if (b.paymentStatus === 'paid') paymentClass = 'bg-emerald-50 text-emerald-800 border border-emerald-200';
+    else if (b.paymentStatus === 'charged-to-room') paymentClass = 'bg-purple-50 text-purple-800 border border-purple-200';
 
     const isDone = b.status === 'completed';
 
     return `
-      <tr class="hover:bg-gray-50/80 transition-colors">
-        <!-- Ref & Date -->
+      <tr class="hover:bg-[#f5e3db]/40 transition-colors">
         <td class="py-3.5 px-4">
-          <span class="font-mono font-bold text-gray-900">${b.bookingRef || 'SPA-' + b.id}</span>
-          <span class="block text-[11px] text-gray-400 mt-0.5">${dateFormatted}</span>
+          <span class="font-mono font-bold text-[#462614]">${escapeHtml(b.bookingRef || 'SPA-' + b.id)}</span>
+          <span class="block text-[11px] text-[#7a523c] mt-0.5">${dateFormatted}</span>
         </td>
 
-        <!-- Guest Details -->
         <td class="py-3.5 px-4">
-          <div class="font-semibold text-gray-900">${b.guestName}</div>
-          <div class="text-[11px] text-gray-500">${b.phone}</div>
+          <div class="font-semibold text-[#3a2318]">${escapeHtml(b.guestName)}</div>
+          <div class="text-[11px] text-[#6b4c3b]">${escapeHtml(b.phone)}</div>
           ${b.roomNumber ? `
-            <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-gray-100 text-[10px] font-bold text-gray-700">
-              <i class="fa-solid fa-hotel text-[9px] mr-1"></i>${b.roomNumber}
+            <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-[#f5e3db] text-[10px] font-bold text-[#462614]">
+              <i class="fa-solid fa-hotel text-[9px] mr-1"></i>${escapeHtml(b.roomNumber)}
             </span>
-          ` : '<span class="text-[10px] text-gray-400">Walk-in</span>'}
+          ` : '<span class="text-[10px] text-[#8b6b5a]">Walk-in</span>'}
         </td>
 
-        <!-- Service -->
         <td class="py-3.5 px-4">
-          <div class="font-medium text-gray-900">${b.serviceName}</div>
-          ${b.numberOfGuests > 1 ? `<span class="text-[10px] text-emerald-700 font-semibold">${b.numberOfGuests} Guests</span>` : ''}
-          ${b.specialRequests ? `<div class="text-[10px] text-gray-500 truncate max-w-xs italic">"${b.specialRequests}"</div>` : ''}
+          <div class="font-medium text-[#3a2318]">${escapeHtml(b.serviceName)}</div>
+          ${b.numberOfGuests > 1 ? `<span class="text-[10px] text-[#462614] font-semibold">${b.numberOfGuests} Guests</span>` : ''}
+          ${b.specialRequests ? `<div class="text-[10px] text-[#6b4c3b] truncate max-w-xs italic">"${escapeHtml(b.specialRequests)}"</div>` : ''}
         </td>
 
-        <!-- Time Slot -->
         <td class="py-3.5 px-4 whitespace-nowrap">
-          <span class="font-semibold text-gray-800 bg-gray-100 px-2.5 py-1 rounded-md text-xs">
-            ${b.timeSlot}
+          <span class="font-semibold text-[#462614] bg-[#f5e3db] px-2.5 py-1 rounded-md text-xs">
+            ${escapeHtml(b.timeSlot)}
           </span>
         </td>
 
-        <!-- Price & Payment -->
         <td class="py-3.5 px-4 whitespace-nowrap">
-          <div class="font-bold text-gray-900 font-playfair text-sm">${formatNaira(b.price)}</div>
+          <div class="font-bold text-[#462614] font-playfair text-sm">${formatNaira(b.price)}</div>
           <span class="inline-block text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${paymentClass}">
-            ${b.paymentStatus || 'unpaid'} ${b.paymentMethod ? `(${b.paymentMethod})` : ''}
+            ${escapeHtml(b.paymentStatus || 'unpaid')} ${b.paymentMethod ? `(${escapeHtml(b.paymentMethod)})` : ''}
           </span>
         </td>
 
-        <!-- Status -->
         <td class="py-3.5 px-4 whitespace-nowrap">
           <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusClass}">
-            ${b.status}
+            ${escapeHtml(b.status)}
           </span>
         </td>
 
-        <!-- Actions -->
         <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
           ${!isDone && b.status !== 'cancelled' ? `
-            <button onclick="quickCompleteAppointment(${b.id}, ${b.price})" class="bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs" title="Mark Completed & Paid">
+            <button onclick="quickCompleteAppointment(${b.id}, ${b.price})" class="bg-[#462614] hover:bg-[#321a0d] text-[#fbf1ec] px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs" title="Mark Completed & Paid">
               <i class="fa-solid fa-check mr-1"></i>Complete
             </button>
           ` : ''}
-          <button onclick="openStatusModal(${b.id})" class="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-gray-100 rounded-lg text-xs" title="Edit Status / Payment">
+          <button onclick="openStatusModal(${b.id})" class="p-1.5 text-[#6b4c3b] hover:text-[#462614] hover:bg-[#f2dfd6] rounded-lg text-xs" title="Edit Status / Payment">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
         </td>
@@ -356,7 +374,6 @@ function renderAppointmentsTable(list) {
   }).join('');
 }
 
-// Quick Complete & Paid
 async function quickCompleteAppointment(id, price) {
   const method = prompt(`Record settlement for ${formatNaira(price)}:\nEnter payment method (cash, pos, transfer, room):`, 'cash');
   if (method === null) return;
@@ -380,7 +397,6 @@ async function quickCompleteAppointment(id, price) {
   }
 }
 
-// Status modal
 function openStatusModal(id) {
   const booking = allAppointments.find(b => b.id === id);
   if (!booking) return;
@@ -451,27 +467,25 @@ function renderFinances() {
   document.getElementById('finMonthRevenue').textContent = formatNaira(financeData.thisMonthRevenue);
   document.getElementById('finPendingRevenue').textContent = formatNaira(financeData.pendingRevenue);
 
-  // Payment Methods
   const pm = financeData.byPaymentMethod || {};
   document.getElementById('payCash').textContent = formatNaira(pm.cash);
   document.getElementById('payPOS').textContent = formatNaira(pm.pos);
   document.getElementById('payTransfer').textContent = formatNaira(pm.transfer);
   document.getElementById('payRoom').textContent = formatNaira(pm['charged-to-room']);
 
-  // Popular Services List
   const list = document.getElementById('popularServicesList');
   if (list && financeData.popularServices) {
     if (financeData.popularServices.length === 0) {
-      list.innerHTML = `<p class="text-xs text-gray-400">No completed treatment revenues recorded yet.</p>`;
+      list.innerHTML = `<p class="text-xs text-[#7a523c]">No completed service revenues recorded yet.</p>`;
     } else {
       list.innerHTML = financeData.popularServices.map(s => {
         return `
-          <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 text-xs">
+          <div class="flex items-center justify-between p-3 rounded-xl bg-[#f5e3db]/50 text-xs border border-[#efe0d8]">
             <div>
-              <span class="font-semibold text-gray-800 block">${s.name}</span>
-              <span class="text-[10px] text-gray-500">${s.count} sessions completed</span>
+              <span class="font-semibold text-[#3a2318] block">${escapeHtml(s.name)}</span>
+              <span class="text-[10px] text-[#6b4c3b]">${s.count} sessions completed</span>
             </div>
-            <span class="font-bold font-playfair text-emerald-800 text-sm">${formatNaira(s.revenue)}</span>
+            <span class="font-bold font-playfair text-[#462614] text-sm">${formatNaira(s.revenue)}</span>
           </div>
         `;
       }).join('');
@@ -480,7 +494,7 @@ function renderFinances() {
 }
 
 // -----------------------------------------------------------------------------
-// TAB 3: MASSAGE TREATMENTS CATALOG (NO PICTURES)
+// TAB 3: SERVICE MENU & PRICE LIST CATALOG (NO PICTURES)
 // -----------------------------------------------------------------------------
 async function fetchCatalog() {
   const grid = document.getElementById('catalogGrid');
@@ -488,67 +502,133 @@ async function fetchCatalog() {
     const res = await fetch(`${API_BASE}/spa/admin/services?_t=${Date.now()}`, {
       headers: getAuthHeaders()
     });
-    if (!res.ok) throw new Error('Failed to load spa catalog');
+    if (!res.ok) throw new Error('Failed to load Grand Spa service menu');
     catalogServices = await res.json();
+
+    const badgeCount = document.getElementById('badgeCatalogCount');
+    if (badgeCount) badgeCount.textContent = catalogServices.length;
+
+    updateCategoryDatalist();
+    renderCatalogCategoryPills();
     renderCatalog();
     populateWalkInServices();
   } catch (err) {
     console.error('Catalog load error:', err);
     if (grid) {
-      grid.innerHTML = `<div class="col-span-full text-center py-8 text-red-500">Failed to load massage catalog: ${err.message}</div>`;
+      grid.innerHTML = `<div class="col-span-full text-center py-8 text-red-700">Failed to load service menu: ${escapeHtml(err.message)}</div>`;
     }
   }
+}
+
+function updateCategoryDatalist() {
+  const datalist = document.getElementById('spaCategoryList');
+  if (!datalist) return;
+  const allCats = Array.from(new Set([...CATEGORY_ORDER, ...catalogServices.map(s => s.category).filter(Boolean)]));
+  datalist.innerHTML = allCats.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+}
+
+function renderCatalogCategoryPills() {
+  const container = document.getElementById('catalogCategoryPills');
+  if (!container) return;
+
+  const categories = getOrderedCategories(catalogServices);
+  const pills = ['all', ...categories];
+
+  container.innerHTML = pills.map(cat => {
+    const isAll = cat === 'all';
+    const isActive = activeCatalogCategory.toLowerCase() === cat.toLowerCase();
+    const count = isAll
+      ? catalogServices.length
+      : catalogServices.filter(s => (s.category || 'Other') === cat).length;
+    const label = isAll ? `All (${count})` : `${escapeHtml(cat)} (${count})`;
+
+    const cls = isActive
+      ? 'bg-[#462614] text-[#fbf1ec] shadow-sm'
+      : 'bg-white text-[#462614] border border-[#d8b6a7] hover:bg-[#e8c5b8]/50';
+
+    return `
+      <button onclick="filterCatalogCategory('${cat.replace(/'/g, "\\'")}')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${cls}">
+        ${label}
+      </button>
+    `;
+  }).join('');
+}
+
+function filterCatalogCategory(cat) {
+  activeCatalogCategory = cat;
+  renderCatalogCategoryPills();
+  renderCatalog();
 }
 
 function renderCatalog() {
   const grid = document.getElementById('catalogGrid');
   if (!grid) return;
 
-  if (catalogServices.length === 0) {
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">No massage treatments in catalog yet. Click "+ Add New Massage Treatment" above to create one.</div>`;
+  const search = (document.getElementById('catalogSearchInput')?.value || '').toLowerCase().trim();
+
+  const filtered = catalogServices.filter(s => {
+    if (activeCatalogCategory !== 'all' && (s.category || 'Other').toLowerCase() !== activeCatalogCategory.toLowerCase()) {
+      return false;
+    }
+    if (search) {
+      const match = (s.name || '').toLowerCase().includes(search) ||
+                    (s.category || '').toLowerCase().includes(search) ||
+                    (s.description || '').toLowerCase().includes(search) ||
+                    (s.targetFocus || '').toLowerCase().includes(search);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-[#7a523c]">No services found matching your filter. Click "Add New Service" to create one.</div>`;
     return;
   }
 
-  grid.innerHTML = catalogServices.map(s => {
+  grid.innerHTML = filtered.map(s => {
     return `
-      <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col justify-between">
+      <div class="bg-[#fffaf7] rounded-2xl p-5 border border-[#e2c6ba] shadow-sm flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-              ${s.category || 'Massage'}
+          <div class="flex items-center justify-between mb-3 gap-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#462614] bg-[#e8c5b8] px-2.5 py-0.5 rounded">
+              ${escapeHtml(s.category || 'Spa Service')}
             </span>
-            <span class="text-xs text-gray-500">
-              <i class="fa-regular fa-clock text-emerald-600 mr-1"></i>${s.duration || '60 mins'}
-            </span>
+            ${s.duration && s.duration.trim() ? `
+              <span class="text-xs text-[#6b4c3b]">
+                <i class="fa-regular fa-clock text-[#462614] mr-1"></i>${escapeHtml(s.duration)}
+              </span>
+            ` : ''}
           </div>
 
-          <h3 class="text-lg font-playfair font-bold text-gray-900 mb-1.5">${s.name}</h3>
+          <h3 class="text-base font-playfair font-bold text-[#462614] mb-1.5 leading-snug">${escapeHtml(s.name)}</h3>
 
-          ${s.targetFocus ? `
-            <div class="text-[11px] text-emerald-700 font-medium mb-3">
-              <i class="fa-solid fa-bullseye text-[10px] mr-1"></i>${s.targetFocus}
+          ${s.targetFocus && s.targetFocus.trim() ? `
+            <div class="text-[11px] text-[#7a523c] font-medium mb-2">
+              <i class="fa-solid fa-bullseye text-[10px] mr-1"></i>${escapeHtml(s.targetFocus)}
             </div>
           ` : ''}
 
-          <p class="text-xs text-gray-600 leading-relaxed mb-6">
-            ${s.description || 'No description provided.'}
-          </p>
+          ${s.description && s.description.trim() ? `
+            <p class="text-xs text-[#6b4c3b] leading-relaxed mb-4">
+              ${escapeHtml(s.description)}
+            </p>
+          ` : '<div class="mb-3"></div>'}
         </div>
 
-        <div class="pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">
+        <div class="pt-3.5 border-t border-[#efe0d8] flex items-center justify-between mt-auto">
           <div>
-            <span class="text-[10px] uppercase text-gray-400 block font-semibold">Price</span>
-            <span class="text-lg font-bold font-playfair text-gray-900">${formatNaira(s.price)}</span>
+            <span class="text-[10px] uppercase text-[#7a523c] block font-semibold">Price</span>
+            <span class="text-lg font-bold font-playfair text-[#462614]">${formatNaira(s.price)}</span>
           </div>
 
           <div class="flex items-center gap-1.5">
-            <button onclick="toggleServiceAvailability(${s.id}, ${!s.available})" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${s.available ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500'}">
+            <button onclick="toggleServiceAvailability(${s.id}, ${!s.available})" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${s.available ? 'bg-[#f5e3db] text-[#462614] border border-[#d8b6a7]' : 'bg-gray-100 text-gray-500'}">
               ${s.available ? 'Active' : 'Disabled'}
             </button>
-            <button onclick="openTreatmentModal(${s.id})" class="p-1.5 text-gray-600 hover:text-emerald-700 hover:bg-gray-100 rounded-lg text-xs" title="Edit Treatment">
+            <button onclick="openTreatmentModal(${s.id})" class="p-1.5 text-[#6b4c3b] hover:text-[#462614] hover:bg-[#f2dfd6] rounded-lg text-xs" title="Edit Service">
               <i class="fa-solid fa-pen"></i>
             </button>
-            <button onclick="deleteTreatment(${s.id})" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-xs" title="Delete">
+            <button onclick="deleteTreatment(${s.id})" class="p-1.5 text-[#8b6b5a] hover:text-red-700 hover:bg-red-50 rounded-lg text-xs" title="Delete Service">
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
@@ -558,7 +638,7 @@ function renderCatalog() {
   }).join('');
 }
 
-// Add / Edit Treatment Modal (NO PICTURES)
+// Add / Edit Service Modal (NO PICTURES)
 function openTreatmentModal(id = null) {
   const form = document.getElementById('treatmentForm');
   form.reset();
@@ -568,17 +648,19 @@ function openTreatmentModal(id = null) {
     if (s) {
       document.getElementById('treatmentId').value = s.id;
       document.getElementById('treatmentName').value = s.name;
-      document.getElementById('treatmentCategory').value = s.category || 'Relaxation';
-      document.getElementById('treatmentDuration').value = s.duration || '60 mins';
+      document.getElementById('treatmentCategory').value = s.category || 'Facials';
+      document.getElementById('treatmentDuration').value = s.duration || '';
       document.getElementById('treatmentPrice').value = s.price;
       document.getElementById('treatmentTargetFocus').value = s.targetFocus || '';
       document.getElementById('treatmentDescription').value = s.description || '';
       document.getElementById('treatmentAvailable').checked = Boolean(s.available);
-      document.getElementById('treatmentModalTitle').textContent = 'Edit Massage Treatment';
+      document.getElementById('treatmentModalTitle').textContent = 'Edit Spa Service';
     }
   } else {
     document.getElementById('treatmentId').value = '';
-    document.getElementById('treatmentModalTitle').textContent = 'Add New Massage Treatment';
+    document.getElementById('treatmentCategory').value = activeCatalogCategory !== 'all' ? activeCatalogCategory : 'Facials';
+    document.getElementById('treatmentDuration').value = '';
+    document.getElementById('treatmentModalTitle').textContent = 'Add New Spa Service';
     document.getElementById('treatmentAvailable').checked = true;
   }
 
@@ -598,7 +680,7 @@ async function handleTreatmentSubmit(e) {
   const id = document.getElementById('treatmentId').value;
   const payload = {
     name: document.getElementById('treatmentName').value.trim(),
-    category: document.getElementById('treatmentCategory').value,
+    category: document.getElementById('treatmentCategory').value.trim(),
     duration: document.getElementById('treatmentDuration').value.trim(),
     price: parseFloat(document.getElementById('treatmentPrice').value),
     targetFocus: document.getElementById('treatmentTargetFocus').value.trim() || null,
@@ -617,9 +699,9 @@ async function handleTreatmentSubmit(e) {
       body: JSON.stringify(payload)
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to save treatment');
+    if (!res.ok) throw new Error(data.error || 'Failed to save service');
 
-    showToast(isEdit ? 'Massage treatment updated' : 'New massage treatment created');
+    showToast(isEdit ? 'Service updated' : 'New service added to Grand Spa menu');
     closeTreatmentModal();
     fetchCatalog();
   } catch (err) {
@@ -635,7 +717,7 @@ async function toggleServiceAvailability(id, available) {
       body: JSON.stringify({ available })
     });
     if (!res.ok) throw new Error('Failed to update status');
-    showToast(`Treatment marked ${available ? 'Active' : 'Disabled'}`);
+    showToast(`Service marked ${available ? 'Active' : 'Disabled'}`);
     fetchCatalog();
   } catch (err) {
     showToast(err.message, 'error');
@@ -643,14 +725,14 @@ async function toggleServiceAvailability(id, available) {
 }
 
 async function deleteTreatment(id) {
-  if (!confirm('Are you sure you want to remove this massage treatment from the catalog?')) return;
+  if (!confirm('Are you sure you want to remove this service from the Grand Spa menu?')) return;
   try {
     const res = await fetch(`${API_BASE}/spa/services/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
-    if (!res.ok) throw new Error('Failed to delete treatment');
-    showToast('Massage treatment deleted');
+    if (!res.ok) throw new Error('Failed to delete service');
+    showToast('Service deleted from menu');
     fetchCatalog();
   } catch (err) {
     showToast(err.message, 'error');
@@ -663,8 +745,18 @@ async function deleteTreatment(id) {
 function populateWalkInServices() {
   const select = document.getElementById('walkInServiceSelect');
   if (!select) return;
-  select.innerHTML = '<option value="">-- Choose a Massage --</option>' +
-    catalogServices.map(s => `<option value="${s.id}" data-price="${s.price}" data-name="${s.name}">${s.name} (${s.duration || '60m'} - ${formatNaira(s.price)})</option>`).join('');
+
+  const categories = getOrderedCategories(catalogServices);
+  const groupsHtml = categories.map(cat => {
+    const items = catalogServices.filter(s => (s.category || 'Other') === cat);
+    const options = items.map(s => {
+      const displayName = cat.startsWith('Waxing') ? `${s.name} — ${cat}` : s.name;
+      return `<option value="${s.id}" data-price="${s.price}" data-name="${escapeHtml(displayName)}">${escapeHtml(s.name)} (${formatNaira(s.price)})</option>`;
+    }).join('');
+    return `<optgroup label="${escapeHtml(cat)}">${options}</optgroup>`;
+  }).join('');
+
+  select.innerHTML = '<option value="">-- Choose a Service --</option>' + groupsHtml;
 }
 
 function openWalkInModal() {
@@ -694,7 +786,7 @@ async function handleWalkInSubmit(e) {
 
   const payload = {
     serviceId: select.value ? parseInt(select.value) : null,
-    serviceName: opt ? opt.getAttribute('data-name') : 'Massage Treatment',
+    serviceName: opt ? opt.getAttribute('data-name') : 'Grand Spa Treatment',
     appointmentDate: document.getElementById('walkInDate').value,
     timeSlot: document.getElementById('walkInTimeSlot').value,
     guestName: document.getElementById('walkInGuestName').value.trim(),
@@ -718,6 +810,8 @@ async function handleWalkInSubmit(e) {
     showToast('Walk-in appointment recorded');
     closeWalkInModal();
     document.getElementById('walkInForm').reset();
+    const walkInDate = document.getElementById('walkInDate');
+    if (walkInDate) walkInDate.value = new Date().toISOString().slice(0, 10);
     fetchAppointments();
     fetchFinances();
   } catch (err) {
@@ -754,7 +848,7 @@ async function handleChangePasswordSubmit(e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Password update failed');
 
-    showToast('Spa Admin password updated successfully');
+    showToast('Grand Spa Admin password updated successfully');
     closeChangePasswordModal();
     document.getElementById('pwOld').value = '';
     document.getElementById('pwNew').value = '';

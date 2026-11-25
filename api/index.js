@@ -489,7 +489,7 @@ const authenticateToken = (req, res, next) => {
   jwt.verify(token, SECRET_KEY, (err, user) => {
     if (err) return res.sendStatus(403);
     if (user.role === 'spa_admin') {
-      return res.status(403).json({ error: "Access restricted: Spa Admin accounts can only access Serenity Spa operations." });
+      return res.status(403).json({ error: "Access restricted: Spa Admin accounts can only access Grand Spa operations." });
     }
     req.user = user;
     next();

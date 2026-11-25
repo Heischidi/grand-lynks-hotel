@@ -1,59 +1,59 @@
 // =============================================================================
-// SERENITY SPA & WELLNESS MODULE — Routes & Controllers
+// GRAND SPA & WELLNESS MODULE — Routes & Controllers
 // =============================================================================
 
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
 const DEFAULT_SPA_SERVICES = [
-  {
-    name: "Swedish Relaxation Massage",
-    category: "Relaxation",
-    duration: "60 mins",
-    price: 25000,
-    description: "Gentle, rhythmic gliding strokes with organic essential oils to release everyday tension, increase blood flow, and calm the central nervous system.",
-    targetFocus: "Full Body & Stress Relief"
-  },
-  {
-    name: "Deep Tissue Massage",
-    category: "Therapeutic",
-    duration: "60 mins",
-    price: 35000,
-    description: "Firm, targeted acupressure addressing the sub-layers of musculature and fascia to eliminate chronic muscle knots, neck stiffness, and lower back tightness.",
-    targetFocus: "Neck, Back & Shoulder Knots"
-  },
-  {
-    name: "Aromatherapy Deluxe Massage",
-    category: "Aromatherapy",
-    duration: "75 mins",
-    price: 30000,
-    description: "Curated bespoke botanical extracts paired with soothing fluid massage sequences to harmonize mind, body, and senses.",
-    targetFocus: "Full Body, Mind & Senses"
-  },
-  {
-    name: "Hot Stone Therapy Massage",
-    category: "Specialty",
-    duration: "90 mins",
-    price: 40000,
-    description: "Heated basalt river stones glide gracefully along key energetic meridian points, melting away deep-seated fatigue and muscular stiffness.",
-    targetFocus: "Deep Muscle Warming & Circulation"
-  },
-  {
-    name: "Couples Rejuvenation Massage",
-    category: "Couples Experience",
-    duration: "90 mins",
-    price: 60000,
-    description: "A dual sanctuary experience in our private couple's suite with complementary aromatherapy and personalized pressure for both guests.",
-    targetFocus: "Shared Relaxation for Two"
-  },
-  {
-    name: "Executive Express Neck & Shoulder Relief",
-    category: "Express Relief",
-    duration: "30 mins",
-    price: 18000,
-    description: "Targeted quick relief tailored for travel fatigue, computer neck strains, and busy schedules to restore physical vitality quickly.",
-    targetFocus: "Upper Back, Neck & Shoulders"
-  }
+  // Facials (6)
+  { name: "Deep Cleansing Facial", category: "Facials", duration: "", price: 15000, description: null, targetFocus: null },
+  { name: "Treatment Facial", category: "Facials", duration: "", price: 20000, description: null, targetFocus: null },
+  { name: "Pro-Acne Facial", category: "Facials", duration: "", price: 25000, description: null, targetFocus: null },
+  { name: "Hydra Facial", category: "Facials", duration: "", price: 35000, description: null, targetFocus: null },
+  { name: "Dermaplaning Facial", category: "Facials", duration: "", price: 30000, description: null, targetFocus: null },
+  { name: "Purifying Facial", category: "Facials", duration: "", price: 18000, description: null, targetFocus: null },
+
+  // Massage (8)
+  { name: "Swedish Massage", category: "Massage", duration: "", price: 25000, description: null, targetFocus: null },
+  { name: "Deep Tissue Massage", category: "Massage", duration: "", price: 30000, description: null, targetFocus: null },
+  { name: "Hot Stone Massage", category: "Massage", duration: "", price: 35000, description: null, targetFocus: null },
+  { name: "Aromatherapy Massage", category: "Massage", duration: "", price: 28000, description: null, targetFocus: null },
+  { name: "Back, Neck and Shoulder Massage", category: "Massage", duration: "", price: 12000, description: null, targetFocus: null },
+  { name: "Back, Waist and Shoulder Massage", category: "Massage", duration: "", price: 12000, description: null, targetFocus: null },
+  { name: "Head Massage", category: "Massage", duration: "", price: 10000, description: null, targetFocus: null },
+  { name: "Foot Massage", category: "Massage", duration: "", price: 10000, description: null, targetFocus: null },
+
+  // Pedicures (4)
+  { name: "Classic Pedicure", category: "Pedicures", duration: "", price: 15000, description: null, targetFocus: null },
+  { name: "Paraffin Wax Pedicure", category: "Pedicures", duration: "", price: 18000, description: null, targetFocus: null },
+  { name: "Jelly Pedicure", category: "Pedicures", duration: "", price: 17000, description: null, targetFocus: null },
+  { name: "Dry Pedicure", category: "Pedicures", duration: "", price: 16000, description: null, targetFocus: null },
+
+  // Manicures (3)
+  { name: "Classic Manicure", category: "Manicures", duration: "", price: 12000, description: null, targetFocus: null },
+  { name: "Paraffin Wax Manicure", category: "Manicures", duration: "", price: 15000, description: null, targetFocus: null },
+  { name: "Jelly Manicure", category: "Manicures", duration: "", price: 13000, description: null, targetFocus: null },
+
+  // Waxing (Sugar) (9)
+  { name: "Full Body Wax", category: "Waxing (Sugar)", duration: "", price: 20000, description: null, targetFocus: null },
+  { name: "Full Body Wax with Underarms and Brazilian", category: "Waxing (Sugar)", duration: "", price: 25000, description: null, targetFocus: null },
+  { name: "Brazilian Wax", category: "Waxing (Sugar)", duration: "", price: 10000, description: null, targetFocus: null },
+  { name: "Underarms Wax", category: "Waxing (Sugar)", duration: "", price: 5000, description: null, targetFocus: null },
+  { name: "Underarms and Brazilian", category: "Waxing (Sugar)", duration: "", price: 15000, description: null, targetFocus: null },
+  { name: "Full Legs Wax", category: "Waxing (Sugar)", duration: "", price: 16000, description: null, targetFocus: null },
+  { name: "Half Legs Wax", category: "Waxing (Sugar)", duration: "", price: 10000, description: null, targetFocus: null },
+  { name: "Full Hands Wax", category: "Waxing (Sugar)", duration: "", price: 15000, description: null, targetFocus: null },
+  { name: "Half Hands Wax", category: "Waxing (Sugar)", duration: "", price: 10000, description: null, targetFocus: null },
+
+  // Waxing (Strip) (7)
+  { name: "Full Body Wax", category: "Waxing (Strip)", duration: "", price: 25000, description: null, targetFocus: null },
+  { name: "Full Body Wax with Underarms and Brazilian", category: "Waxing (Strip)", duration: "", price: 30000, description: null, targetFocus: null },
+  { name: "Brazilian Wax", category: "Waxing (Strip)", duration: "", price: 15000, description: null, targetFocus: null },
+  { name: "Underarms Wax", category: "Waxing (Strip)", duration: "", price: 10000, description: null, targetFocus: null },
+  { name: "Full Legs Wax", category: "Waxing (Strip)", duration: "", price: 18000, description: null, targetFocus: null },
+  { name: "Half Legs Wax", category: "Waxing (Strip)", duration: "", price: 15000, description: null, targetFocus: null },
+  { name: "Arms Wax", category: "Waxing (Strip)", duration: "", price: 16000, description: null, targetFocus: null }
 ];
 
 // Helper to seed services if empty
@@ -74,7 +74,7 @@ async function ensureDefaultServices(prisma) {
           }
         });
       }
-      console.log("✅ Seeded default spa massage treatments.");
+      console.log("✅ Seeded official Grand Spa service menu (37 treatments).");
     }
   } catch (err) {
     console.warn("Could not check/seed spa services automatically:", err.message);
@@ -106,7 +106,7 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
         SECRET_KEY,
         { expiresIn: "24h" }
       );
-      return res.json({ token, username: "spaadmin", role: "spa_admin", name: "Serenity Spa Manager" });
+      return res.json({ token, username: "spaadmin", role: "spa_admin", name: "Grand Spa Manager" });
     }
 
     try {
@@ -129,7 +129,7 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
         { expiresIn: "24h" }
       );
 
-      res.json({ token, username: admin.username, role: admin.role, name: "Serenity Spa Manager" });
+      res.json({ token, username: admin.username, role: admin.role, name: "Grand Spa Manager" });
     } catch (error) {
       console.error("Spa login error:", error);
       res.status(500).json({ error: "Authentication service error" });
@@ -182,7 +182,7 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
   // SPA SERVICES (CATALOG - NO PICTURES)
   // ---------------------------------------------------------------------------
 
-  // Public: Get all available massage services
+  // Public: Get all available spa services in official menu order
   app.get("/spa/services", async (req, res) => {
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     try {
@@ -191,7 +191,7 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
           deletedAt: null,
           available: true
         },
-        orderBy: { price: "asc" }
+        orderBy: { id: "asc" }
       });
       res.json(services);
     } catch (error) {
@@ -200,13 +200,13 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
     }
   });
 
-  // Spa Admin: Get all massage services (including inactive)
+  // Spa Admin: Get all spa services (including inactive)
   app.get("/spa/admin/services", authenticateSpaAdmin, async (req, res) => {
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     try {
       const services = await prisma.spaService.findMany({
         where: { deletedAt: null },
-        orderBy: { createdAt: "desc" }
+        orderBy: { id: "asc" }
       });
       res.json(services);
     } catch (error) {
@@ -215,11 +215,11 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
     }
   });
 
-  // Spa Admin: Create new massage treatment (NO PICTURES)
+  // Spa Admin: Create new spa service (NO PICTURES)
   app.post("/spa/services", authenticateSpaAdmin, async (req, res) => {
     const { name, category, duration, price, description, targetFocus, available } = req.body;
     if (!name || price === undefined || price === null) {
-      return res.status(400).json({ error: "Massage name and price are required." });
+      return res.status(400).json({ error: "Service name and price are required." });
     }
 
     const numPrice = parseFloat(price);
@@ -231,22 +231,22 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
       const service = await prisma.spaService.create({
         data: {
           name: name.trim(),
-          category: category ? category.trim() : "Massage",
-          duration: duration ? duration.trim() : "60 mins",
+          category: category ? category.trim() : "Facials",
+          duration: duration ? duration.trim() : "",
           price: numPrice,
           description: description ? description.trim() : null,
           targetFocus: targetFocus ? targetFocus.trim() : null,
           available: available !== undefined ? Boolean(available) : true
         }
       });
-      res.status(201).json({ message: "Massage treatment created successfully", service });
+      res.status(201).json({ message: "Spa service created successfully", service });
     } catch (error) {
       console.error("Error creating spa service:", error);
-      res.status(500).json({ error: "Failed to create massage treatment." });
+      res.status(500).json({ error: "Failed to create spa service." });
     }
   });
 
-  // Spa Admin: Update massage treatment details, price, duration, availability (NO PICTURES)
+  // Spa Admin: Update spa service details, price, duration, availability (NO PICTURES)
   app.put("/spa/services/:id", authenticateSpaAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid service ID" });
@@ -256,13 +256,13 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
     try {
       const existing = await prisma.spaService.findUnique({ where: { id } });
       if (!existing || existing.deletedAt) {
-        return res.status(404).json({ error: "Massage treatment not found." });
+        return res.status(404).json({ error: "Spa service not found." });
       }
 
       const data = {};
       if (name !== undefined) data.name = name.trim();
       if (category !== undefined) data.category = category.trim();
-      if (duration !== undefined) data.duration = duration.trim();
+      if (duration !== undefined) data.duration = duration ? duration.trim() : "";
       if (price !== undefined) {
         const numPrice = parseFloat(price);
         if (isNaN(numPrice) || numPrice < 0) return res.status(400).json({ error: "Invalid price" });
@@ -277,14 +277,14 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
         data
       });
 
-      res.json({ message: "Massage treatment updated successfully", service: updated });
+      res.json({ message: "Spa service updated successfully", service: updated });
     } catch (error) {
       console.error("Error updating spa service:", error);
-      res.status(500).json({ error: "Failed to update massage treatment." });
+      res.status(500).json({ error: "Failed to update spa service." });
     }
   });
 
-  // Spa Admin: Delete massage treatment
+  // Spa Admin: Delete spa service
   app.delete("/spa/services/:id", authenticateSpaAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid service ID" });
@@ -294,10 +294,10 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
         where: { id },
         data: { deletedAt: new Date(), available: false }
       });
-      res.json({ message: "Massage treatment removed from catalog." });
+      res.json({ message: "Spa service removed from menu." });
     } catch (error) {
       console.error("Error deleting spa service:", error);
-      res.status(500).json({ error: "Failed to delete massage treatment." });
+      res.status(500).json({ error: "Failed to delete spa service." });
     }
   });
 
@@ -305,7 +305,7 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
   // SPA APPOINTMENTS & BOOKINGS
   // ---------------------------------------------------------------------------
 
-  // Public: Guest books a massage
+  // Public: Guest books a spa service
   app.post("/spa/bookings", async (req, res) => {
     const {
       serviceId,
@@ -345,7 +345,13 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
       const numGuests = numberOfGuests ? Math.max(1, parseInt(numberOfGuests)) : 1;
       const basePrice = resolvedService ? resolvedService.price : (req.body.price ? parseFloat(req.body.price) : 25000);
       const totalPrice = basePrice * numGuests;
-      const finalServiceName = resolvedService ? resolvedService.name : (serviceName ? serviceName.trim() : "Signature Massage");
+
+      let finalServiceName = serviceName ? serviceName.trim() : "Grand Spa Treatment";
+      if (resolvedService) {
+        finalServiceName = resolvedService.category && resolvedService.category.startsWith("Waxing")
+          ? `${resolvedService.name} — ${resolvedService.category}`
+          : resolvedService.name;
+      }
 
       const randomSuffix = Math.floor(1000 + Math.random() * 9000);
       const bookingRef = `SPA-${randomSuffix}`;
@@ -373,13 +379,13 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
       });
 
       res.status(201).json({
-        message: "Your massage appointment has been booked and confirmed!",
+        message: "Your Grand Spa appointment has been booked and confirmed!",
         booking
       });
     } catch (error) {
       console.error("Error saving spa booking:", error);
       res.status(500).json({
-        error: "Unable to process massage booking. Please contact Grand Lynks reception."
+        error: "Unable to process spa booking. Please contact Grand Lynks reception."
       });
     }
   });
@@ -498,7 +504,7 @@ module.exports = function registerSpaRoutes(app, prisma, authenticateSpaAdmin, S
         data: {
           bookingRef,
           serviceId: serviceId ? parseInt(serviceId) : null,
-          serviceName: serviceName ? serviceName.trim() : "Custom Massage",
+          serviceName: serviceName ? serviceName.trim() : "Grand Spa Treatment",
           price: price ? parseFloat(price) : 25000,
           guestName: guestName.trim(),
           phone: phone.trim(),
