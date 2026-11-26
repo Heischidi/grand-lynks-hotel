@@ -62,8 +62,7 @@
               <path d="M32 36 C44 35, 55 27, 56 15 C46 16, 37 24, 32 36 Z" />
             </svg>
             <div class="leading-tight">
-              <span class="block text-xl font-playfair font-bold text-[#462614]">Grand Lynks</span>
-              <span class="block text-[10px] uppercase tracking-[0.22em] text-[#7a523c] font-semibold">Grand Spa</span>
+              <span class="block text-lg sm:text-xl font-cinzel font-bold tracking-[0.12em] text-[#462614] whitespace-nowrap">GRAND SPA</span>
             </div>
           </a>
         </div>
@@ -395,7 +394,7 @@
       </div>
 
       <p id="successEmailNotice" class="text-[11px] text-[#6b4c3b] mb-6 leading-relaxed">
-        A confirmation email with payment details has been sent to your email address. Once Grand Spa approves your payment, you will receive a final payment confirmation email.
+        A booking confirmation email has been sent to your email address. Once Grand Spa approves your payment, you will receive a payment confirmation email.
       </p>
 
       <button onclick="closeSuccessModal()" class="w-full bg-[#462614] text-[#fbf1ec] py-3 rounded-full hover:bg-[#321a0d] transition-all font-semibold text-sm">
@@ -781,7 +780,7 @@
       const emailNotice = document.getElementById("successEmailNotice");
       if (emailNotice) {
         emailNotice.textContent = booking.email
-          ? `A confirmation email with payment instructions has been sent to ${booking.email}. Once Grand Spa approves your payment, you will receive a final payment confirmation email.`
+          ? `A booking confirmation email has been sent to ${booking.email}. Once Grand Spa approves your payment, you will receive a payment confirmation email.`
           : "Please arrive 10 minutes prior to your appointment at Grand Spa. Staying hotel guests can also settle via room charge.";
       }
 

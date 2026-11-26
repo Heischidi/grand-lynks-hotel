@@ -103,18 +103,18 @@ async function sendSpaBookingReceivedEmail(resend, booking) {
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
         "X-Mailer": "Grand Lynks Reservations System"
       },
-      text: `Dear ${booking.guestName},\n\nThank you for choosing Grand Spa at Grand Lynks Homes & Apartments. Your appointment request has been received.\n\nBooking Ref: #${refLabel}\nService: ${booking.serviceName}\nDate: ${formattedDate}\nTime Slot: ${booking.timeSlot}\nGuests: ${booking.numberOfGuests || 1}${booking.roomNumber ? `\nRoom Number: ${booking.roomNumber}` : ""}${booking.specialRequests ? `\nPreferences: ${booking.specialRequests}` : ""}\nTotal Amount: NGN ${Number(booking.price || 0).toLocaleString()}\n\nTo complete payment, please transfer the total amount to:\nBank: Moniepoint\nAccount Name: Grand Lynks Homes and Apartments\nAccount Number: 5015151292\n\nPlease use your name and booking reference (${refLabel}) as the transfer description. Once payment is verified and approved by Grand Spa, you will receive a payment confirmation email.\n\nNeed help? Call us at +234 814 223 4691\n80 Pa Michael Imoudu Ave, Gwarinpa, Abuja\n\nWarm regards,\nThe Grand Spa Team`,
+      text: `Dear ${booking.guestName},\n\nThank you for choosing Grand Spa. Your appointment request has been received.\n\nBooking Ref: #${refLabel}\nService: ${booking.serviceName}\nDate: ${formattedDate}\nTime Slot: ${booking.timeSlot}\nGuests: ${booking.numberOfGuests || 1}${booking.roomNumber ? `\nRoom Number: ${booking.roomNumber}` : ""}${booking.specialRequests ? `\nPreferences: ${booking.specialRequests}` : ""}\nTotal Amount: NGN ${Number(booking.price || 0).toLocaleString()}\n\nPayment can be settled directly at Grand Spa upon arrival (or via your hotel room bill if staying). Once your payment is verified and approved by Grand Spa, you will receive a payment confirmation email.\n\nNeed help? Call us at +234 814 223 4691\n80 Pa Michael Imoudu Ave, Gwarinpa, Abuja\n\nWarm regards,\nThe Grand Spa Team`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2c6ba; border-radius: 10px; overflow: hidden; background-color: #fffaf7; color: #3a2318;">
           <div style="background-color: #fbf1ec; padding: 24px; border-bottom: 3px solid #462614;">
-            <p style="margin: 0 0 4px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #7a523c;">Grand Lynks Homes &amp; Apartments</p>
+            <p style="margin: 0 0 4px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #7a523c;">Grand Spa</p>
             <h2 style="color: #462614; margin: 0;">Grand Spa — Appointment Received</h2>
             <p style="margin: 6px 0 0; color: #6b4c3b; font-size: 13px;">${statusSubtitle}</p>
           </div>
 
           <div style="padding: 28px;">
             <p>Dear ${booking.guestName},</p>
-            <p>Thank you for choosing <strong>Grand Spa</strong> at Grand Lynks Homes &amp; Apartments. Your spa appointment has been received.</p>
+            <p>Thank you for choosing <strong>Grand Spa</strong>. Your spa appointment has been received.</p>
 
             <div style="background-color: #fbf1ec; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2c6ba;">
               <h3 style="margin-top: 0; color: #462614;">Appointment Details</h3>
@@ -128,15 +128,9 @@ async function sendSpaBookingReceivedEmail(resend, booking) {
               <p style="margin: 10px 0 0;"><strong>Total Amount:</strong> ${formatNaira(booking.price)}</p>
             </div>
 
-            <div style="border: 2px solid #462614; padding: 20px; border-radius: 8px; margin: 24px 0; background-color: #ffffff;">
-              <h3 style="color: #462614; margin-top: 0;">Payment Instructions</h3>
-              <p>To confirm payment in advance, please transfer the total amount to the account below (or settle at Grand Spa / via your hotel room bill):</p>
-              <div style="background: #fbf1ec; padding: 15px; border-radius: 6px; border: 1px solid #e2c6ba;">
-                <p style="margin: 5px 0;"><strong>Bank Name:</strong> Moniepoint</p>
-                <p style="margin: 5px 0;"><strong>Account Name:</strong> Grand Lynks Homes and Apartments</p>
-                <p style="margin: 5px 0;"><strong>Account Number:</strong> 5015151292</p>
-              </div>
-              <p style="margin-top: 14px; font-size: 0.9em; color: #6b4c3b;"><em>Please use your name and reference (#${refLabel}) as the transfer description. Once payment is verified and approved by Grand Spa, you will receive a payment confirmation email.</em></p>
+            <div style="border: 1px solid #e2c6ba; padding: 18px; border-radius: 8px; margin: 24px 0; background-color: #ffffff;">
+              <h3 style="color: #462614; margin-top: 0;">Payment &amp; Arrival</h3>
+              <p style="margin: 0; font-size: 0.95em; color: #3a2318;">Payment can be settled at <strong>Grand Spa</strong> upon arrival (or via your hotel room bill for staying guests). Once your payment is verified and approved by Grand Spa, you will receive a payment confirmation email.</p>
             </div>
 
             <p>Need help? Contact us at +234 814 223 4691.</p>
